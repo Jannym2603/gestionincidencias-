@@ -1,0 +1,182 @@
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración | Gestión de Incidencias</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="config-page">
+
+<div class="app-container">
+
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <div class="logo-icon">GI</div>
+            <div>
+                <h2>Gestión</h2>
+                <span>de Incidencias</span>
+            </div>
+        </div>
+
+        <nav class="menu">
+            <a href="dashboard.html" class="menu-item">Dashboard</a>
+            <a href="tickets.html" class="menu-item">Tickets</a>
+            <a href="crear-ticket.html" class="menu-item" data-menu="crear-ticket">Crear Ticket</a>
+            <a href="usuarios.html" class="menu-item" data-menu="usuarios">Usuarios</a>
+            <a href="reportes.html" class="menu-item" data-menu="reportes">Reportes</a>
+            <a href="historial.html" class="menu-item" data-menu="historial">Historial</a>
+            <a href="configuracion.html" class="menu-item active" data-menu="configuracion">Configuración</a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+
+        <header class="topbar">
+            <div>
+                <h1>Configuración</h1>
+                <p>Administra tu perfil y seguridad de acceso.</p>
+            </div>
+
+            <div class="topbar-actions">
+                <div class="user-box">
+                    <div class="avatar" id="avatarUsuario">US</div>
+                    <div>
+                        <strong id="nombreUsuario">Usuario</strong>
+                        <span id="rolUsuario">Rol</span>
+                    </div>
+                </div>
+
+                <button class="logout-btn" id="btnLogout">Cerrar sesión</button>
+            </div>
+        </header>
+
+        <section id="configMenu" class="table-section">
+
+            <div class="section-header">
+                <div>
+                    <h2>Opciones de configuración</h2>
+                    <p>Selecciona qué deseas realizar.</p>
+                </div>
+            </div>
+
+            <div class="config-options-grid">
+
+                <div class="config-option-card blue" onclick="mostrarSeccionConfig('perfil')">
+                    <span>Perfil</span>
+                    <h3>Mi perfil</h3>
+                    <p>Consulta tu nombre, correo y rol actual.</p>
+                </div>
+
+                <div class="config-option-card green" onclick="mostrarSeccionConfig('password')">
+                    <span>Seguridad</span>
+                    <h3>Contraseña</h3>
+                    <p>Cambia tu contraseña de acceso al sistema.</p>
+                </div>
+
+            </div>
+
+        </section>
+
+        <section id="seccionPerfil" class="form-card config-section" style="display: none;">
+
+            <h2 style="margin-bottom: 18px;">Mi perfil</h2>
+
+            <div class="info-box">
+                Esta información pertenece al usuario que inició sesión actualmente.
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Nombre</label>
+                    <input type="text" id="perfilNombre" disabled>
+                </div>
+
+                <div class="form-group">
+                    <label>Correo</label>
+                    <input type="text" id="perfilCorreo" disabled>
+                </div>
+
+                <div class="form-group">
+                    <label>Rol</label>
+                    <input type="text" id="perfilRol" disabled>
+                </div>
+            </div>
+
+        </section>
+
+        <section id="seccionPassword" class="form-card config-section" style="display: none;">
+
+            <h2 style="margin-bottom: 18px;">Cambiar contraseña</h2>
+
+            <div class="info-box">
+                Al cambiar la contraseña, tendrás que iniciar sesión nuevamente.
+            </div>
+
+            <form id="configPasswordForm">
+
+                <div class="form-grid">
+
+                    <div class="form-group">
+                        <label for="nuevaPasswordConfig">Nueva contraseña</label>
+                        <div class="password-wrapper">
+                            <input 
+                                type="password" 
+                                id="nuevaPasswordConfig" 
+                                placeholder="Ingresa la nueva contraseña"
+                                required
+                            >
+                            <button 
+                                type="button" 
+                                class="password-toggle" 
+                                onclick="togglePasswordConfig('nuevaPasswordConfig', this)"
+                            >
+                                👁
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirmarPasswordConfig">Confirmar contraseña</label>
+                        <div class="password-wrapper">
+                            <input 
+                                type="password" 
+                                id="confirmarPasswordConfig" 
+                                placeholder="Confirma la nueva contraseña"
+                                required
+                            >
+                            <button 
+                                type="button" 
+                                class="password-toggle" 
+                                onclick="togglePasswordConfig('confirmarPasswordConfig', this)"
+                            >
+                                👁
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="primary-btn">
+                        Guardar nueva contraseña
+                    </button>
+
+                    <button type="button" class="secondary-btn" onclick="document.getElementById('configPasswordForm').reset()">
+                        Limpiar
+                    </button>
+                </div>
+
+            </form>
+
+        </section>
+
+    </main>
+</div>
+
+<script src="app.js"></script>
+<script src="configuracion.js"></script>
+</body>
+</html>
+```

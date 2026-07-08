@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Usuarios | Gestión de Incidencias</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app-container">
+
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <div class="logo-icon">GI</div>
+            <div>
+                <h2>Gestión</h2>
+                <span>de Incidencias</span>
+            </div>
+        </div>
+
+        <nav class="menu">
+            <a href="dashboard.html" class="menu-item">Dashboard</a>
+            <a href="tickets.html" class="menu-item">Tickets</a>
+            <a href="crear-ticket.html" class="menu-item" data-menu="crear-ticket">Crear Ticket</a>
+            <a href="usuarios.html" class="menu-item active" data-menu="usuarios">Usuarios</a>
+            <a href="reportes.html" class="menu-item" data-menu="reportes">Reportes</a>
+            <a href="historial.html" class="menu-item" data-menu="historial">Historial</a>
+            <a href="configuracion.html" class="menu-item" data-menu="configuracion">Configuración</a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+
+        <header class="topbar">
+            <div>
+                <h1>Usuarios</h1>
+                <p>Consulta y registra usuarios del sistema.</p>
+            </div>
+
+            <div class="topbar-actions">
+                <input type="text" placeholder="Buscar usuario..." class="search-input" id="buscarUsuario">
+
+                <div class="user-box">
+                    <div class="avatar" id="avatarUsuario">US</div>
+                    <div>
+                        <strong id="nombreUsuario">Usuario</strong>
+                        <span id="rolUsuario">Rol</span>
+                    </div>
+                </div>
+
+                <button class="logout-btn" id="btnLogout">Cerrar sesión</button>
+            </div>
+        </header>
+
+        <section class="action-bar">
+            <div>
+                <h2>Gestión de usuarios</h2>
+                <p>Registra clientes, agentes, supervisores y administradores.</p>
+            </div>
+
+            <button class="primary-btn" id="btnMostrarRegistro">
+                + Nuevo usuario
+            </button>
+        </section>
+
+        <section class="metrics-grid">
+            <div class="metric-card">
+                <span>Total usuarios</span>
+                <h3 id="totalUsuariosVista">0</h3>
+                <p>Usuarios registrados</p>
+            </div>
+
+            <div class="metric-card green">
+                <span>Activos</span>
+                <h3 id="usuariosActivos">0</h3>
+                <p>Usuarios habilitados</p>
+            </div>
+
+            <div class="metric-card gray">
+                <span>Inactivos</span>
+                <h3 id="usuariosInactivos">0</h3>
+                <p>Usuarios deshabilitados</p>
+            </div>
+
+            <div class="metric-card blue">
+                <span>Vista</span>
+                <h3 id="vistaRol">-</h3>
+                <p>Acceso según tu rol</p>
+            </div>
+        </section>
+
+        <section class="form-card" id="registroUsuarioCard" style="display: none; margin-bottom: 24px;">
+            <div class="section-header">
+                <div>
+                    <h2>Registrar nuevo usuario</h2>
+                    <p>Crear clientes, agentes, supervisores o administradores para acceder al sistema.</p>
+                </div>
+
+                <button class="secondary-btn" id="btnOcultarRegistro">
+                    Cerrar formulario
+                </button>
+            </div>
+
+            <form id="registroUsuarioForm">
+                <div class="form-grid">
+
+                    <div class="form-group">
+                        <label for="nombre">Nombre</label>
+                        <input type="text" id="nombre" placeholder="Ejemplo: María" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="apellido">Apellido</label>
+                        <input type="text" id="apellido" placeholder="Ejemplo: González" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="correo">Correo</label>
+                        <input type="email" id="correo" placeholder="correo@ejemplo.com" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="telefono">Teléfono</label>
+                        <input type="text" id="telefono" placeholder="6000-0000">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Contraseña inicial</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="password" placeholder="Ingresa tu contraseña" required>
+                            <button type="button" class="password-toggle" onclick="togglePasswordUsuario('password', this)">
+                                👁
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirmarPassword">Confirmar contraseña</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="confirmarPassword" placeholder="Confirma tu contraseña" required>
+                            <button type="button" class="password-toggle" onclick="togglePasswordUsuario('confirmarPassword', this)">
+                                👁
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="rol">Rol</label>
+                        <select id="rol" required>
+                            <option value="">Seleccione un rol</option>
+                            <option value="CLIENTE">CLIENTE</option>
+                            <option value="AGENTE">AGENTE</option>
+                            <option value="SUPERVISOR">SUPERVISOR</option>
+                            <option value="ADMIN">ADMIN</option>
+                        </select>
+                    </div>
+
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="primary-btn">
+                        Registrar usuario
+                    </button>
+
+                    <button type="reset" class="secondary-btn">
+                        Limpiar
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <section class="table-section">
+            <div class="section-header">
+                <div>
+                    <h2>Listado de usuarios</h2>
+                    <p>Usuarios registrados actualmente en el sistema.</p>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre completo</th>
+                            <th>Correo</th>
+                            <th>Teléfono</th>
+                            <th>Estado</th>
+                            <th>Fecha creación</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usuariosBody">
+                        <tr>
+                            <td colspan="6">Cargando usuarios...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<script src="app.js"></script>
+<script src="usuarios.js"></script>
+</body>
+</html>

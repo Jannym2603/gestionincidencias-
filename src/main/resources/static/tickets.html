@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tickets | Gestión de Incidencias</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app-container">
+
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <div class="logo-icon">GI</div>
+            <div>
+                <h2>Gestión</h2>
+                <span>de Incidencias</span>
+            </div>
+        </div>
+
+        <nav class="menu">
+            <a href="dashboard.html" class="menu-item">Dashboard</a>
+            <a href="tickets.html" class="menu-item active">Tickets</a>
+            <a href="crear-ticket.html" class="menu-item" data-menu="crear-ticket">Crear Ticket</a>
+            <a href="usuarios.html" class="menu-item" data-menu="usuarios">Usuarios</a>
+            <a href="reportes.html" class="menu-item" data-menu="reportes">Reportes</a>
+            <a href="historial.html" class="menu-item" data-menu="historial">Historial</a>
+            <a href="configuracion.html" class="menu-item" data-menu="configuracion">Configuración</a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+
+        <header class="topbar">
+            <div>
+                <h1>Tickets</h1>
+                <p>Consulta y administra las incidencias registradas.</p>
+            </div>
+
+            <div class="topbar-actions">
+                <div class="user-box">
+                    <div class="avatar" id="avatarUsuario">JR</div>
+                    <div>
+                        <strong id="nombreUsuario">Janeth Ramos</strong>
+                        <span id="rolUsuario">ADMIN</span>
+                    </div>
+                </div>
+
+                <button class="logout-btn" id="btnLogout">Cerrar sesión</button>
+            </div>
+        </header>
+
+        <section class="table-section">
+            <div class="section-header">
+                <div>
+                    <h2>Listado de tickets</h2>
+                    <p id="descripcionVista">Tickets disponibles según tu rol.</p>
+                </div>
+
+                <button class="primary-btn" onclick="window.location.href='crear-ticket.html'">
+                    Crear ticket
+                </button>
+            </div>
+
+            <div class="form-grid" style="margin-bottom: 18px;">
+                <div class="form-group">
+                    <label>Filtrar por estado</label>
+                    <select id="filtroEstado">
+                        <option value="">Todos</option>
+                        <option value="NUEVO">NUEVO</option>
+                        <option value="ASIGNADO">ASIGNADO</option>
+                        <option value="EN_PROGRESO">EN_PROGRESO</option>
+                        <option value="RESUELTO">RESUELTO</option>
+                        <option value="CERRADO">CERRADO</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Filtrar por prioridad</label>
+                    <select id="filtroPrioridad">
+                        <option value="">Todas</option>
+                        <option value="P1_CRITICA">P1_CRITICA</option>
+                        <option value="P2_ALTA">P2_ALTA</option>
+                        <option value="P3_MEDIA">P3_MEDIA</option>
+                        <option value="P4_BAJA">P4_BAJA</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Número</th>
+                            <th>Título</th>
+                            <th>Cliente</th>
+                            <th>Agente</th>
+                            <th>Estado</th>
+                            <th>Prioridad</th>
+                            <th>Fecha</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ticketsBody">
+                        <tr>
+                            <td colspan="8">Cargando tickets...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<script src="app.js"></script>
+<script src="tickets.js"></script>
+</body>
+</html>

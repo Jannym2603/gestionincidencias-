@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Gestión de Incidencias</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page">
+
+<div class="login-container">
+    <div class="login-card">
+
+        <div class="login-logo">GI</div>
+
+        <div id="loginSection">
+            <h1>Iniciar sesión</h1>
+            <p>Accede al sistema de gestión de incidencias con tus credenciales.</p>
+
+            <form id="loginForm">
+
+                <label for="correo">Correo electrónico</label>
+                <input
+                    type="email"
+                    id="correo"
+                    placeholder="Ejemplo: janeth@test.com"
+                    required
+                >
+
+                <label for="password">Contraseña</label>
+                <div class="password-wrapper">
+                    <input
+                        type="password"
+                        id="password"
+                        placeholder="Ingresa tu contraseña"
+                        required
+                    >
+                    <button type="button" class="password-toggle" onclick="togglePassword('password', this)">
+                        👁
+                    </button>
+                </div>
+
+                <button type="submit">Entrar al sistema</button>
+
+            </form>
+
+            <button type="button" class="link-button" id="btnMostrarRecuperar">
+                ¿Olvidaste tu contraseña?
+            </button>
+
+            <p style="margin-top: 18px; font-size: 13px; text-align: center;">
+                Los usuarios solo pueden ser creados por un administrador o supervisor.
+            </p>
+        </div>
+
+        <div id="recuperarPasswordSection" style="display: none;">
+            <h1>Recuperar contraseña</h1>
+            <p>Ingresa tu correo registrado. Te enviaremos un código para confirmar el cambio.</p>
+
+            <form id="recuperarPasswordForm">
+
+                <label for="correoRecuperacion">Correo electrónico</label>
+                <input
+                    type="email"
+                    id="correoRecuperacion"
+                    placeholder="correo@ejemplo.com"
+                    required
+                >
+
+                <button type="button" id="btnEnviarCodigoRecuperacion">
+                    Enviar código
+                </button>
+
+                <div id="codigoRecuperacionBox" style="display: none;">
+                    <label for="codigoRecuperacion">Código recibido</label>
+                    <input
+                        type="text"
+                        id="codigoRecuperacion"
+                        placeholder="Ejemplo: 482913"
+                        maxlength="6"
+                    >
+
+                    <label for="nuevaPassword">Nueva contraseña</label>
+                    <div class="password-wrapper">
+                        <input
+                            type="password"
+                            id="nuevaPassword"
+                            placeholder="Nueva contraseña"
+                        >
+                        <button type="button" class="password-toggle" onclick="togglePassword('nuevaPassword', this)">
+                            👁
+                        </button>
+                    </div>
+
+                    <label for="confirmarPassword">Confirmar contraseña</label>
+                    <div class="password-wrapper">
+                        <input
+                            type="password"
+                            id="confirmarPassword"
+                            placeholder="Confirma la contraseña"
+                        >
+                        <button type="button" class="password-toggle" onclick="togglePassword('confirmarPassword', this)">
+                            👁
+                        </button>
+                    </div>
+
+                    <button type="submit">Actualizar contraseña</button>
+                </div>
+
+                <button type="button" class="secondary-login-btn" id="btnVolverLogin">
+                    Volver al inicio de sesión
+                </button>
+
+            </form>
+        </div>
+
+    </div>
+</div>
+
+<script src="app.js"></script>
+<script src="login.js"></script>
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Ticket | Gestión de Incidencias</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app-container">
+
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <div class="logo-icon">GI</div>
+            <div>
+                <h2>Gestión</h2>
+                <span>de Incidencias</span>
+            </div>
+        </div>
+
+        <nav class="menu">
+            <a href="dashboard.html" class="menu-item">Dashboard</a>
+            <a href="tickets.html" class="menu-item">Tickets</a>
+            <a href="crear-ticket.html" class="menu-item active" data-menu="crear-ticket">Crear Ticket</a>
+            <a href="usuarios.html" class="menu-item" data-menu="usuarios">Usuarios</a>
+            <a href="reportes.html" class="menu-item" data-menu="reportes">Reportes</a>
+            <a href="historial.html" class="menu-item" data-menu="historial">Historial</a>
+            <a href="configuracion.html" class="menu-item" data-menu="configuracion">Configuración</a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+
+        <header class="topbar">
+            <div>
+                <h1>Crear Ticket</h1>
+                <p id="descripcionCrearTicket">
+                    Registra una nueva incidencia para seguimiento del equipo de soporte.
+                </p>
+            </div>
+
+            <div class="topbar-actions">
+                <div class="user-box">
+                    <div class="avatar" id="avatarUsuario">US</div>
+                    <div>
+                        <strong id="nombreUsuario">Usuario</strong>
+                        <span id="rolUsuario">Rol</span>
+                    </div>
+                </div>
+
+                <button class="logout-btn" id="btnLogout">Cerrar sesión</button>
+            </div>
+        </header>
+
+        <section class="action-bar">
+            <div>
+                <h2>Nueva incidencia</h2>
+                <p id="textoNuevaIncidencia">
+                    Completa los datos principales del ticket. La prioridad se calculará automáticamente.
+                </p>
+            </div>
+
+            <button class="secondary-btn" type="button" onclick="window.location.href='tickets.html'">
+                Volver a tickets
+            </button>
+        </section>
+
+        <section class="form-card">
+            <div class="info-box" id="infoCrearTicket">
+                El sistema usará el impacto y la urgencia para calcular la prioridad del ticket.
+            </div>
+
+            <form id="crearTicketForm">
+
+                <div class="form-grid">
+
+                    <div class="form-group full">
+                        <label for="titulo">Título</label>
+                        <input 
+                            type="text" 
+                            id="titulo" 
+                            placeholder="Ejemplo: No puedo iniciar sesión"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group full">
+                        <label for="descripcion">Descripción</label>
+                        <textarea 
+                            id="descripcion" 
+                            placeholder="Describe con detalle la incidencia reportada..."
+                            required
+                        ></textarea>
+                    </div>
+
+                    <div class="form-group full">
+                        <label for="archivoTicket">Adjuntar archivo</label>
+                        <input 
+                            type="file" 
+                            id="archivoTicket"
+                            accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.txt,.xlsx,.xls"
+                        >
+                        <small style="color: #64748b; margin-top: 6px;">
+                            Puedes adjuntar evidencia, capturas, documentos o archivos relacionados con la incidencia.
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tipoIncidenciaId">Tipo de incidencia</label>
+                        <select id="tipoIncidenciaId" required>
+                            <option value="">Cargando tipos...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="grupoClienteTicket">
+                        <label for="clienteId">Cliente</label>
+                        <select id="clienteId" required>
+                            <option value="">Cargando usuarios...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="severidad">Severidad</label>
+                        <select id="severidad" required>
+                            <option value="BAJA">BAJA</option>
+                            <option value="MEDIA">MEDIA</option>
+                            <option value="ALTA">ALTA</option>
+                            <option value="CRITICA">CRITICA</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="criticidad">Criticidad</label>
+                        <select id="criticidad" required>
+                            <option value="BAJA">BAJA</option>
+                            <option value="MEDIA">MEDIA</option>
+                            <option value="ALTA">ALTA</option>
+                            <option value="CRITICA">CRITICA</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="impacto">Impacto</label>
+                        <select id="impacto" required>
+                            <option value="BAJO">BAJO</option>
+                            <option value="MEDIO">MEDIO</option>
+                            <option value="ALTO">ALTO</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="urgencia">Urgencia</label>
+                        <select id="urgencia" required>
+                            <option value="BAJA">BAJA</option>
+                            <option value="MEDIA">MEDIA</option>
+                            <option value="ALTA">ALTA</option>
+                        </select>
+                    </div>
+
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="primary-btn">
+                        Crear ticket
+                    </button>
+
+                    <button type="button" class="secondary-btn" onclick="window.location.href='tickets.html'">
+                        Cancelar
+                    </button>
+                </div>
+
+            </form>
+        </section>
+
+    </main>
+</div>
+
+<script src="app.js"></script>
+<script src="crear-ticket.js"></script>
+</body>
+</html>

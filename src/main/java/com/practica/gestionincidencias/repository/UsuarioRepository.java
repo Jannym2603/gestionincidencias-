@@ -1,0 +1,14 @@
+package com.practica.gestionincidencias.repository;
+
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.practica.gestionincidencias.entity.Usuario;
+
+public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
+
+    Optional<Usuario> findByCorreo(String correo);
+
+    boolean existsByCorreo(String correo);
+}

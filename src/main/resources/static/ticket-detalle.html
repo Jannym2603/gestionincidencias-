@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalle del Ticket | Gestión de Incidencias</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app-container">
+
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <div class="logo-icon">GI</div>
+            <div>
+                <h2>Gestión</h2>
+                <span>de Incidencias</span>
+            </div>
+        </div>
+
+        <nav class="menu">
+            <a href="dashboard.html" class="menu-item">Dashboard</a>
+            <a href="tickets.html" class="menu-item active">Tickets</a>
+            <a href="crear-ticket.html" class="menu-item" data-menu="crear-ticket">Crear Ticket</a>
+            <a href="usuarios.html" class="menu-item" data-menu="usuarios">Usuarios</a>
+            <a href="reportes.html" class="menu-item" data-menu="reportes">Reportes</a>
+            <a href="historial.html" class="menu-item" data-menu="historial">Historial</a>
+            <a href="configuracion.html" class="menu-item" data-menu="configuracion">Configuración</a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+
+        <header class="topbar">
+            <div>
+                <h1>Detalle del ticket</h1>
+                <p>Consulta la información completa, comentarios, historial y archivos adjuntos del caso.</p>
+            </div>
+
+            <div class="topbar-actions">
+                <div class="user-box">
+                    <div class="avatar" id="avatarUsuario">US</div>
+                    <div>
+                        <strong id="nombreUsuario">Usuario</strong>
+                        <span id="rolUsuario">Rol</span>
+                    </div>
+                </div>
+
+                <button class="logout-btn" id="btnLogout">Cerrar sesión</button>
+            </div>
+        </header>
+
+        <section class="action-bar">
+            <div>
+                <h2 id="ticketNumero">Ticket</h2>
+                <p id="ticketTitulo">Cargando información del ticket...</p>
+            </div>
+
+            <button class="secondary-btn" onclick="window.location.href='tickets.html'">
+                Volver a tickets
+            </button>
+        </section>
+
+        <section class="reports-grid">
+            <div class="report-card">
+                <h3>Información general</h3>
+                <div class="report-list">
+                    <div class="report-item">
+                        <span>Estado</span>
+                        <strong id="ticketEstado">-</strong>
+                    </div>
+                    <div class="report-item">
+                        <span>Prioridad</span>
+                        <strong id="ticketPrioridad">-</strong>
+                    </div>
+                    <div class="report-item">
+                        <span>Tipo</span>
+                        <strong id="ticketTipo">-</strong>
+                    </div>
+                    <div class="report-item">
+                        <span>Fecha creación</span>
+                        <strong id="ticketFecha">-</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="report-card">
+                <h3>Personas relacionadas</h3>
+                <div class="report-list">
+                    <div class="report-item">
+                        <span>Cliente</span>
+                        <strong id="ticketCliente">-</strong>
+                    </div>
+                    <div class="report-item">
+                        <span>Correo</span>
+                        <strong id="ticketCorreo">-</strong>
+                    </div>
+                    <div class="report-item">
+                        <span>Agente</span>
+                        <strong id="ticketAgente">Sin asignar</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="report-card">
+                <h3>Acciones del ticket</h3>
+
+                <div id="accionesSupervisor" style="display: none;">
+                    <div class="form-group">
+                        <label>Asignar agente</label>
+                        <select id="agenteId">
+                            <option value="">Seleccione agente</option>
+                        </select>
+                    </div>
+                    <button class="primary-btn" onclick="asignarTicket()" style="margin-top: 12px;">
+                        Asignar ticket
+                    </button>
+                </div>
+
+                <div id="accionesAgente" style="display: none; margin-top: 18px;">
+                    <div class="form-group">
+                        <label>Cambiar estado</label>
+                        <select id="nuevoEstado">
+                            <option value="ASIGNADO">ASIGNADO</option>
+                            <option value="EN_PROGRESO">EN_PROGRESO</option>
+                            <option value="RESUELTO">RESUELTO</option>
+                            <option value="CERRADO">CERRADO</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 12px;">
+                        <label>Nota de resolución</label>
+                        <textarea id="notaResolucion" placeholder="Obligatoria al resolver o cerrar el ticket."></textarea>
+                    </div>
+
+                    <button class="primary-btn" onclick="cambiarEstadoTicket()" style="margin-top: 12px;">
+                        Actualizar estado
+                    </button>
+
+                    <div class="form-group" style="margin-top: 18px;">
+                        <label>Ajustar prioridad</label>
+                        <select id="nuevaPrioridad">
+                            <option value="P1_CRITICA">P1_CRITICA</option>
+                            <option value="P2_ALTA">P2_ALTA</option>
+                            <option value="P3_MEDIA">P3_MEDIA</option>
+                            <option value="P4_BAJA">P4_BAJA</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 12px;">
+                        <label>Justificación del cambio</label>
+                        <textarea id="justificacionPrioridad" placeholder="Explica por qué se ajusta la prioridad."></textarea>
+                    </div>
+
+                    <button class="secondary-btn" onclick="cambiarPrioridadTicket()" style="margin-top: 12px;">
+                        Actualizar prioridad
+                    </button>
+                </div>
+
+                <p id="mensajeAcciones" class="info-box" style="margin-top: 14px;">
+                    Acciones disponibles según tu rol.
+                </p>
+            </div>
+        </section>
+
+        <section class="table-section" style="margin-bottom: 24px;">
+            <div class="section-header">
+                <div>
+                    <h2>Descripción</h2>
+                    <p>Detalle reportado en la incidencia.</p>
+                </div>
+            </div>
+
+            <p id="ticketDescripcion">
+                Cargando descripción...
+            </p>
+        </section>
+
+        <section class="table-section" style="margin-bottom: 24px;">
+            <div class="section-header">
+                <div>
+                    <h2>Archivos adjuntos</h2>
+                    <p>Consulta o descarga los archivos asociados a este ticket.</p>
+                </div>
+            </div>
+
+            <div class="info-box">
+                Puedes subir evidencia, capturas, documentos o archivos relacionados con la incidencia.
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group full">
+                    <label for="archivoDetalleTicket">Subir nuevo archivo</label>
+                    <input
+                        type="file"
+                        id="archivoDetalleTicket"
+                        accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.txt,.xlsx,.xls"
+                    >
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="primary-btn" onclick="subirAdjuntoDesdeDetalle()">
+                    Subir archivo
+                </button>
+            </div>
+
+            <div class="table-wrapper" style="margin-top: 20px;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Archivo</th>
+                            <th>Tipo</th>
+                            <th>Tamaño</th>
+                            <th>Fecha</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adjuntosBody">
+                        <tr>
+                            <td colspan="5">Cargando adjuntos...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="reports-grid">
+            <div class="report-card">
+                <h3>Agregar comentario</h3>
+
+                <div class="form-group">
+                    <label>Tipo de comentario</label>
+                    <select id="tipoComentario">
+                        <option value="PUBLICO">PUBLICO</option>
+                        <option value="INTERNO">INTERNO</option>
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-top: 14px;">
+                    <label>Comentario</label>
+                    <textarea id="contenidoComentario" placeholder="Escribe un comentario de seguimiento..."></textarea>
+                </div>
+
+                <button class="primary-btn" onclick="crearComentario()" style="margin-top: 14px;">
+                    Guardar comentario
+                </button>
+            </div>
+
+            <div class="report-card">
+                <h3>Comentarios</h3>
+                <div id="listaComentarios" class="report-list">
+                    <p>Cargando comentarios...</p>
+                </div>
+            </div>
+
+            <div class="report-card">
+                <h3>Historial</h3>
+                <div id="listaHistorial" class="report-list">
+                    <p>Cargando historial...</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<script src="app.js"></script>
+<script src="ticket-detalle.js"></script>
+</body>
+</html>
