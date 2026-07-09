@@ -254,6 +254,21 @@ function obtenerClaseEstado(estado) {
     }
 }
 
+function obtenerClasePrioridad(prioridad) {
+    switch (prioridad) {
+        case "P1_CRITICA":
+            return "badge-prioridad-critica";
+        case "P2_ALTA":
+            return "badge-prioridad-alta";
+        case "P3_MEDIA":
+            return "badge-prioridad-media";
+        case "P4_BAJA":
+            return "badge-prioridad-baja";
+        default:
+            return "badge-cerrado";
+    }
+}
+
 function formatearFecha(fecha) {
     if (!fecha) {
         return "Sin fecha";

@@ -102,16 +102,20 @@ function pintarTicketsNormales(tickets) {
         const tr = document.createElement("tr");
 
         tr.innerHTML = `
-            <td>${ticket.numeroTicket}</td>
-            <td>${ticket.titulo}</td>
-            <td>${ticket.clienteNombre}</td>
+            <td>${ticket.numeroTicket || "Sin número"}</td>
+            <td>${ticket.titulo || "Sin título"}</td>
+            <td>${ticket.clienteNombre || "Sin cliente"}</td>
             <td>${ticket.agenteNombre || "Sin asignar"}</td>
             <td>
                 <span class="badge ${obtenerClaseEstado(ticket.estado)}">
-                    ${ticket.estado}
+                    ${ticket.estado || "Sin estado"}
                 </span>
             </td>
-            <td>${ticket.prioridad}</td>
+            <td>
+                <span class="badge ${obtenerClasePrioridad(ticket.prioridad)}">
+                    ${ticket.prioridad || "Sin prioridad"}
+                </span>
+            </td>
             <td>${formatearFecha(ticket.fechaCreacion)}</td>
             <td>
                 <a href="ticket-detalle.html?id=${ticket.id}" class="action-link">Ver</a>
@@ -159,16 +163,20 @@ function pintarTicketsAgrupadosPorCliente(tickets) {
             const tr = document.createElement("tr");
 
             tr.innerHTML = `
-                <td>${ticket.numeroTicket}</td>
-                <td>${ticket.titulo}</td>
-                <td>${ticket.clienteNombre}</td>
+                <td>${ticket.numeroTicket || "Sin número"}</td>
+                <td>${ticket.titulo || "Sin título"}</td>
+                <td>${ticket.clienteNombre || "Sin cliente"}</td>
                 <td>${ticket.agenteNombre || "Sin asignar"}</td>
                 <td>
                     <span class="badge ${obtenerClaseEstado(ticket.estado)}">
-                        ${ticket.estado}
+                        ${ticket.estado || "Sin estado"}
                     </span>
                 </td>
-                <td>${ticket.prioridad}</td>
+                <td>
+                    <span class="badge ${obtenerClasePrioridad(ticket.prioridad)}">
+                        ${ticket.prioridad || "Sin prioridad"}
+                    </span>
+                </td>
                 <td>${formatearFecha(ticket.fechaCreacion)}</td>
                 <td>
                     <a href="ticket-detalle.html?id=${ticket.id}" class="action-link">Ver</a>
@@ -207,7 +215,7 @@ function aplicarFiltros() {
     const estado = document.getElementById("filtroEstado")?.value || "";
     const prioridad = document.getElementById("filtroPrioridad")?.value || "";
     const clienteId = document.getElementById("filtroCliente")?.value || "";
-    const texto = document.getElementById("buscarTicket")?.value.toLowerCase() || "";
+    const texto = document.getElementById("buscarTicket")?.value.toLowerCase().trim() || "";
 
     let ticketsFiltrados = [...ticketsOriginales];
 
@@ -224,14 +232,23 @@ function aplicarFiltros() {
     }
 
     if (texto) {
-        ticketsFiltrados = ticketsFiltrados.filter(ticket =>
-            ticket.numeroTicket.toLowerCase().includes(texto) ||
-            ticket.titulo.toLowerCase().includes(texto) ||
-            ticket.clienteNombre.toLowerCase().includes(texto) ||
-            (ticket.agenteNombre && ticket.agenteNombre.toLowerCase().includes(texto)) ||
-            ticket.estado.toLowerCase().includes(texto) ||
-            ticket.prioridad.toLowerCase().includes(texto)
-        );
+        ticketsFiltrados = ticketsFiltrados.filter(ticket => {
+            const numeroTicket = (ticket.numeroTicket || "").toLowerCase();
+            const titulo = (ticket.titulo || "").toLowerCase();
+            const clienteNombre = (ticket.clienteNombre || "").toLowerCase();
+            const agenteNombre = (ticket.agenteNombre || "").toLowerCase();
+            const estadoTicket = (ticket.estado || "").toLowerCase();
+            const prioridadTicket = (ticket.prioridad || "").toLowerCase();
+
+            return (
+                numeroTicket.includes(texto) ||
+                titulo.includes(texto) ||
+                clienteNombre.includes(texto) ||
+                agenteNombre.includes(texto) ||
+                estadoTicket.includes(texto) ||
+                prioridadTicket.includes(texto)
+            );
+        });
     }
 
     ticketsVisibles = ticketsFiltrados;

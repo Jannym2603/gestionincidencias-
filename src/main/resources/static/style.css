@@ -383,6 +383,28 @@ td {
     color: #475569;
 }
 
+/* PRIORIDADES */
+
+.badge-prioridad-critica {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.badge-prioridad-alta {
+    background: #ffedd5;
+    color: #c2410c;
+}
+
+.badge-prioridad-media {
+    background: #fef9c3;
+    color: #a16207;
+}
+
+.badge-prioridad-baja {
+    background: #dcfce7;
+    color: #15803d;
+}
+
 .action-link {
     color: #2563eb;
     font-weight: bold;

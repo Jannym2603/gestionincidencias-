@@ -31,3 +31,15 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Seguridad / variables de entorno ###
+.env
+.env.*
+!.env.example
+
+application-local.properties
+src/main/resources/application-local.properties
+
+### Archivos subidos por usuarios ###
+uploads/*
+!uploads/.gitkeep

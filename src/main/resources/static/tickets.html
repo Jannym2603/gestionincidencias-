@@ -65,6 +65,15 @@
 
             <div class="form-grid" style="margin-bottom: 18px;">
                 <div class="form-group">
+                    <label>Buscar ticket</label>
+                    <input 
+                        type="text" 
+                        id="buscarTicket" 
+                        placeholder="Buscar por número, título, cliente, agente o estado..."
+                    >
+                </div>
+
+                <div class="form-group">
                     <label>Filtrar por estado</label>
                     <select id="filtroEstado">
                         <option value="">Todos</option>
@@ -84,6 +93,13 @@
                         <option value="P2_ALTA">P2_ALTA</option>
                         <option value="P3_MEDIA">P3_MEDIA</option>
                         <option value="P4_BAJA">P4_BAJA</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="grupoFiltroCliente" style="display: none;">
+                    <label>Filtrar por cliente</label>
+                    <select id="filtroCliente">
+                        <option value="">Todos los clientes</option>
                     </select>
                 </div>
             </div>
