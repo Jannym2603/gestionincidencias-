@@ -20,10 +20,11 @@ import com.practica.gestionincidencias.entity.UsuarioRol;
 import com.practica.gestionincidencias.repository.CodigoRecuperacionPasswordRepository;
 import com.practica.gestionincidencias.repository.UsuarioRepository;
 import com.practica.gestionincidencias.repository.UsuarioRolRepository;
+import com.practica.gestionincidencias.security.JwtService;
 import com.practica.gestionincidencias.service.NotificacionService;
 
-import jakarta.validation.Valid;
 import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -36,19 +37,22 @@ public class AuthController {
     private final CodigoRecuperacionPasswordRepository codigoRecuperacionPasswordRepository;
     private final NotificacionService notificacionService;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     public AuthController(
             UsuarioRepository usuarioRepository,
             UsuarioRolRepository usuarioRolRepository,
             CodigoRecuperacionPasswordRepository codigoRecuperacionPasswordRepository,
             NotificacionService notificacionService,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService
     ) {
         this.usuarioRepository = usuarioRepository;
         this.usuarioRolRepository = usuarioRolRepository;
         this.codigoRecuperacionPasswordRepository = codigoRecuperacionPasswordRepository;
         this.notificacionService = notificacionService;
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
 
     @PostMapping("/login")
@@ -74,11 +78,18 @@ public class AuthController {
         String nombreCompleto = usuario.getNombre() + " " + usuario.getApellido();
         String rol = usuarioRol.getRol().getNombre();
 
+        String token = jwtService.generarToken(
+                usuario.getId(),
+                usuario.getCorreo(),
+                rol
+        );
+
         return new LoginResponseDTO(
                 usuario.getId(),
                 nombreCompleto,
                 usuario.getCorreo(),
-                rol
+                rol,
+                token
         );
     }
 
@@ -172,6 +183,7 @@ public class AuthController {
     }
 
     private boolean passwordValida(Usuario usuario, String passwordIngresada) {
+
         String passwordGuardada = usuario.getPassword();
 
         if (passwordGuardada == null || passwordGuardada.isBlank()) {
@@ -181,19 +193,31 @@ public class AuthController {
         if (passwordGuardada.startsWith("$2a$")
                 || passwordGuardada.startsWith("$2b$")
                 || passwordGuardada.startsWith("$2y$")) {
-            return passwordEncoder.matches(passwordIngresada, passwordGuardada);
+
+            return passwordEncoder.matches(
+                    passwordIngresada,
+                    passwordGuardada
+            );
         }
 
         if (!passwordGuardada.equals(passwordIngresada)) {
             return false;
         }
 
-        usuario.setPassword(passwordEncoder.encode(passwordIngresada));
+        usuario.setPassword(
+                passwordEncoder.encode(passwordIngresada)
+        );
+
         usuarioRepository.save(usuario);
+
         return true;
     }
 
     private String generarCodigoRecuperacion() {
-        return String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
+
+        return String.format(
+                "%06d",
+                SECURE_RANDOM.nextInt(1_000_000)
+        );
     }
 }

@@ -40,30 +40,41 @@ async function cargarPerfilConfiguracion() {
         const response = await fetch(`${API_BASE}/usuarios`);
 
         if (!response.ok) {
-            throw new Error("No se pudieron cargar los usuarios.");
+            const mensaje = await obtenerMensajeError(response);
+
+            throw new Error(
+                mensaje || "No se pudieron cargar los usuarios."
+            );
         }
 
         const usuarios = await response.json();
 
         const usuarioActualizado = usuarios.find(
-            usuario => Number(usuario.id) === Number(usuarioSesion.id)
+            usuario =>
+                Number(usuario.id) === Number(usuarioSesion.id)
         );
 
         if (!usuarioActualizado) {
             throw new Error("Usuario no encontrado.");
         }
 
-        const nombreCompleto = `${usuarioActualizado.nombre} ${usuarioActualizado.apellido}`.trim();
+        const nombreCompleto =
+            `${usuarioActualizado.nombre} ${usuarioActualizado.apellido}`.trim();
 
+        /*
+         * Conservamos el token JWT de la sesión actual.
+         * Sin esta propiedad, al actualizar los datos del perfil
+         * se perdería la autenticación.
+         */
         const usuarioSesionActualizada = {
             id: usuarioSesion.id,
             nombre: nombreCompleto,
             correo: usuarioActualizado.correo,
-            rol: usuarioSesion.rol
+            rol: usuarioSesion.rol,
+            token: usuarioSesion.token
         };
 
-        sessionStorage.setItem("usuarioSistema", JSON.stringify(usuarioSesionActualizada));
-        localStorage.removeItem("usuarioSistema");
+        guardarSesion(usuarioSesionActualizada);
 
         pintarDatosPerfil(usuarioSesionActualizada);
         pintarUsuarioHeader();
@@ -77,31 +88,40 @@ async function cargarPerfilConfiguracion() {
 }
 
 function pintarDatosPerfil(usuario) {
-    const perfilNombre = document.getElementById("perfilNombre");
-    const perfilCorreo = document.getElementById("perfilCorreo");
-    const perfilRol = document.getElementById("perfilRol");
+    const perfilNombre =
+        document.getElementById("perfilNombre");
+
+    const perfilCorreo =
+        document.getElementById("perfilCorreo");
+
+    const perfilRol =
+        document.getElementById("perfilRol");
 
     if (perfilNombre) {
-        perfilNombre.value = usuario.nombre || "";
+        perfilNombre.value =
+            usuario.nombre || "";
     }
 
     if (perfilCorreo) {
-        perfilCorreo.value = usuario.correo || "";
+        perfilCorreo.value =
+            usuario.correo || "";
     }
 
     if (perfilRol) {
-        perfilRol.value = usuario.rol || "";
+        perfilRol.value =
+            usuario.rol || "";
     }
 }
 
 function configurarCambioPassword() {
-    const form = document.getElementById("configPasswordForm");
+    const form =
+        document.getElementById("configPasswordForm");
 
     if (!form) {
         return;
     }
 
-    form.addEventListener("submit", async (event) => {
+    form.addEventListener("submit", async event => {
         event.preventDefault();
 
         const usuario = obtenerSesion();
@@ -111,8 +131,17 @@ function configurarCambioPassword() {
             return;
         }
 
-        const nuevaPassword = document.getElementById("nuevaPasswordConfig").value.trim();
-        const confirmarPassword = document.getElementById("confirmarPasswordConfig").value.trim();
+        const nuevaPassword =
+            document
+                .getElementById("nuevaPasswordConfig")
+                .value
+                .trim();
+
+        const confirmarPassword =
+            document
+                .getElementById("confirmarPasswordConfig")
+                .value
+                .trim();
 
         if (!nuevaPassword || !confirmarPassword) {
             alert("Completa ambos campos.");
@@ -120,7 +149,9 @@ function configurarCambioPassword() {
         }
 
         if (nuevaPassword.length < 6) {
-            alert("La contraseña debe tener al menos 6 caracteres.");
+            alert(
+                "La contraseña debe tener al menos 6 caracteres."
+            );
             return;
         }
 
@@ -129,53 +160,78 @@ function configurarCambioPassword() {
             return;
         }
 
-        await cambiarPasswordDesdeConfiguracion(usuario.correo, nuevaPassword);
+        await cambiarPasswordDesdeConfiguracion(
+            usuario.correo,
+            nuevaPassword
+        );
     });
 }
 
-async function cambiarPasswordDesdeConfiguracion(correo, nuevaPassword) {
+async function cambiarPasswordDesdeConfiguracion(
+    correo,
+    nuevaPassword
+) {
     try {
-        const response = await fetch(`${API_BASE}/auth/cambiar-password`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                correo: correo,
-                nuevaPassword: nuevaPassword
-            })
-        });
+        const response = await fetch(
+            `${API_BASE}/auth/cambiar-password`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    correo: correo,
+                    nuevaPassword: nuevaPassword
+                })
+            }
+        );
 
         if (!response.ok) {
-            const mensaje = await obtenerMensajeError(response);
-            alert(mensaje || "No se pudo cambiar la contraseña.");
+            const mensaje =
+                await obtenerMensajeError(response);
+
+            alert(
+                mensaje ||
+                "No se pudo cambiar la contraseña."
+            );
+
             return;
         }
 
-        alert("Contraseña actualizada correctamente. Por seguridad, vuelve a iniciar sesión.");
+        alert(
+            "Contraseña actualizada correctamente. " +
+            "Por seguridad, vuelve a iniciar sesión."
+        );
 
-        sessionStorage.removeItem("usuarioSistema");
-        localStorage.removeItem("usuarioSistema");
-
-        window.location.href = "login.html";
+        cerrarSesion();
 
     } catch (error) {
-        console.error("Error cambiando contraseña:", error);
-        alert("Error cambiando contraseña. Revisa que Spring Boot esté corriendo.");
+        console.error(
+            "Error cambiando contraseña:",
+            error
+        );
+
+        alert(
+            "Error cambiando contraseña. " +
+            "Revisa que Spring Boot esté corriendo."
+        );
     }
 }
 
 async function obtenerMensajeError(response) {
     try {
         const data = await response.json();
+
         return data.message || null;
+
     } catch (error) {
         return null;
     }
 }
 
 function togglePasswordConfig(inputId, boton) {
-    const input = document.getElementById(inputId);
+    const input =
+        document.getElementById(inputId);
 
     if (!input) {
         return;

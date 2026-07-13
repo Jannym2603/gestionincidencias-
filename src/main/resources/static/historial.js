@@ -8,164 +8,309 @@ document.addEventListener("DOMContentLoaded", async () => {
     await cargarTicketsParaFiltro();
     await cargarHistorial();
 
-    const filtroTicket = document.getElementById("filtroTicket");
-    const filtroAccion = document.getElementById("filtroAccion");
+    const filtroTicket =
+        document.getElementById("filtroTicket");
+
+    const filtroAccion =
+        document.getElementById("filtroAccion");
 
     if (filtroTicket) {
-        filtroTicket.addEventListener("change", aplicarFiltrosHistorial);
+        filtroTicket.addEventListener(
+            "change",
+            aplicarFiltrosHistorial
+        );
     }
 
     if (filtroAccion) {
-        filtroAccion.addEventListener("change", aplicarFiltrosHistorial);
+        filtroAccion.addEventListener(
+            "change",
+            aplicarFiltrosHistorial
+        );
     }
 });
+
+/* =====================================================
+   CARGAR TICKETS
+===================================================== */
 
 async function cargarTicketsParaFiltro() {
     try {
         const usuario = obtenerSesion();
 
-        const response = await fetch(`${API_BASE}/tickets`);
+        if (!usuario) {
+            window.location.href = "login.html";
+            return;
+        }
+
+        const response = await fetch(
+            `${API_BASE}/tickets`
+        );
 
         if (!response.ok) {
-            throw new Error("No se pudieron cargar los tickets");
+            throw new Error(
+                "No se pudieron cargar los tickets."
+            );
         }
 
         const tickets = await response.json();
 
-        ticketsDisponibles = filtrarTicketsPorRol(tickets, usuario);
-
-        const select = document.getElementById("filtroTicket");
-
-        if (!select) {
-            return;
-        }
-
-        select.innerHTML = `<option value="">Todos los tickets</option>`;
-
-        ticketsDisponibles.forEach(ticket => {
-            const option = document.createElement("option");
-            option.value = ticket.id;
-            option.textContent = `${ticket.numeroTicket} - ${ticket.titulo}`;
-            select.appendChild(option);
-        });
+        /*
+         * Guardamos temporalmente todos los tickets.
+         * Después de cargar el historial, mostraremos
+         * solamente los tickets donde el usuario realizó acciones.
+         */
+        ticketsDisponibles = tickets;
 
         configurarTextoHistorial(usuario);
 
     } catch (error) {
-        console.error("Error cargando tickets para filtro:", error);
+        console.error(
+            "Error cargando tickets para filtro:",
+            error
+        );
     }
 }
+
+/* =====================================================
+   CARGAR HISTORIAL
+===================================================== */
 
 async function cargarHistorial() {
     try {
         const usuario = obtenerSesion();
 
-        const response = await fetch(`${API_BASE}/historial-tickets`);
+        if (!usuario) {
+            window.location.href = "login.html";
+            return;
+        }
+
+        const response = await fetch(
+            `${API_BASE}/historial-tickets`
+        );
 
         if (!response.ok) {
-            throw new Error("No se pudo cargar el historial");
+            throw new Error(
+                "No se pudo cargar el historial."
+            );
         }
 
         const historial = await response.json();
 
-        historialOriginal = filtrarHistorialPorRol(historial, ticketsDisponibles, usuario);
+        /*
+         * Solo mostramos los eventos realizados
+         * por el usuario que inició sesión.
+         */
+        historialOriginal = historial.filter(
+            item =>
+                Number(item.usuarioId) ===
+                Number(usuario.id)
+        );
+
         historialVisible = [...historialOriginal];
 
+        actualizarFiltroTickets();
         pintarHistorial(historialVisible);
 
     } catch (error) {
-        console.error("Error cargando historial:", error);
+        console.error(
+            "Error cargando historial:",
+            error
+        );
 
-        const tbody = document.getElementById("historialBody");
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7">No se pudo cargar el historial.</td>
-            </tr>
-        `;
+        const tbody =
+            document.getElementById("historialBody");
+
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7">
+                        No se pudo cargar el historial.
+                    </td>
+                </tr>
+            `;
+        }
     }
 }
 
-function filtrarTicketsPorRol(tickets, usuario) {
-    if (!usuario) {
-        return [];
+/* =====================================================
+   FILTRO DE TICKETS
+===================================================== */
+
+function actualizarFiltroTickets() {
+    const select =
+        document.getElementById("filtroTicket");
+
+    if (!select) {
+        return;
     }
 
-    if (usuario.rol === "CLIENTE") {
-        return tickets.filter(ticket => Number(ticket.clienteId) === Number(usuario.id));
-    }
+    select.innerHTML = `
+        <option value="">
+            Todos mis tickets
+        </option>
+    `;
 
-    if (usuario.rol === "AGENTE") {
-        return tickets.filter(ticket => Number(ticket.agenteId) === Number(usuario.id));
-    }
+    /*
+     * Obtenemos los IDs de tickets donde el usuario
+     * realizó al menos una acción.
+     */
+    const idsTicketsHistorial = [
+        ...new Set(
+            historialOriginal.map(
+                item => Number(item.ticketId)
+            )
+        )
+    ];
 
-    return tickets;
+    const ticketsDelUsuario =
+        ticketsDisponibles.filter(
+            ticket =>
+                idsTicketsHistorial.includes(
+                    Number(ticket.id)
+                )
+        );
+
+    ticketsDelUsuario.forEach(ticket => {
+        const option =
+            document.createElement("option");
+
+        option.value = ticket.id;
+
+        option.textContent =
+            `${ticket.numeroTicket} - ${ticket.titulo}`;
+
+        select.appendChild(option);
+    });
 }
 
-function filtrarHistorialPorRol(historial, tickets, usuario) {
-    if (!usuario) {
-        return [];
-    }
-
-    if (usuario.rol === "ADMIN" || usuario.rol === "SUPERVISOR") {
-        return historial;
-    }
-
-    const idsTicketsPermitidos = tickets.map(ticket => Number(ticket.id));
-
-    return historial.filter(item => idsTicketsPermitidos.includes(Number(item.ticketId)));
-}
+/* =====================================================
+   APLICAR FILTROS
+===================================================== */
 
 function aplicarFiltrosHistorial() {
-    const ticketId = document.getElementById("filtroTicket")?.value || "";
-    const accion = document.getElementById("filtroAccion")?.value || "";
+    const ticketId =
+        document.getElementById("filtroTicket")
+            ?.value || "";
 
-    let historialFiltrado = [...historialOriginal];
+    const accion =
+        document.getElementById("filtroAccion")
+            ?.value || "";
+
+    let historialFiltrado = [
+        ...historialOriginal
+    ];
 
     if (ticketId) {
-        historialFiltrado = historialFiltrado.filter(item => Number(item.ticketId) === Number(ticketId));
+        historialFiltrado =
+            historialFiltrado.filter(
+                item =>
+                    Number(item.ticketId) ===
+                    Number(ticketId)
+            );
     }
 
     if (accion) {
-        historialFiltrado = historialFiltrado.filter(item => item.accion === accion);
+        historialFiltrado =
+            historialFiltrado.filter(
+                item => item.accion === accion
+            );
     }
 
     historialVisible = historialFiltrado;
+
     pintarHistorial(historialVisible);
 }
 
+/* =====================================================
+   PINTAR HISTORIAL
+===================================================== */
+
 function pintarHistorial(historial) {
-    const tbody = document.getElementById("historialBody");
+    const tbody =
+        document.getElementById("historialBody");
+
+    if (!tbody) {
+        return;
+    }
+
     tbody.innerHTML = "";
 
     if (historial.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="7">No hay eventos registrados para mostrar.</td>
+                <td colspan="7">
+                    No tienes eventos registrados.
+                </td>
             </tr>
         `;
+
         return;
     }
 
     historial.forEach(item => {
-        const tr = document.createElement("tr");
+        const tr =
+            document.createElement("tr");
 
         tr.innerHTML = `
-            <td>${item.numeroTicket}</td>
-            <td>${item.nombreUsuario || "Sistema"}</td>
-            <td><span class="badge badge-asignado">${item.accion}</span></td>
-            <td>${item.valorAnterior || "-"}</td>
-            <td>${item.valorNuevo || "-"}</td>
-            <td>${item.descripcion || "-"}</td>
-            <td>${formatearFecha(item.fechaCreacion)}</td>
+            <td>
+                ${escaparHtml(
+                    item.numeroTicket || "-"
+                )}
+            </td>
+
+            <td>
+                ${escaparHtml(
+                    item.nombreUsuario || "Sistema"
+                )}
+            </td>
+
+            <td>
+                <span class="badge badge-asignado">
+                    ${escaparHtml(
+                        item.accion || "-"
+                    )}
+                </span>
+            </td>
+
+            <td>
+                ${escaparHtml(
+                    item.valorAnterior || "-"
+                )}
+            </td>
+
+            <td>
+                ${escaparHtml(
+                    item.valorNuevo || "-"
+                )}
+            </td>
+
+            <td>
+                ${escaparHtml(
+                    item.descripcion || "-"
+                )}
+            </td>
+
+            <td>
+                ${formatearFecha(
+                    item.fechaCreacion
+                )}
+            </td>
         `;
 
         tbody.appendChild(tr);
     });
 }
 
+/* =====================================================
+   LIMPIAR FILTROS
+===================================================== */
+
 function limpiarFiltros() {
-    const filtroTicket = document.getElementById("filtroTicket");
-    const filtroAccion = document.getElementById("filtroAccion");
+    const filtroTicket =
+        document.getElementById("filtroTicket");
+
+    const filtroAccion =
+        document.getElementById("filtroAccion");
 
     if (filtroTicket) {
         filtroTicket.value = "";
@@ -175,29 +320,45 @@ function limpiarFiltros() {
         filtroAccion.value = "";
     }
 
-    historialVisible = [...historialOriginal];
+    historialVisible = [
+        ...historialOriginal
+    ];
+
     pintarHistorial(historialVisible);
 }
 
+/* =====================================================
+   TEXTO SEGÚN USUARIO
+===================================================== */
+
 function configurarTextoHistorial(usuario) {
-    const titulo = document.querySelector(".topbar h1");
-    const descripcion = document.querySelector(".topbar p");
+    const titulo =
+        document.querySelector(".topbar h1");
+
+    const descripcion =
+        document.querySelector(".topbar p");
 
     if (!usuario || !titulo || !descripcion) {
         return;
     }
 
-    if (usuario.rol === "CLIENTE") {
-        titulo.textContent = "Mi historial";
-        descripcion.textContent = "Consulta el historial de cambios de tus tickets.";
-    } else if (usuario.rol === "AGENTE") {
-        titulo.textContent = "Historial de tickets asignados";
-        descripcion.textContent = "Consulta el historial de los tickets asignados a tu usuario.";
-    } else if (usuario.rol === "SUPERVISOR") {
-        titulo.textContent = "Historial general";
-        descripcion.textContent = "Consulta los cambios registrados en todos los tickets.";
-    } else if (usuario.rol === "ADMIN") {
-        titulo.textContent = "Historial general";
-        descripcion.textContent = "Consulta todos los eventos registrados en el sistema.";
-    }
+    titulo.textContent = "Mi historial";
+
+    descripcion.textContent =
+        "Consulta únicamente las acciones realizadas por tu usuario.";
+}
+
+/* =====================================================
+   UTILIDAD DE SEGURIDAD
+===================================================== */
+
+function escaparHtml(valor) {
+    const texto = String(valor ?? "");
+
+    return texto
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
 }
