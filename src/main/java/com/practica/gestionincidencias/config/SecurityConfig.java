@@ -35,10 +35,17 @@ public class SecurityConfig {
             HttpSecurity http) throws Exception {
 
         http
-                // Desactivamos CSRF porque la API usará JWT
+                /*
+                 * Se desactiva CSRF porque la API utiliza
+                 * autenticación mediante JWT.
+                 */
                 .csrf(csrf -> csrf.disable())
 
-                // Spring no guardará sesiones en el servidor
+                /*
+                 * Spring Security no guardará sesiones.
+                 * Cada solicitud deberá utilizar su token JWT,
+                 * excepto las rutas públicas.
+                 */
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(
                                 SessionCreationPolicy.STATELESS
@@ -47,7 +54,9 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // Archivos del frontend
+                        /*
+                         * Archivos públicos del frontend.
+                         */
                         .requestMatchers(
                                 "/",
                                 "/login.html",
@@ -58,79 +67,169 @@ public class SecurityConfig {
                                 "/images/**"
                         ).permitAll()
 
-                        // Endpoints públicos
+                        /*
+                         * Página pública utilizada por la persona
+                         * que recibe el enlace compartido.
+                         */
+                        .requestMatchers(
+                                "/ticket-compartido.html",
+                                "/ticket-compartido.js",
+                                "/style.css"
+                        ).permitAll()
+
+                        /*
+                         * Endpoints públicos de autenticación.
+                         */
                         .requestMatchers(
                                 "/api/auth/login",
                                 "/api/auth/solicitar-recuperacion",
                                 "/api/auth/confirmar-recuperacion"
                         ).permitAll()
 
-                        // Crear usuarios: solo supervisor o administrador
+                        /*
+                         * Endpoint público para consultar un ticket
+                         * mediante su token compartido.
+                         *
+                         * Esta regla debe estar antes de /api/**
+                         * para que no solicite un JWT.
+                         */
+                        .requestMatchers(
+                                "/api/public/**"
+                        ).permitAll()
+
+                        /*
+                         * Crear y administrar enlaces compartidos:
+                         * solamente SUPERVISOR y ADMIN.
+                         */
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/tickets/*/compartir"
+                        ).hasAnyRole(
+                                "SUPERVISOR",
+                                "ADMIN"
+                        )
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/tickets/*/enlaces-compartidos"
+                        ).hasAnyRole(
+                                "SUPERVISOR",
+                                "ADMIN"
+                        )
+
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/api/tickets/enlaces-compartidos/*"
+                        ).hasAnyRole(
+                                "SUPERVISOR",
+                                "ADMIN"
+                        )
+
+                        /*
+                         * Crear usuarios:
+                         * solamente SUPERVISOR o ADMIN.
+                         */
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/usuarios"
-                        ).hasAnyRole("SUPERVISOR", "ADMIN")
+                        ).hasAnyRole(
+                                "SUPERVISOR",
+                                "ADMIN"
+                        )
 
-                        // Reportes: solo supervisor o administrador
+                        /*
+                         * Reportes:
+                         * solamente SUPERVISOR o ADMIN.
+                         */
                         .requestMatchers(
                                 "/api/reportes/**"
-                        ).hasAnyRole("SUPERVISOR", "ADMIN")
+                        ).hasAnyRole(
+                                "SUPERVISOR",
+                                "ADMIN"
+                        )
 
-                        // Administración de roles
+                        /*
+                         * Administración de roles.
+                         */
                         .requestMatchers(
                                 "/api/roles/**",
                                 "/api/usuario-roles/**"
-                        ).hasAnyRole("SUPERVISOR", "ADMIN")
+                        ).hasAnyRole(
+                                "SUPERVISOR",
+                                "ADMIN"
+                        )
 
-                        // Todo lo demás dentro de la API requiere login
-                        .requestMatchers("/api/**")
-                        .authenticated()
+                        /*
+                         * Todos los demás endpoints de la API
+                         * requieren un usuario autenticado.
+                         */
+                        .requestMatchers(
+                                "/api/**"
+                        ).authenticated()
 
-                        // Otros recursos
+                        /*
+                         * Otros recursos estáticos.
+                         */
                         .anyRequest()
                         .permitAll()
                 )
 
-                // Mensaje cuando no hay token o es inválido
+                /*
+                 * Respuesta cuando no existe un token JWT
+                 * o el token recibido no es válido.
+                 */
                 .exceptionHandling(errors -> errors
 
                         .authenticationEntryPoint(
                                 (request, response, exception) -> {
 
                                     response.setStatus(401);
+
                                     response.setContentType(
                                             "application/json;charset=UTF-8"
                                     );
 
                                     response.getWriter().write(
-                                            "{\"message\":\"Debes iniciar sesion para continuar.\"}"
+                                            "{\"message\":\"Debes iniciar sesión para continuar.\"}"
                                     );
                                 }
                         )
 
-                        // Mensaje cuando el usuario no tiene el rol necesario
+                        /*
+                         * Respuesta cuando el usuario inició sesión,
+                         * pero no tiene el rol necesario.
+                         */
                         .accessDeniedHandler(
                                 (request, response, exception) -> {
 
                                     response.setStatus(403);
+
                                     response.setContentType(
                                             "application/json;charset=UTF-8"
                                     );
 
                                     response.getWriter().write(
-                                            "{\"message\":\"No tienes permiso para realizar esta accion.\"}"
+                                            "{\"message\":\"No tienes permiso para realizar esta acción.\"}"
                                     );
                                 }
                         )
                 )
 
-                // Desactivamos el formulario de login de Spring
+                /*
+                 * No se utilizará el formulario de acceso
+                 * predeterminado de Spring.
+                 */
                 .formLogin(form -> form.disable())
 
-                // Desactivamos autenticación básica
+                /*
+                 * No se utilizará autenticación HTTP Basic.
+                 */
                 .httpBasic(basic -> basic.disable())
 
-                // Conectamos nuestro filtro JWT
+                /*
+                 * Se ejecuta el filtro JWT antes del filtro
+                 * de autenticación estándar de Spring.
+                 */
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class

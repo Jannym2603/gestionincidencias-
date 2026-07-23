@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Ticket compartido | Gestión de Incidencias</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+</head>
+
+<body class="shared-ticket-page">
+
+    <main class="shared-ticket-container">
+
+        <!-- ENCABEZADO -->
+
+        <header class="shared-ticket-header">
+
+            <div class="shared-ticket-brand">
+
+                <div class="shared-ticket-logo">
+                    GI
+                </div>
+
+                <div>
+                    <h1>Gestión de Incidencias</h1>
+
+                    <p>
+                        Acceso seguro a un ticket compartido
+                    </p>
+                </div>
+
+            </div>
+
+        </header>
+
+        <!-- ESTADO DE CARGA -->
+
+        <section
+            id="estadoCarga"
+            class="shared-ticket-status-card"
+        >
+            <div class="shared-ticket-loader"></div>
+
+            <h2>Cargando ticket</h2>
+
+            <p>
+                Estamos verificando el enlace compartido.
+            </p>
+        </section>
+
+        <!-- MENSAJE DE ERROR -->
+
+        <section
+            id="estadoError"
+            class="shared-ticket-status-card shared-ticket-error"
+            hidden
+        >
+            <div class="shared-ticket-status-icon">
+                !
+            </div>
+
+            <h2>No se pudo abrir el ticket</h2>
+
+            <p id="mensajeError">
+                El enlace no existe, expiró o fue desactivado.
+            </p>
+        </section>
+
+        <!-- CONTENIDO DEL TICKET -->
+
+        <section
+            id="contenidoTicketCompartido"
+            hidden
+        >
+
+            <!-- TÍTULO -->
+
+            <section class="shared-ticket-title-card">
+
+                <div>
+
+                    <span class="shared-ticket-label">
+                        Ticket compartido
+                    </span>
+
+                    <h2 id="numeroTicket">
+                        Ticket
+                    </h2>
+
+                    <p id="tituloTicket">
+                        Cargando información...
+                    </p>
+
+                </div>
+
+                <span
+                    id="estadoTicket"
+                    class="badge badge-nuevo"
+                >
+                    NUEVO
+                </span>
+
+            </section>
+
+            <!-- INFORMACIÓN GENERAL -->
+
+            <section class="shared-ticket-card">
+
+                <div class="shared-ticket-section-header">
+
+                    <div>
+                        <h3>Información general</h3>
+
+                        <p>
+                            Detalles principales del ticket.
+                        </p>
+                    </div>
+
+                </div>
+
+                <div class="shared-ticket-data-grid">
+
+                    <article class="shared-ticket-data-item">
+                        <span>Prioridad</span>
+                        <strong id="prioridadTicket">-</strong>
+                    </article>
+
+                    <article class="shared-ticket-data-item">
+                        <span>Categoría</span>
+                        <strong id="categoriaTicket">-</strong>
+                    </article>
+
+                    <article class="shared-ticket-data-item">
+                        <span>Cliente</span>
+                        <strong id="clienteTicket">-</strong>
+                    </article>
+
+                    <article class="shared-ticket-data-item">
+                        <span>Agente asignado</span>
+                        <strong id="agenteTicket">-</strong>
+                    </article>
+
+                    <article class="shared-ticket-data-item">
+                        <span>Fecha de creación</span>
+                        <strong id="fechaCreacionTicket">-</strong>
+                    </article>
+
+                    <article class="shared-ticket-data-item">
+                        <span>Vencimiento del enlace</span>
+                        <strong id="fechaExpiracionEnlace">
+                            Sin vencimiento
+                        </strong>
+                    </article>
+
+                </div>
+
+            </section>
+
+            <!-- DESCRIPCIÓN -->
+
+            <section class="shared-ticket-card">
+
+                <div class="shared-ticket-section-header">
+
+                    <div>
+                        <h3>Descripción</h3>
+
+                        <p>
+                            Información registrada en el ticket.
+                        </p>
+                    </div>
+
+                </div>
+
+                <div
+                    id="descripcionTicket"
+                    class="shared-ticket-description"
+                >
+                    Sin descripción disponible.
+                </div>
+
+            </section>
+
+            <!-- PERMISOS -->
+
+            <section class="shared-ticket-card">
+
+                <div class="shared-ticket-section-header">
+
+                    <div>
+                        <h3>Permisos del enlace</h3>
+
+                        <p>
+                            Estas son las acciones autorizadas.
+                        </p>
+                    </div>
+
+                </div>
+
+                <div
+                    id="listaPermisos"
+                    class="shared-ticket-permissions"
+                >
+                    <span class="shared-permission-badge">
+                        Ver ticket
+                    </span>
+                </div>
+
+            </section>
+
+            <!-- COMENTARIOS -->
+
+            <section
+                id="seccionComentariosCompartidos"
+                class="shared-ticket-card"
+                hidden
+            >
+
+                <div class="shared-ticket-section-header">
+
+                    <div>
+                        <h3>Comentarios</h3>
+
+                        <p>
+                            Seguimiento público del ticket.
+                        </p>
+                    </div>
+
+                </div>
+
+                <div
+                    id="listaComentariosCompartidos"
+                    class="shared-ticket-comments"
+                >
+                    <p class="empty-message">
+                        No hay comentarios públicos.
+                    </p>
+                </div>
+
+                <form
+                    id="formComentarioCompartido"
+                    class="shared-ticket-comment-form"
+                    hidden
+                >
+
+                    <div class="form-group">
+
+                        <label for="contenidoComentarioCompartido">
+                            Agregar comentario
+                        </label>
+
+                        <textarea
+                            id="contenidoComentarioCompartido"
+                            maxlength="2000"
+                            placeholder="Escribe un comentario sobre el ticket..."
+                            required
+                        ></textarea>
+
+                    </div>
+
+                    <button
+                        type="submit"
+                        class="primary-btn"
+                        id="btnEnviarComentarioCompartido"
+                    >
+                        Enviar comentario
+                    </button>
+
+                    <p
+                        id="mensajeComentarioCompartido"
+                        class="info-box"
+                        hidden
+                    ></p>
+
+                </form>
+
+            </section>
+
+            <!-- CAMBIAR ESTADO -->
+
+            <section
+                id="seccionCambiarEstadoCompartido"
+                class="shared-ticket-card"
+                hidden
+            >
+
+                <div class="shared-ticket-section-header">
+
+                    <div>
+                        <h3>Cambiar estado</h3>
+
+                        <p>
+                            Actualiza el estado si el enlace lo permite.
+                        </p>
+                    </div>
+
+                </div>
+
+                <form
+                    id="formEstadoCompartido"
+                    class="shared-ticket-action-form"
+                >
+
+                    <div class="form-group">
+
+                        <label for="nuevoEstadoCompartido">
+                            Nuevo estado
+                        </label>
+
+                        <select
+                            id="nuevoEstadoCompartido"
+                            required
+                        >
+                            <option value="">
+                                Selecciona un estado
+                            </option>
+
+                            <option value="NUEVO">
+                                Nuevo
+                            </option>
+
+                            <option value="ASIGNADO">
+                                Asignado
+                            </option>
+
+                            <option value="EN_PROGRESO">
+                                En progreso
+                            </option>
+
+                            <option value="RESUELTO">
+                                Resuelto
+                            </option>
+
+                            <option value="CERRADO">
+                                Cerrado
+                            </option>
+                        </select>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="notaEstadoCompartido">
+                            Nota
+                        </label>
+
+                        <textarea
+                            id="notaEstadoCompartido"
+                            maxlength="1000"
+                            placeholder="Explica brevemente el cambio..."
+                        ></textarea>
+
+                    </div>
+
+                    <button
+                        type="submit"
+                        class="primary-btn"
+                        id="btnCambiarEstadoCompartido"
+                    >
+                        Actualizar estado
+                    </button>
+
+                    <p
+                        id="mensajeEstadoCompartido"
+                        class="info-box"
+                        hidden
+                    ></p>
+
+                </form>
+
+            </section>
+
+            <!-- ADJUNTOS -->
+
+            <section
+                id="seccionAdjuntosCompartidos"
+                class="shared-ticket-card"
+                hidden
+            >
+
+                <div class="shared-ticket-section-header">
+
+                    <div>
+                        <h3>Archivos adjuntos</h3>
+
+                        <p>
+                            Documentos relacionados con el ticket.
+                        </p>
+                    </div>
+
+                </div>
+
+                <div
+                    id="listaAdjuntosCompartidos"
+                    class="shared-ticket-attachments"
+                >
+                    <p class="empty-message">
+                        No hay archivos adjuntos.
+                    </p>
+                </div>
+
+                <form
+                    id="formAdjuntoCompartido"
+                    class="shared-ticket-upload-form"
+                    hidden
+                >
+
+                    <div class="form-group">
+
+                        <label for="archivoCompartido">
+                            Subir archivo
+                        </label>
+
+                        <input
+                            type="file"
+                            id="archivoCompartido"
+                            required
+                        >
+
+                    </div>
+
+                    <button
+                        type="submit"
+                        class="primary-btn"
+                        id="btnSubirAdjuntoCompartido"
+                    >
+                        Subir archivo
+                    </button>
+
+                    <p
+                        id="mensajeAdjuntoCompartido"
+                        class="info-box"
+                        hidden
+                    ></p>
+
+                </form>
+
+            </section>
+
+        </section>
+
+        <!-- PIE -->
+
+        <footer class="shared-ticket-footer">
+
+            <p>
+                Este acceso fue generado mediante un enlace privado.
+            </p>
+
+            <p>
+                No compartas este enlace con otras personas.
+            </p>
+
+        </footer>
+
+    </main>
+
+    <script src="ticket-compartido.js"></script>
+
+</body>
+
+</html>

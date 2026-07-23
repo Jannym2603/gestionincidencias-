@@ -95,15 +95,29 @@ public class UsuarioController {
         return convertirADTO(usuarioGuardado);
     }
 
-    private UsuarioResponseDTO convertirADTO(Usuario usuario) {
-        return new UsuarioResponseDTO(
-                usuario.getId(),
-                usuario.getNombre(),
-                usuario.getApellido(),
-                usuario.getCorreo(),
-                usuario.getTelefono(),
-                usuario.getEstado(),
-                usuario.getFechaCreacion()
-        );
-    }
+private UsuarioResponseDTO convertirADTO(
+        Usuario usuario) {
+
+    String nombreRol =
+            usuarioRolRepository
+                    .findByUsuarioId(usuario.getId())
+                    .map(usuarioRol ->
+                            usuarioRol
+                                    .getRol()
+                                    .getNombre()
+                    )
+                    .orElse(null);
+
+    return new UsuarioResponseDTO(
+            usuario.getId(),
+            usuario.getNombre(),
+            usuario.getApellido(),
+            usuario.getCorreo(),
+            usuario.getTelefono(),
+            usuario.getEstado(),
+            usuario.getFechaCreacion(),
+            nombreRol
+    );
+}
+
 }

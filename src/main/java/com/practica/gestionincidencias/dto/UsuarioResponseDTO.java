@@ -11,12 +11,21 @@ public class UsuarioResponseDTO {
     private String telefono;
     private Boolean estado;
     private LocalDateTime fechaCreacion;
+    private String rol;
 
     public UsuarioResponseDTO() {
     }
 
-    public UsuarioResponseDTO(Integer id, String nombre, String apellido, String correo,
-                              String telefono, Boolean estado, LocalDateTime fechaCreacion) {
+    public UsuarioResponseDTO(
+            Integer id,
+            String nombre,
+            String apellido,
+            String correo,
+            String telefono,
+            Boolean estado,
+            LocalDateTime fechaCreacion,
+            String rol) {
+
         this.id = id;
         this.nombre = nombre;
         this.apellido = apellido;
@@ -24,6 +33,7 @@ public class UsuarioResponseDTO {
         this.telefono = telefono;
         this.estado = estado;
         this.fechaCreacion = fechaCreacion;
+        this.rol = rol;
     }
 
     public Integer getId() {
@@ -54,6 +64,10 @@ public class UsuarioResponseDTO {
         return fechaCreacion;
     }
 
+    public String getRol() {
+        return rol;
+    }
+
     public void setId(Integer id) {
         this.id = id;
     }
@@ -78,7 +92,13 @@ public class UsuarioResponseDTO {
         this.estado = estado;
     }
 
-    public void setFechaCreacion(LocalDateTime fechaCreacion) {
+    public void setFechaCreacion(
+            LocalDateTime fechaCreacion) {
+
         this.fechaCreacion = fechaCreacion;
+    }
+
+    public void setRol(String rol) {
+        this.rol = rol;
     }
 }

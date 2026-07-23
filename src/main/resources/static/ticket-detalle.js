@@ -1,5 +1,7 @@
 let ticketActual = null;
 let ticketId = null;
+let enlacesCompartidosActuales = [];
+let integracionArandaActual = null;
 
 document.addEventListener("DOMContentLoaded", () => {
     inicializarLayout();
@@ -20,6 +22,8 @@ document.addEventListener("DOMContentLoaded", () => {
     cargarUsuariosParaAsignar();
     configurarVistaPorRol();
     configurarModalComentario();
+    configurarModalCompartirTicket();
+    consultarIntegracionAranda();
 });
 
 /* =====================================================
@@ -91,7 +95,8 @@ function pintarDetalle(ticket) {
         nuevoEstado.value = ticket.estado;
     }
 
-    const nuevaPrioridad = document.getElementById("nuevaPrioridad");
+    const nuevaPrioridad =
+        document.getElementById("nuevaPrioridad");
 
     if (nuevaPrioridad && ticket.prioridad) {
         nuevaPrioridad.value = ticket.prioridad;
@@ -117,14 +122,18 @@ function configurarVistaPorRol() {
     const tipoComentario =
         document.getElementById("tipoComentario");
 
+    const seccionEnlacesCompartidos =
+        document.getElementById("seccionEnlacesCompartidos");
+
     if (!usuario) {
         return;
     }
 
-    if (
+    const esSupervisorOAdmin =
         usuario.rol === "SUPERVISOR" ||
-        usuario.rol === "ADMIN"
-    ) {
+        usuario.rol === "ADMIN";
+
+    if (esSupervisorOAdmin) {
         if (accionesSupervisor) {
             accionesSupervisor.style.display = "block";
         }
@@ -133,10 +142,16 @@ function configurarVistaPorRol() {
             accionesAgente.style.display = "block";
         }
 
+        if (seccionEnlacesCompartidos) {
+            seccionEnlacesCompartidos.style.display = "block";
+        }
+
         if (mensajeAcciones) {
             mensajeAcciones.textContent =
-                "Puedes asignar agentes, cambiar el estado y ajustar la prioridad del ticket.";
+                "Puedes asignar agentes, cambiar el estado, ajustar la prioridad y compartir el ticket.";
         }
+
+        cargarEnlacesCompartidos();
     }
 
     if (usuario.rol === "AGENTE") {
@@ -168,18 +183,27 @@ function configurarVistaPorRol() {
 ===================================================== */
 
 async function cargarUsuariosParaAsignar() {
-    try {
-        const usuario = obtenerSesion();
+    const usuario = obtenerSesion();
+    const select = document.getElementById("agenteId");
 
-        if (
-            !usuario ||
-            (
-                usuario.rol !== "SUPERVISOR" &&
-                usuario.rol !== "ADMIN"
-            )
-        ) {
-            return;
-        }
+    if (
+        !usuario ||
+        (
+            usuario.rol !== "SUPERVISOR" &&
+            usuario.rol !== "ADMIN"
+        ) ||
+        !select
+    ) {
+        return;
+    }
+
+    try {
+        select.disabled = true;
+        select.innerHTML = `
+            <option value="">
+                Cargando agentes...
+            </option>
+        `;
 
         const response = await fetch(`${API_BASE}/usuarios`);
 
@@ -189,28 +213,75 @@ async function cargarUsuariosParaAsignar() {
 
         const usuarios = await response.json();
 
-        const select = document.getElementById("agenteId");
+        const agentes = Array.isArray(usuarios)
+            ? usuarios.filter(usuarioItem => {
+                const rol = String(usuarioItem.rol || "")
+                    .trim()
+                    .toUpperCase();
 
-        if (!select) {
-            return;
-        }
+                return (
+                    rol === "AGENTE" &&
+                    usuarioItem.estado !== false
+                );
+            })
+            : [];
 
-        select.innerHTML =
-            `<option value="">Seleccione agente</option>`;
+        agentes.sort((agenteA, agenteB) => {
+            const nombreA =
+                `${agenteA.nombre || ""} ${agenteA.apellido || ""}`
+                    .trim()
+                    .toLowerCase();
 
-        usuarios.forEach(usuarioItem => {
+            const nombreB =
+                `${agenteB.nombre || ""} ${agenteB.apellido || ""}`
+                    .trim()
+                    .toLowerCase();
+
+            return nombreA.localeCompare(nombreB, "es");
+        });
+
+        select.innerHTML = `
+            <option value="">
+                Seleccione agente
+            </option>
+        `;
+
+        agentes.forEach(agente => {
             const option = document.createElement("option");
 
-            option.value = usuarioItem.id;
+            const nombreCompleto =
+                `${agente.nombre || ""} ${agente.apellido || ""}`
+                    .trim();
 
+            option.value = agente.id;
             option.textContent =
-                `${usuarioItem.nombre} ${usuarioItem.apellido}`;
+                nombreCompleto || "Agente";
 
             select.appendChild(option);
         });
 
+        if (agentes.length === 0) {
+            select.innerHTML = `
+                <option value="">
+                    No hay agentes registrados
+                </option>
+            `;
+
+            select.disabled = true;
+        } else {
+            select.disabled = false;
+        }
+
     } catch (error) {
-        console.error("Error cargando usuarios:", error);
+        console.error("Error cargando agentes:", error);
+
+        select.innerHTML = `
+            <option value="">
+                Error cargando agentes
+            </option>
+        `;
+
+        select.disabled = true;
     }
 }
 
@@ -357,7 +428,9 @@ async function cambiarPrioridadTicket() {
         alert("Prioridad actualizada correctamente.");
 
         const justificacionInput =
-            document.getElementById("justificacionPrioridad");
+            document.getElementById(
+                "justificacionPrioridad"
+            );
 
         if (justificacionInput) {
             justificacionInput.value = "";
@@ -398,7 +471,8 @@ function configurarModalComentario() {
 
 function abrirModalComentario() {
     const modal = document.getElementById("modalComentario");
-    const contenido = document.getElementById("contenidoComentario");
+    const contenido =
+        document.getElementById("contenidoComentario");
 
     if (!modal) {
         return;
@@ -426,6 +500,172 @@ function cerrarModalComentario() {
 }
 
 /* =====================================================
+   MODAL PARA COMPARTIR TICKET
+===================================================== */
+
+function configurarModalCompartirTicket() {
+    const modal =
+        document.getElementById("modalCompartirTicket");
+
+    if (!modal) {
+        return;
+    }
+
+    modal.addEventListener("click", event => {
+        if (event.target === modal) {
+            cerrarModalCompartirTicket();
+        }
+    });
+
+    document.addEventListener("keydown", event => {
+        if (
+            event.key === "Escape" &&
+            modal.classList.contains("activo")
+        ) {
+            cerrarModalCompartirTicket();
+        }
+    });
+}
+
+function abrirModalCompartirTicket() {
+    const usuario = obtenerSesion();
+
+    if (
+        !usuario ||
+        (
+            usuario.rol !== "SUPERVISOR" &&
+            usuario.rol !== "ADMIN"
+        )
+    ) {
+        alert(
+            "Solo el supervisor o administrador puede compartir tickets."
+        );
+        return;
+    }
+
+    const modal =
+        document.getElementById("modalCompartirTicket");
+
+    if (!modal) {
+        return;
+    }
+
+    limpiarFormularioCompartirTicket();
+    configurarFechaMinimaCompartida();
+
+    modal.classList.add("activo");
+    modal.setAttribute("aria-hidden", "false");
+    document.body.classList.add("modal-abierto");
+
+    setTimeout(() => {
+        document
+            .getElementById("correoDestinatarioCompartido")
+            ?.focus();
+    }, 100);
+}
+
+function cerrarModalCompartirTicket() {
+    const modal =
+        document.getElementById("modalCompartirTicket");
+
+    if (!modal) {
+        return;
+    }
+
+    modal.classList.remove("activo");
+    modal.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("modal-abierto");
+}
+
+function configurarFechaMinimaCompartida() {
+    const input =
+        document.getElementById("fechaExpiracionCompartida");
+
+    if (!input) {
+        return;
+    }
+
+    const ahora = new Date();
+
+    ahora.setMinutes(
+        ahora.getMinutes() - ahora.getTimezoneOffset()
+    );
+
+    input.min = ahora.toISOString().slice(0, 16);
+}
+
+function limpiarFormularioCompartirTicket() {
+    const correo =
+        document.getElementById("correoDestinatarioCompartido");
+
+    const fecha =
+        document.getElementById("fechaExpiracionCompartida");
+
+    const permisoComentar =
+        document.getElementById("permisoComentarTicket");
+
+    const permisoVerAdjuntos =
+        document.getElementById("permisoVerAdjuntosTicket");
+
+    const permisoSubirAdjuntos =
+        document.getElementById("permisoSubirAdjuntosTicket");
+
+    const permisoCambiarEstado =
+        document.getElementById("permisoCambiarEstadoTicket");
+
+    const mensaje =
+        document.getElementById("mensajeCompartirTicket");
+
+    const resultado =
+        document.getElementById("resultadoEnlaceCompartido");
+
+    const enlaceGenerado =
+        document.getElementById("enlaceCompartidoGenerado");
+
+    if (correo) {
+        correo.value = "";
+    }
+
+    if (fecha) {
+        fecha.value = "";
+    }
+
+    if (permisoComentar) {
+        permisoComentar.checked = false;
+    }
+
+    if (permisoVerAdjuntos) {
+        permisoVerAdjuntos.checked = false;
+    }
+
+    if (permisoSubirAdjuntos) {
+        permisoSubirAdjuntos.checked = false;
+    }
+
+    if (permisoCambiarEstado) {
+        permisoCambiarEstado.checked = false;
+    }
+
+    if (mensaje) {
+        mensaje.hidden = true;
+        mensaje.textContent = "";
+
+        mensaje.classList.remove(
+            "success-text",
+            "danger-text"
+        );
+    }
+
+    if (resultado) {
+        resultado.hidden = true;
+    }
+
+    if (enlaceGenerado) {
+        enlaceGenerado.value = "";
+    }
+}
+
+/* =====================================================
    COMENTARIOS
 ===================================================== */
 
@@ -436,7 +676,9 @@ async function cargarComentarios() {
         );
 
         if (!response.ok) {
-            throw new Error("No se pudieron cargar los comentarios.");
+            throw new Error(
+                "No se pudieron cargar los comentarios."
+            );
         }
 
         const comentarios = await response.json();
@@ -467,11 +709,15 @@ async function cargarComentarios() {
             div.innerHTML = `
                 <div class="ticket-comment-header">
                     <strong>
-                        ${escaparHtml(comentario.nombreUsuario || "Usuario")}
+                        ${escaparHtml(
+                            comentario.nombreUsuario || "Usuario"
+                        )}
                     </strong>
 
                     <span class="ticket-comment-type">
-                        ${escaparHtml(comentario.tipoComentario || "PUBLICO")}
+                        ${escaparHtml(
+                            comentario.tipoComentario || "PUBLICO"
+                        )}
                     </span>
                 </div>
 
@@ -488,7 +734,10 @@ async function cargarComentarios() {
         });
 
     } catch (error) {
-        console.error("Error cargando comentarios:", error);
+        console.error(
+            "Error cargando comentarios:",
+            error
+        );
 
         const contenedor =
             document.getElementById("listaComentarios");
@@ -547,7 +796,9 @@ async function crearComentario() {
         );
 
         if (!response.ok) {
-            throw new Error("No se pudo crear el comentario.");
+            throw new Error(
+                "No se pudo crear el comentario."
+            );
         }
 
         if (contenidoInput) {
@@ -562,7 +813,11 @@ async function crearComentario() {
         await cargarHistorial();
 
     } catch (error) {
-        console.error("Error creando comentario:", error);
+        console.error(
+            "Error creando comentario:",
+            error
+        );
+
         alert("Error creando comentario.");
     }
 }
@@ -578,7 +833,9 @@ async function cargarHistorial() {
         );
 
         if (!response.ok) {
-            throw new Error("No se pudo cargar el historial.");
+            throw new Error(
+                "No se pudo cargar el historial."
+            );
         }
 
         const historial = await response.json();
@@ -609,7 +866,9 @@ async function cargarHistorial() {
             div.innerHTML = `
                 <div class="ticket-history-header">
                     <strong>
-                        ${escaparHtml(item.accion || "ACTUALIZACIÓN")}
+                        ${escaparHtml(
+                            item.accion || "ACTUALIZACIÓN"
+                        )}
                     </strong>
 
                     <small>
@@ -622,7 +881,9 @@ async function cargarHistorial() {
                 </p>
 
                 <span>
-                    ${escaparHtml(item.nombreUsuario || "Sistema")}
+                    ${escaparHtml(
+                        item.nombreUsuario || "Sistema"
+                    )}
                 </span>
             `;
 
@@ -630,7 +891,10 @@ async function cargarHistorial() {
         });
 
     } catch (error) {
-        console.error("Error cargando historial:", error);
+        console.error(
+            "Error cargando historial:",
+            error
+        );
 
         const contenedor =
             document.getElementById("listaHistorial");
@@ -662,7 +926,9 @@ async function cargarAdjuntosTicket() {
         );
 
         if (!response.ok) {
-            throw new Error("No se pudieron cargar los adjuntos.");
+            throw new Error(
+                "No se pudieron cargar los adjuntos."
+            );
         }
 
         const adjuntos = await response.json();
@@ -684,15 +950,21 @@ async function cargarAdjuntosTicket() {
             const tr = document.createElement("tr");
 
             const nombreArchivoSeguro =
-                escaparAtributo(adjunto.nombreArchivo || "archivo");
+                escaparAtributo(
+                    adjunto.nombreArchivo || "archivo"
+                );
 
             tr.innerHTML = `
                 <td>
-                    ${escaparHtml(adjunto.nombreArchivo || "Archivo")}
+                    ${escaparHtml(
+                        adjunto.nombreArchivo || "Archivo"
+                    )}
                 </td>
 
                 <td>
-                    ${escaparHtml(adjunto.tipoArchivo || "Archivo")}
+                    ${escaparHtml(
+                        adjunto.tipoArchivo || "Archivo"
+                    )}
                 </td>
 
                 <td>
@@ -721,7 +993,10 @@ async function cargarAdjuntosTicket() {
         });
 
     } catch (error) {
-        console.error("Error cargando adjuntos:", error);
+        console.error(
+            "Error cargando adjuntos:",
+            error
+        );
 
         tbody.innerHTML = `
             <tr>
@@ -769,7 +1044,9 @@ async function subirAdjuntoDesdeDetalle() {
                 errorTexto
             );
 
-            alert("No se pudo subir el archivo adjunto.");
+            alert(
+                "No se pudo subir el archivo adjunto."
+            );
             return;
         }
 
@@ -780,7 +1057,10 @@ async function subirAdjuntoDesdeDetalle() {
         await cargarAdjuntosTicket();
 
     } catch (error) {
-        console.error("Error subiendo archivo:", error);
+        console.error(
+            "Error subiendo archivo:",
+            error
+        );
 
         alert(
             "Error subiendo archivo. Revisa que Spring Boot esté corriendo."
@@ -788,23 +1068,30 @@ async function subirAdjuntoDesdeDetalle() {
     }
 }
 
-async function descargarAdjunto(adjuntoId, nombreArchivo) {
+async function descargarAdjunto(
+        adjuntoId,
+        nombreArchivo) {
+
     try {
         const response = await fetch(
             `${API_BASE}/adjuntos/${adjuntoId}/descargar`
         );
 
         if (!response.ok) {
-            throw new Error("No se pudo descargar el archivo.");
+            throw new Error(
+                "No se pudo descargar el archivo."
+            );
         }
 
         const blob = await response.blob();
-        const urlTemporal = URL.createObjectURL(blob);
+        const urlTemporal =
+            URL.createObjectURL(blob);
 
         const enlace = document.createElement("a");
 
         enlace.href = urlTemporal;
-        enlace.download = nombreArchivo || "adjunto";
+        enlace.download =
+            nombreArchivo || "adjunto";
 
         document.body.appendChild(enlace);
         enlace.click();
@@ -813,8 +1100,1009 @@ async function descargarAdjunto(adjuntoId, nombreArchivo) {
         URL.revokeObjectURL(urlTemporal);
 
     } catch (error) {
-        console.error("Error descargando adjunto:", error);
+        console.error(
+            "Error descargando adjunto:",
+            error
+        );
+
         alert("No se pudo descargar el archivo.");
+    }
+}
+
+/* =====================================================
+   ENLACES COMPARTIDOS
+===================================================== */
+
+async function generarEnlaceCompartido() {
+    const correoInput =
+        document.getElementById(
+            "correoDestinatarioCompartido"
+        );
+
+    const fechaInput =
+        document.getElementById(
+            "fechaExpiracionCompartida"
+        );
+
+    const boton =
+        document.getElementById(
+            "btnGenerarEnlaceCompartido"
+        );
+
+    const correo =
+        correoInput?.value.trim() || "";
+
+    const fechaExpiracion =
+        fechaInput?.value || null;
+
+    if (!correo) {
+        mostrarMensajeCompartir(
+            "Escribe el correo del destinatario.",
+            "error"
+        );
+
+        correoInput?.focus();
+        return;
+    }
+
+    if (!validarCorreo(correo)) {
+        mostrarMensajeCompartir(
+            "El correo ingresado no es válido.",
+            "error"
+        );
+
+        correoInput?.focus();
+        return;
+    }
+
+    if (
+        fechaExpiracion &&
+        new Date(fechaExpiracion) <= new Date()
+    ) {
+        mostrarMensajeCompartir(
+            "La fecha de vencimiento debe ser posterior a la fecha actual.",
+            "error"
+        );
+
+        fechaInput?.focus();
+        return;
+    }
+
+    const datos = {
+        correoDestinatario: correo,
+
+        puedeVer: true,
+
+        puedeComentar:
+            document.getElementById(
+                "permisoComentarTicket"
+            )?.checked || false,
+
+        puedeVerAdjuntos:
+            document.getElementById(
+                "permisoVerAdjuntosTicket"
+            )?.checked || false,
+
+        puedeSubirAdjuntos:
+            document.getElementById(
+                "permisoSubirAdjuntosTicket"
+            )?.checked || false,
+
+        puedeCambiarEstado:
+            document.getElementById(
+                "permisoCambiarEstadoTicket"
+            )?.checked || false,
+
+        fechaExpiracion: fechaExpiracion
+    };
+
+    try {
+        if (boton) {
+            boton.disabled = true;
+            boton.textContent =
+                "Generando enlace...";
+        }
+
+        mostrarMensajeCompartir(
+            "Generando y enviando el enlace...",
+            "info"
+        );
+
+        const response = await fetch(
+            `${API_BASE}/tickets/${ticketId}/compartir`,
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify(datos)
+            }
+        );
+
+        if (!response.ok) {
+            const mensajeError =
+                await obtenerMensajeErrorCompartido(
+                    response
+                );
+
+            throw new Error(mensajeError);
+        }
+
+        const enlaceCreado =
+            await response.json();
+
+        const inputEnlace =
+            document.getElementById(
+                "enlaceCompartidoGenerado"
+            );
+
+        const resultado =
+            document.getElementById(
+                "resultadoEnlaceCompartido"
+            );
+
+        if (inputEnlace) {
+            inputEnlace.value =
+                enlaceCreado.enlace || "";
+        }
+
+        if (resultado) {
+            resultado.hidden = false;
+        }
+
+        mostrarMensajeCompartir(
+            "El enlace fue generado y enviado correctamente.",
+            "success"
+        );
+
+        await cargarEnlacesCompartidos();
+
+    } catch (error) {
+        console.error(
+            "Error generando enlace compartido:",
+            error
+        );
+
+        mostrarMensajeCompartir(
+            error.message ||
+            "No se pudo generar el enlace.",
+            "error"
+        );
+
+    } finally {
+        if (boton) {
+            boton.disabled = false;
+            boton.textContent =
+                "Generar y enviar enlace";
+        }
+    }
+}
+
+async function cargarEnlacesCompartidos() {
+    const usuario = obtenerSesion();
+
+    const tbody =
+        document.getElementById(
+            "enlacesCompartidosBody"
+        );
+
+    if (!tbody) {
+        return;
+    }
+
+    if (
+        !usuario ||
+        (
+            usuario.rol !== "SUPERVISOR" &&
+            usuario.rol !== "ADMIN"
+        )
+    ) {
+        return;
+    }
+
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="6">
+                Cargando enlaces compartidos...
+            </td>
+        </tr>
+    `;
+
+    try {
+        const response = await fetch(
+            `${API_BASE}/tickets/${ticketId}/enlaces-compartidos`
+        );
+
+        if (!response.ok) {
+            const mensaje =
+                await obtenerMensajeErrorCompartido(
+                    response
+                );
+
+            throw new Error(mensaje);
+        }
+
+        enlacesCompartidosActuales =
+            await response.json();
+
+        pintarEnlacesCompartidos(
+            enlacesCompartidosActuales
+        );
+
+    } catch (error) {
+        console.error(
+            "Error cargando enlaces compartidos:",
+            error
+        );
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6">
+                    No se pudieron cargar los enlaces compartidos.
+                </td>
+            </tr>
+        `;
+    }
+}
+
+function pintarEnlacesCompartidos(enlaces) {
+    const tbody =
+        document.getElementById(
+            "enlacesCompartidosBody"
+        );
+
+    if (!tbody) {
+        return;
+    }
+
+    tbody.innerHTML = "";
+
+    if (
+        !Array.isArray(enlaces) ||
+        enlaces.length === 0
+    ) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6">
+                    No se han generado enlaces para este ticket.
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+    enlaces.forEach(enlace => {
+        const tr =
+            document.createElement("tr");
+
+        const permisos =
+            construirTextoPermisos(enlace);
+
+        const expirado =
+            enlaceEstaExpirado(enlace);
+
+        const estadoActivo =
+            enlace.activo && !expirado;
+
+        const textoEstado =
+            !enlace.activo
+                ? "DESACTIVADO"
+                : expirado
+                    ? "EXPIRADO"
+                    : "ACTIVO";
+
+        const claseEstado =
+            estadoActivo
+                ? "badge-resuelto"
+                : "badge-cerrado";
+
+        tr.innerHTML = `
+            <td>
+                ${escaparHtml(
+                    enlace.correoDestinatario || "-"
+                )}
+            </td>
+
+            <td>
+                ${escaparHtml(permisos)}
+            </td>
+
+            <td>
+                ${formatearFecha(
+                    enlace.fechaCreacion
+                )}
+            </td>
+
+            <td>
+                ${
+                    enlace.fechaExpiracion
+                        ? formatearFecha(
+                            enlace.fechaExpiracion
+                        )
+                        : "Sin vencimiento"
+                }
+            </td>
+
+            <td>
+                <span class="badge ${claseEstado}">
+                    ${textoEstado}
+                </span>
+            </td>
+
+            <td>
+                <div class="shared-links-actions">
+
+                    <button
+                        type="button"
+                        class="action-link"
+                        onclick="copiarEnlaceDesdeListado(
+                            ${Number(enlace.id)}
+                        )"
+                    >
+                        Copiar
+                    </button>
+
+                    ${
+                        estadoActivo
+                            ? `
+                                <button
+                                    type="button"
+                                    class="action-link shared-link-danger"
+                                    onclick="desactivarEnlaceCompartido(
+                                        ${Number(enlace.id)}
+                                    )"
+                                >
+                                    Desactivar
+                                </button>
+                            `
+                            : ""
+                    }
+
+                </div>
+            </td>
+        `;
+
+        tbody.appendChild(tr);
+    });
+}
+
+function construirTextoPermisos(enlace) {
+    const permisos = ["Ver ticket"];
+
+    if (enlace.puedeComentar) {
+        permisos.push("Comentar");
+    }
+
+    if (enlace.puedeVerAdjuntos) {
+        permisos.push("Ver adjuntos");
+    }
+
+    if (enlace.puedeSubirAdjuntos) {
+        permisos.push("Subir adjuntos");
+    }
+
+    if (enlace.puedeCambiarEstado) {
+        permisos.push("Cambiar estado");
+    }
+
+    return permisos.join(", ");
+}
+
+function enlaceEstaExpirado(enlace) {
+    if (!enlace.fechaExpiracion) {
+        return false;
+    }
+
+    return (
+        new Date(enlace.fechaExpiracion).getTime() <
+        new Date().getTime()
+    );
+}
+
+async function desactivarEnlaceCompartido(
+        enlaceId) {
+
+    const confirmado = confirm(
+        "¿Deseas desactivar este enlace compartido?"
+    );
+
+    if (!confirmado) {
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            `${API_BASE}/tickets/enlaces-compartidos/${enlaceId}`,
+            {
+                method: "DELETE"
+            }
+        );
+
+        if (!response.ok) {
+            const mensaje =
+                await obtenerMensajeErrorCompartido(
+                    response
+                );
+
+            throw new Error(mensaje);
+        }
+
+        alert(
+            "El enlace fue desactivado correctamente."
+        );
+
+        await cargarEnlacesCompartidos();
+
+    } catch (error) {
+        console.error(
+            "Error desactivando enlace:",
+            error
+        );
+
+        alert(
+            error.message ||
+            "No se pudo desactivar el enlace."
+        );
+    }
+}
+
+async function copiarEnlaceCompartido() {
+    const input =
+        document.getElementById(
+            "enlaceCompartidoGenerado"
+        );
+
+    const enlace =
+        input?.value.trim() || "";
+
+    if (!enlace) {
+        alert(
+            "No hay un enlace disponible para copiar."
+        );
+        return;
+    }
+
+    await copiarTextoAlPortapapeles(enlace);
+}
+
+async function copiarEnlaceDesdeListado(
+        enlaceId) {
+
+    const enlaceEncontrado =
+        enlacesCompartidosActuales.find(
+            item =>
+                Number(item.id) ===
+                Number(enlaceId)
+        );
+
+    if (
+        !enlaceEncontrado ||
+        !enlaceEncontrado.enlace
+    ) {
+        alert("No se encontró el enlace.");
+        return;
+    }
+
+    await copiarTextoAlPortapapeles(
+        enlaceEncontrado.enlace
+    );
+}
+
+async function copiarTextoAlPortapapeles(texto) {
+    try {
+        if (
+            navigator.clipboard &&
+            window.isSecureContext
+        ) {
+            await navigator.clipboard.writeText(texto);
+
+        } else {
+            const textarea =
+                document.createElement("textarea");
+
+            textarea.value = texto;
+            textarea.style.position = "fixed";
+            textarea.style.opacity = "0";
+
+            document.body.appendChild(textarea);
+
+            textarea.focus();
+            textarea.select();
+
+            document.execCommand("copy");
+
+            textarea.remove();
+        }
+
+        alert("Enlace copiado correctamente.");
+
+    } catch (error) {
+        console.error(
+            "Error copiando enlace:",
+            error
+        );
+
+        alert(
+            "No se pudo copiar el enlace. Puedes copiarlo manualmente."
+        );
+    }
+}
+
+function mostrarMensajeCompartir(
+        mensaje,
+        tipo = "info") {
+
+    const elemento =
+        document.getElementById(
+            "mensajeCompartirTicket"
+        );
+
+    if (!elemento) {
+        return;
+    }
+
+    elemento.hidden = false;
+    elemento.textContent = mensaje;
+
+    elemento.classList.remove(
+        "success-text",
+        "danger-text"
+    );
+
+    if (tipo === "success") {
+        elemento.classList.add(
+            "success-text"
+        );
+    }
+
+    if (tipo === "error") {
+        elemento.classList.add(
+            "danger-text"
+        );
+    }
+}
+
+function validarCorreo(correo) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+        correo
+    );
+}
+
+async function obtenerMensajeErrorCompartido(
+        response) {
+
+    const contenidoTipo =
+        response.headers.get("content-type") || "";
+
+    if (
+        contenidoTipo.includes(
+            "application/json"
+        )
+    ) {
+        try {
+            const contenido =
+                await response.json();
+
+            return (
+                contenido.message ||
+                contenido.error ||
+                `Error ${response.status}`
+            );
+
+        } catch (error) {
+            return `Error ${response.status}`;
+        }
+    }
+
+    try {
+        const texto =
+            await response.text();
+
+        return (
+            texto ||
+            `Error ${response.status}`
+        );
+
+    } catch (error) {
+        return `Error ${response.status}`;
+    }
+}
+
+/* =====================================================
+   INTEGRACIÓN CON ARANDA
+===================================================== */
+
+async function consultarIntegracionAranda() {
+    const usuario = obtenerSesion();
+
+    const seccion =
+        document.getElementById("seccionIntegracionAranda");
+
+    if (
+        !usuario ||
+        (
+            usuario.rol !== "SUPERVISOR" &&
+            usuario.rol !== "ADMIN"
+        )
+    ) {
+        if (seccion) {
+            seccion.style.display = "none";
+        }
+
+        return;
+    }
+
+    if (seccion) {
+        seccion.style.display = "block";
+    }
+
+    mostrarEstadoArandaCargando();
+
+    try {
+        const response = await fetch(
+            `${API_BASE}/aranda/tickets/${ticketId}`
+        );
+
+        if (response.status === 404) {
+            integracionArandaActual = null;
+            mostrarArandaNoSincronizado();
+            return;
+        }
+
+        if (!response.ok) {
+            const mensaje =
+                await obtenerMensajeErrorAranda(response);
+
+            throw new Error(mensaje);
+        }
+
+        integracionArandaActual = await response.json();
+
+        mostrarArandaSincronizado(
+            integracionArandaActual
+        );
+
+    } catch (error) {
+        console.error(
+            "Error consultando integración con Aranda:",
+            error
+        );
+
+        mostrarArandaError(
+            error.message ||
+            "No se pudo consultar la integración con Aranda."
+        );
+    }
+}
+
+async function enviarTicketAAranda() {
+    const usuario = obtenerSesion();
+
+    if (
+        !usuario ||
+        (
+            usuario.rol !== "SUPERVISOR" &&
+            usuario.rol !== "ADMIN"
+        )
+    ) {
+        alert(
+            "Solo el supervisor o administrador puede enviar tickets a Aranda."
+        );
+        return;
+    }
+
+    if (integracionArandaActual) {
+        alert(
+            "Este ticket ya está sincronizado con Aranda."
+        );
+        return;
+    }
+
+    const confirmado = confirm(
+        "¿Deseas enviar este ticket a Aranda?"
+    );
+
+    if (!confirmado) {
+        return;
+    }
+
+    const boton =
+        document.getElementById("btnEnviarAranda");
+
+    const mensaje =
+        document.getElementById("mensajeIntegracionAranda");
+
+    try {
+        if (boton) {
+            boton.disabled = true;
+            boton.textContent = "Enviando a Aranda...";
+        }
+
+        if (mensaje) {
+            mensaje.hidden = false;
+            mensaje.textContent =
+                "Enviando ticket a Aranda...";
+
+            mensaje.classList.remove(
+                "success-text",
+                "danger-text"
+            );
+        }
+
+        const response = await fetch(
+            `${API_BASE}/aranda/tickets/${ticketId}/enviar`,
+            {
+                method: "POST"
+            }
+        );
+
+        if (!response.ok) {
+            const mensajeError =
+                await obtenerMensajeErrorAranda(response);
+
+            throw new Error(mensajeError);
+        }
+
+        integracionArandaActual =
+            await response.json();
+
+        mostrarArandaSincronizado(
+            integracionArandaActual
+        );
+
+        alert(
+            `Ticket enviado correctamente a Aranda. Caso: ${
+                integracionArandaActual.arandaIdProyecto ||
+                integracionArandaActual.arandaItemId
+            }`
+        );
+
+    } catch (error) {
+        console.error(
+            "Error enviando ticket a Aranda:",
+            error
+        );
+
+        mostrarArandaError(
+            error.message ||
+            "No se pudo enviar el ticket a Aranda."
+        );
+    }
+}
+
+function mostrarEstadoArandaCargando() {
+    const estado =
+        document.getElementById("arandaEstado");
+
+    const numero =
+        document.getElementById("arandaNumeroCaso");
+
+    const itemId =
+        document.getElementById("arandaItemId");
+
+    const fecha =
+        document.getElementById("arandaFechaSincronizacion");
+
+    const boton =
+        document.getElementById("btnEnviarAranda");
+
+    const mensaje =
+        document.getElementById("mensajeIntegracionAranda");
+
+    if (estado) {
+        estado.textContent = "CONSULTANDO";
+    }
+
+    if (numero) {
+        numero.textContent = "-";
+    }
+
+    if (itemId) {
+        itemId.textContent = "-";
+    }
+
+    if (fecha) {
+        fecha.textContent = "-";
+    }
+
+    if (boton) {
+        boton.disabled = true;
+        boton.textContent = "Consultando...";
+    }
+
+    if (mensaje) {
+        mensaje.hidden = true;
+        mensaje.textContent = "";
+    }
+}
+
+function mostrarArandaNoSincronizado() {
+    const estado =
+        document.getElementById("arandaEstado");
+
+    const numero =
+        document.getElementById("arandaNumeroCaso");
+
+    const itemId =
+        document.getElementById("arandaItemId");
+
+    const fecha =
+        document.getElementById("arandaFechaSincronizacion");
+
+    const boton =
+        document.getElementById("btnEnviarAranda");
+
+    const mensaje =
+        document.getElementById("mensajeIntegracionAranda");
+
+    if (estado) {
+        estado.textContent = "NO SINCRONIZADO";
+    }
+
+    if (numero) {
+        numero.textContent = "Sin caso";
+    }
+
+    if (itemId) {
+        itemId.textContent = "-";
+    }
+
+    if (fecha) {
+        fecha.textContent = "-";
+    }
+
+    if (boton) {
+        boton.disabled = false;
+        boton.textContent = "Enviar a Aranda";
+        boton.style.display = "inline-flex";
+    }
+
+    if (mensaje) {
+        mensaje.hidden = false;
+        mensaje.textContent =
+            "El ticket todavía no ha sido enviado a Aranda.";
+
+        mensaje.classList.remove(
+            "success-text",
+            "danger-text"
+        );
+    }
+}
+
+function mostrarArandaSincronizado(integracion) {
+    const estado =
+        document.getElementById("arandaEstado");
+
+    const numero =
+        document.getElementById("arandaNumeroCaso");
+
+    const itemId =
+        document.getElementById("arandaItemId");
+
+    const fecha =
+        document.getElementById("arandaFechaSincronizacion");
+
+    const boton =
+        document.getElementById("btnEnviarAranda");
+
+    const mensaje =
+        document.getElementById("mensajeIntegracionAranda");
+
+    if (estado) {
+        estado.textContent =
+            integracion.estadoSincronizacion ||
+            "SINCRONIZADO";
+    }
+
+    if (numero) {
+        numero.textContent =
+            integracion.arandaIdProyecto ||
+            "-";
+    }
+
+    if (itemId) {
+        itemId.textContent =
+            integracion.arandaItemId ||
+            "-";
+    }
+
+    if (fecha) {
+        fecha.textContent =
+            formatearFecha(
+                integracion.fechaUltimaSincronizacion ||
+                integracion.fechaCreacionAranda
+            );
+    }
+
+    if (boton) {
+        boton.disabled = true;
+        boton.textContent = "Sincronizado";
+    }
+
+    if (mensaje) {
+        mensaje.hidden = false;
+
+        mensaje.textContent =
+            `Ticket sincronizado con Aranda: ${
+                integracion.arandaIdProyecto ||
+                integracion.arandaItemId ||
+                "Caso creado"
+            }.`;
+
+        mensaje.classList.remove(
+            "danger-text"
+        );
+
+        mensaje.classList.add(
+            "success-text"
+        );
+    }
+}
+
+function mostrarArandaError(texto) {
+    const estado =
+        document.getElementById("arandaEstado");
+
+    const boton =
+        document.getElementById("btnEnviarAranda");
+
+    const mensaje =
+        document.getElementById("mensajeIntegracionAranda");
+
+    if (estado) {
+        estado.textContent = "ERROR";
+    }
+
+    if (boton) {
+        boton.disabled = false;
+        boton.textContent = "Reintentar envío";
+    }
+
+    if (mensaje) {
+        mensaje.hidden = false;
+        mensaje.textContent = texto;
+
+        mensaje.classList.remove(
+            "success-text"
+        );
+
+        mensaje.classList.add(
+            "danger-text"
+        );
+    }
+}
+
+async function obtenerMensajeErrorAranda(response) {
+    const tipoContenido =
+        response.headers.get("content-type") || "";
+
+    if (tipoContenido.includes("application/json")) {
+        try {
+            const contenido =
+                await response.json();
+
+            return (
+                contenido.message ||
+                contenido.error ||
+                `Error ${response.status}`
+            );
+
+        } catch (error) {
+            return `Error ${response.status}`;
+        }
+    }
+
+    try {
+        const texto =
+            await response.text();
+
+        return texto || `Error ${response.status}`;
+
+    } catch (error) {
+        return `Error ${response.status}`;
     }
 }
 

@@ -95,6 +95,14 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Genera metadatos para las propiedades personalizadas -->
+        <!-- Permite que VS Code reconozca app.frontend.* y aranda.api.* -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Herramientas para desarrollo -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -156,9 +164,16 @@
                         <configuration>
                             <annotationProcessorPaths>
 
+                                <!-- Procesador de anotaciones de Lombok -->
                                 <path>
                                     <groupId>org.projectlombok</groupId>
                                     <artifactId>lombok</artifactId>
+                                </path>
+
+                                <!-- Procesador de propiedades de Spring Boot -->
+                                <path>
+                                    <groupId>org.springframework.boot</groupId>
+                                    <artifactId>spring-boot-configuration-processor</artifactId>
                                 </path>
 
                             </annotationProcessorPaths>
@@ -176,9 +191,16 @@
                         <configuration>
                             <annotationProcessorPaths>
 
+                                <!-- Procesador de anotaciones de Lombok -->
                                 <path>
                                     <groupId>org.projectlombok</groupId>
                                     <artifactId>lombok</artifactId>
+                                </path>
+
+                                <!-- Procesador de propiedades de Spring Boot -->
+                                <path>
+                                    <groupId>org.springframework.boot</groupId>
+                                    <artifactId>spring-boot-configuration-processor</artifactId>
                                 </path>
 
                             </annotationProcessorPaths>

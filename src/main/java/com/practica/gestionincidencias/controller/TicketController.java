@@ -16,12 +16,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.practica.gestionincidencias.config.ArandaProperties;
 import com.practica.gestionincidencias.dto.AsignarTicketRequestDTO;
 import com.practica.gestionincidencias.dto.CambiarEstadoTicketRequestDTO;
 import com.practica.gestionincidencias.dto.CambiarPrioridadTicketRequestDTO;
 import com.practica.gestionincidencias.dto.TicketRequestDTO;
 import com.practica.gestionincidencias.dto.TicketResponseDTO;
 import com.practica.gestionincidencias.entity.HistorialTicket;
+import com.practica.gestionincidencias.entity.IntegracionAranda;
 import com.practica.gestionincidencias.entity.Ticket;
 import com.practica.gestionincidencias.entity.TipoIncidencia;
 import com.practica.gestionincidencias.entity.Usuario;
@@ -29,6 +31,7 @@ import com.practica.gestionincidencias.repository.HistorialTicketRepository;
 import com.practica.gestionincidencias.repository.TicketRepository;
 import com.practica.gestionincidencias.repository.TipoIncidenciaRepository;
 import com.practica.gestionincidencias.repository.UsuarioRepository;
+import com.practica.gestionincidencias.service.ArandaService;
 import com.practica.gestionincidencias.service.NotificacionService;
 
 import jakarta.validation.Valid;
@@ -57,21 +60,30 @@ public class TicketController {
     private final UsuarioRepository usuarioRepository;
     private final HistorialTicketRepository historialTicketRepository;
     private final NotificacionService notificacionService;
+    private final ArandaService arandaService;
+    private final ArandaProperties arandaProperties;
 
-    public TicketController(TicketRepository ticketRepository,
-                            TipoIncidenciaRepository tipoIncidenciaRepository,
-                            UsuarioRepository usuarioRepository,
-                            HistorialTicketRepository historialTicketRepository,
-                            NotificacionService notificacionService) {
+    public TicketController(
+            TicketRepository ticketRepository,
+            TipoIncidenciaRepository tipoIncidenciaRepository,
+            UsuarioRepository usuarioRepository,
+            HistorialTicketRepository historialTicketRepository,
+            NotificacionService notificacionService,
+            ArandaService arandaService,
+            ArandaProperties arandaProperties) {
+
         this.ticketRepository = ticketRepository;
         this.tipoIncidenciaRepository = tipoIncidenciaRepository;
         this.usuarioRepository = usuarioRepository;
         this.historialTicketRepository = historialTicketRepository;
         this.notificacionService = notificacionService;
+        this.arandaService = arandaService;
+        this.arandaProperties = arandaProperties;
     }
 
     @GetMapping
     public List<TicketResponseDTO> listarTickets() {
+
         return ticketRepository.findAll()
                 .stream()
                 .map(this::convertirADTO)
@@ -80,16 +92,35 @@ public class TicketController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public TicketResponseDTO crearTicket(@Valid @RequestBody TicketRequestDTO request) {
+    public TicketResponseDTO crearTicket(
+            @Valid @RequestBody TicketRequestDTO request) {
 
-        TipoIncidencia tipoIncidencia = tipoIncidenciaRepository.findById(request.getTipoIncidenciaId())
-                .orElseThrow(() -> new RuntimeException("Tipo de incidencia no encontrado."));
+        TipoIncidencia tipoIncidencia =
+                tipoIncidenciaRepository
+                        .findById(request.getTipoIncidenciaId())
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Tipo de incidencia no encontrado."
+                                )
+                        );
 
-        Usuario cliente = usuarioRepository.findById(request.getClienteId())
-                .orElseThrow(() -> new RuntimeException("Cliente no encontrado."));
+        Usuario cliente =
+                usuarioRepository
+                        .findById(request.getClienteId())
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Cliente no encontrado."
+                                )
+                        );
 
-        String numeroTicket = generarNumeroTicket();
-        String prioridadCalculada = calcularPrioridad(request.getImpacto(), request.getUrgencia());
+        String numeroTicket =
+                generarNumeroTicket();
+
+        String prioridadCalculada =
+                calcularPrioridad(
+                        request.getImpacto(),
+                        request.getUrgencia()
+                );
 
         Ticket ticket = Ticket.builder()
                 .numeroTicket(numeroTicket)
@@ -100,16 +131,37 @@ public class TicketController {
                 .agenteAsignado(null)
                 .estado("NUEVO")
                 .prioridad(prioridadCalculada)
-                .severidad(normalizarOpcional(request.getSeveridad()))
-                .criticidad(normalizarOpcional(request.getCriticidad()))
-                .impacto(request.getImpacto().trim().toUpperCase())
-                .urgencia(request.getUrgencia().trim().toUpperCase())
+                .severidad(
+                        normalizarOpcional(
+                                request.getSeveridad()
+                        )
+                )
+                .criticidad(
+                        normalizarOpcional(
+                                request.getCriticidad()
+                        )
+                )
+                .impacto(
+                        request.getImpacto()
+                                .trim()
+                                .toUpperCase()
+                )
+                .urgencia(
+                        request.getUrgencia()
+                                .trim()
+                                .toUpperCase()
+                )
                 .fechaCreacion(LocalDateTime.now())
                 .fechaActualizacion(LocalDateTime.now())
                 .fechaResolucion(null)
                 .build();
 
-        Ticket ticketGuardado = ticketRepository.save(ticket);
+        /*
+         * El ticket se guarda primero en PostgreSQL.
+         * Así no se pierde aunque Aranda no esté disponible.
+         */
+        Ticket ticketGuardado =
+                ticketRepository.save(ticket);
 
         registrarHistorial(
                 ticketGuardado,
@@ -117,10 +169,24 @@ public class TicketController {
                 "CREACION_TICKET",
                 null,
                 "NUEVO",
-                "Se creo el ticket " + ticketGuardado.getNumeroTicket()
+                "Se creó el ticket "
+                        + ticketGuardado.getNumeroTicket()
         );
 
-        notificacionService.notificarTicketCreado(ticketGuardado);
+        /*
+         * La notificación por correo se mantiene
+         * independiente de la integración con Aranda.
+         */
+        notificacionService
+                .notificarTicketCreado(ticketGuardado);
+
+        /*
+         * Sincronización automática con Aranda.
+         * Si falla, el ticket local permanece creado.
+         */
+        sincronizarConArandaAutomaticamente(
+                ticketGuardado
+        );
 
         return convertirADTO(ticketGuardado);
     }
@@ -128,30 +194,58 @@ public class TicketController {
     @PutMapping("/{id}/asignar")
     public TicketResponseDTO asignarTicket(
             @PathVariable Integer id,
-            @Valid @RequestBody AsignarTicketRequestDTO request) {
+            @Valid @RequestBody
+            AsignarTicketRequestDTO request) {
 
-        Ticket ticket = ticketRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Ticket no encontrado."));
+        Ticket ticket =
+                ticketRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Ticket no encontrado."
+                                )
+                        );
 
-        Usuario agente = usuarioRepository.findById(request.getAgenteId())
-                .orElseThrow(() -> new RuntimeException("Agente no encontrado."));
+        Usuario agente =
+                usuarioRepository
+                        .findById(request.getAgenteId())
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Agente no encontrado."
+                                )
+                        );
 
-        String agenteAnterior = ticket.getAgenteAsignado() != null
-                ? ticket.getAgenteAsignado().getNombre() + " " + ticket.getAgenteAsignado().getApellido()
-                : "SIN_ASIGNAR";
+        String agenteAnterior =
+                ticket.getAgenteAsignado() != null
+                        ? ticket.getAgenteAsignado().getNombre()
+                                + " "
+                                + ticket.getAgenteAsignado()
+                                        .getApellido()
+                        : "SIN_ASIGNAR";
 
-        String agenteNuevo = agente.getNombre() + " " + agente.getApellido();
-        String estadoAnterior = ticket.getEstado();
+        String agenteNuevo =
+                agente.getNombre()
+                        + " "
+                        + agente.getApellido();
+
+        String estadoAnterior =
+                ticket.getEstado();
 
         if (ticket.getAgenteAsignado() == null) {
-            validarTransicion(estadoAnterior, "ASIGNADO");
+            validarTransicion(
+                    estadoAnterior,
+                    "ASIGNADO"
+            );
+
             ticket.setEstado("ASIGNADO");
         }
 
         ticket.setAgenteAsignado(agente);
-        ticket.setFechaActualizacion(LocalDateTime.now());
+        ticket.setFechaActualizacion(
+                LocalDateTime.now()
+        );
 
-        Ticket ticketActualizado = ticketRepository.save(ticket);
+        Ticket ticketActualizado =
+                ticketRepository.save(ticket);
 
         registrarHistorial(
                 ticketActualizado,
@@ -159,21 +253,28 @@ public class TicketController {
                 "ASIGNACION_AGENTE",
                 agenteAnterior,
                 agenteNuevo,
-                "Se asigno el ticket al agente " + agenteNuevo
+                "Se asignó el ticket al agente "
+                        + agenteNuevo
         );
 
-        if (!estadoAnterior.equals(ticketActualizado.getEstado())) {
+        if (!estadoAnterior.equals(
+                ticketActualizado.getEstado())) {
+
             registrarHistorial(
                     ticketActualizado,
                     agente,
                     "CAMBIO_ESTADO",
                     estadoAnterior,
                     ticketActualizado.getEstado(),
-                    "Se cambio el estado automaticamente por asignacion."
+                    "Se cambió el estado automáticamente "
+                            + "por la asignación del agente."
             );
         }
 
-        notificacionService.notificarTicketAsignado(ticketActualizado, agente);
+        notificacionService.notificarTicketAsignado(
+                ticketActualizado,
+                agente
+        );
 
         return convertirADTO(ticketActualizado);
     }
@@ -181,37 +282,85 @@ public class TicketController {
     @PutMapping("/{id}/estado")
     public TicketResponseDTO cambiarEstado(
             @PathVariable Integer id,
-            @Valid @RequestBody CambiarEstadoTicketRequestDTO request) {
+            @Valid @RequestBody
+            CambiarEstadoTicketRequestDTO request) {
 
-        Ticket ticket = ticketRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Ticket no encontrado."));
+        Ticket ticket =
+                ticketRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Ticket no encontrado."
+                                )
+                        );
 
-        String estadoAnterior = ticket.getEstado();
-        String nuevoEstado = request.getEstado().trim().toUpperCase();
+        String estadoAnterior =
+                ticket.getEstado();
+
+        String nuevoEstado =
+                request.getEstado()
+                        .trim()
+                        .toUpperCase();
+
         validarEstado(nuevoEstado);
-        validarTransicion(estadoAnterior, nuevoEstado);
 
-        String notaResolucion = normalizarOpcional(request.getNotaResolucion());
+        validarTransicion(
+                estadoAnterior,
+                nuevoEstado
+        );
 
-        if ((nuevoEstado.equals("RESUELTO") || nuevoEstado.equals("CERRADO"))
-                && (notaResolucion == null || notaResolucion.isBlank())) {
-            throw new RuntimeException("Debes agregar una nota de resolucion para resolver o cerrar el ticket.");
+        String notaResolucion =
+                normalizarOpcional(
+                        request.getNotaResolucion()
+                );
+
+        if (
+                (
+                    nuevoEstado.equals("RESUELTO")
+                    || nuevoEstado.equals("CERRADO")
+                )
+                && (
+                    notaResolucion == null
+                    || notaResolucion.isBlank()
+                )
+        ) {
+            throw new RuntimeException(
+                    "Debes agregar una nota de resolución "
+                            + "para resolver o cerrar el ticket."
+            );
         }
 
         ticket.setEstado(nuevoEstado);
-        ticket.setFechaActualizacion(LocalDateTime.now());
+        ticket.setFechaActualizacion(
+                LocalDateTime.now()
+        );
 
-        if ((nuevoEstado.equals("RESUELTO") || nuevoEstado.equals("CERRADO"))
-                && ticket.getFechaResolucion() == null) {
-            ticket.setFechaResolucion(LocalDateTime.now());
+        if (
+                (
+                    nuevoEstado.equals("RESUELTO")
+                    || nuevoEstado.equals("CERRADO")
+                )
+                && ticket.getFechaResolucion() == null
+        ) {
+            ticket.setFechaResolucion(
+                    LocalDateTime.now()
+            );
         }
 
-        Ticket ticketActualizado = ticketRepository.save(ticket);
+        Ticket ticketActualizado =
+                ticketRepository.save(ticket);
 
-        String descripcion = "Se cambio el estado del ticket de " + estadoAnterior + " a " + nuevoEstado;
+        String descripcion =
+                "Se cambió el estado del ticket de "
+                        + estadoAnterior
+                        + " a "
+                        + nuevoEstado;
 
-        if (notaResolucion != null && !notaResolucion.isBlank()) {
-            descripcion += ". Nota: " + notaResolucion;
+        if (
+                notaResolucion != null
+                && !notaResolucion.isBlank()
+        ) {
+            descripcion +=
+                    ". Nota: " + notaResolucion;
         }
 
         registrarHistorial(
@@ -223,7 +372,12 @@ public class TicketController {
                 descripcion
         );
 
-        notificacionService.notificarCambioEstado(ticketActualizado, estadoAnterior, nuevoEstado, notaResolucion);
+        notificacionService.notificarCambioEstado(
+                ticketActualizado,
+                estadoAnterior,
+                nuevoEstado,
+                notaResolucion
+        );
 
         return convertirADTO(ticketActualizado);
     }
@@ -231,31 +385,70 @@ public class TicketController {
     @PutMapping("/{id}/prioridad")
     public TicketResponseDTO cambiarPrioridad(
             @PathVariable Integer id,
-            @Valid @RequestBody CambiarPrioridadTicketRequestDTO request) {
+            @Valid @RequestBody
+            CambiarPrioridadTicketRequestDTO request) {
 
-        Ticket ticket = ticketRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Ticket no encontrado."));
+        Ticket ticket =
+                ticketRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Ticket no encontrado."
+                                )
+                        );
 
-        Usuario usuario = usuarioRepository.findById(request.getUsuarioId())
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado."));
+        Usuario usuario =
+                usuarioRepository
+                        .findById(request.getUsuarioId())
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Usuario no encontrado."
+                                )
+                        );
 
-        String prioridadAnterior = ticket.getPrioridad();
-        String prioridadNueva = request.getPrioridad().trim().toUpperCase();
+        String prioridadAnterior =
+                ticket.getPrioridad();
 
-        if (!PRIORIDADES_VALIDAS.contains(prioridadNueva)) {
-            throw new RuntimeException("Prioridad no valida. Use P1_CRITICA, P2_ALTA, P3_MEDIA o P4_BAJA.");
+        String prioridadNueva =
+                request.getPrioridad()
+                        .trim()
+                        .toUpperCase();
+
+        if (!PRIORIDADES_VALIDAS.contains(
+                prioridadNueva)) {
+
+            throw new RuntimeException(
+                    "Prioridad no válida. "
+                            + "Use P1_CRITICA, P2_ALTA, "
+                            + "P3_MEDIA o P4_BAJA."
+            );
         }
 
         ticket.setPrioridad(prioridadNueva);
-        ticket.setFechaActualizacion(LocalDateTime.now());
 
-        Ticket ticketActualizado = ticketRepository.save(ticket);
+        ticket.setFechaActualizacion(
+                LocalDateTime.now()
+        );
 
-        String justificacion = normalizarOpcional(request.getJustificacion());
-        String descripcion = "Se ajusto manualmente la prioridad de " + prioridadAnterior + " a " + prioridadNueva;
+        Ticket ticketActualizado =
+                ticketRepository.save(ticket);
 
-        if (justificacion != null && !justificacion.isBlank()) {
-            descripcion += ". Justificacion: " + justificacion;
+        String justificacion =
+                normalizarOpcional(
+                        request.getJustificacion()
+                );
+
+        String descripcion =
+                "Se ajustó manualmente la prioridad de "
+                        + prioridadAnterior
+                        + " a "
+                        + prioridadNueva;
+
+        if (
+                justificacion != null
+                && !justificacion.isBlank()
+        ) {
+            descripcion +=
+                    ". Justificación: " + justificacion;
         }
 
         registrarHistorial(
@@ -270,92 +463,276 @@ public class TicketController {
         return convertirADTO(ticketActualizado);
     }
 
-    private void registrarHistorial(Ticket ticket, Usuario usuario, String accion,
-                                    String valorAnterior, String valorNuevo, String descripcion) {
+    /*
+     * Intenta enviar automáticamente el ticket a Aranda.
+     *
+     * La integración solo se ejecuta cuando:
+     * aranda.api.enabled=true
+     *
+     * Si Aranda falla, el error no cancela la creación
+     * del ticket local.
+     */
+    private void sincronizarConArandaAutomaticamente(
+            Ticket ticketGuardado) {
 
-        HistorialTicket historial = HistorialTicket.builder()
-                .ticket(ticket)
-                .usuario(usuario)
-                .accion(accion)
-                .valorAnterior(valorAnterior)
-                .valorNuevo(valorNuevo)
-                .descripcion(descripcion)
-                .fechaCreacion(LocalDateTime.now())
-                .build();
+        if (!arandaProperties.isEnabled()) {
+            return;
+        }
+
+        try {
+            IntegracionAranda integracion =
+                    arandaService.enviarTicketAAranda(
+                            ticketGuardado.getId()
+                    );
+
+            String numeroCaso =
+                    integracion.getArandaIdProyecto() != null
+                            ? integracion.getArandaIdProyecto()
+                            : String.valueOf(
+                                    integracion.getArandaItemId()
+                            );
+
+            registrarHistorial(
+                    ticketGuardado,
+                    ticketGuardado.getCliente(),
+                    "SINCRONIZACION_ARANDA",
+                    null,
+                    numeroCaso,
+                    "El ticket fue enviado automáticamente "
+                            + "a Aranda. Caso: "
+                            + numeroCaso
+            );
+
+            System.out.println(
+                    "Ticket "
+                            + ticketGuardado.getNumeroTicket()
+                            + " sincronizado automáticamente "
+                            + "con Aranda. Caso: "
+                            + numeroCaso
+            );
+
+        } catch (Exception error) {
+
+            String mensajeError =
+                    obtenerMensajeExcepcion(error);
+
+            System.err.println(
+                    "El ticket "
+                            + ticketGuardado.getNumeroTicket()
+                            + " fue creado localmente, "
+                            + "pero no pudo sincronizarse "
+                            + "con Aranda: "
+                            + mensajeError
+            );
+
+            /*
+             * Se registra el fallo en el historial,
+             * pero no se cancela la creación del ticket.
+             */
+            try {
+                registrarHistorial(
+                        ticketGuardado,
+                        ticketGuardado.getCliente(),
+                        "ERROR_SINCRONIZACION_ARANDA",
+                        null,
+                        "ERROR",
+                        "El ticket no pudo sincronizarse "
+                                + "automáticamente con Aranda. "
+                                + "Detalle: "
+                                + mensajeError
+                );
+
+            } catch (Exception errorHistorial) {
+
+                System.err.println(
+                        "No se pudo registrar el error "
+                                + "de Aranda en el historial: "
+                                + obtenerMensajeExcepcion(
+                                        errorHistorial
+                                )
+                );
+            }
+        }
+    }
+
+    private String obtenerMensajeExcepcion(
+            Exception error) {
+
+        if (error == null) {
+            return "Error desconocido";
+        }
+
+        if (
+                error.getMessage() != null
+                && !error.getMessage().isBlank()
+        ) {
+            return error.getMessage();
+        }
+
+        return error.getClass().getSimpleName();
+    }
+
+    private void registrarHistorial(
+            Ticket ticket,
+            Usuario usuario,
+            String accion,
+            String valorAnterior,
+            String valorNuevo,
+            String descripcion) {
+
+        HistorialTicket historial =
+                HistorialTicket.builder()
+                        .ticket(ticket)
+                        .usuario(usuario)
+                        .accion(accion)
+                        .valorAnterior(valorAnterior)
+                        .valorNuevo(valorNuevo)
+                        .descripcion(descripcion)
+                        .fechaCreacion(LocalDateTime.now())
+                        .build();
 
         historialTicketRepository.save(historial);
     }
 
     private String generarNumeroTicket() {
-        int anio = Year.now().getValue();
-        String prefijo = "INC-" + anio + "-";
 
-        long cantidad = ticketRepository.countByNumeroTicketStartingWith(prefijo);
-        long siguienteNumero = cantidad + 1;
+        int anio =
+                Year.now().getValue();
 
-        return prefijo + String.format("%04d", siguienteNumero);
+        String prefijo =
+                "INC-" + anio + "-";
+
+        long cantidad =
+                ticketRepository
+                        .countByNumeroTicketStartingWith(
+                                prefijo
+                        );
+
+        long siguienteNumero =
+                cantidad + 1;
+
+        return prefijo
+                + String.format(
+                        "%04d",
+                        siguienteNumero
+                );
     }
 
-    private String calcularPrioridad(String impacto, String urgencia) {
+    private String calcularPrioridad(
+            String impacto,
+            String urgencia) {
 
-        String impactoNormalizado = impacto.trim().toUpperCase();
-        String urgenciaNormalizada = urgencia.trim().toUpperCase();
+        String impactoNormalizado =
+                impacto.trim().toUpperCase();
 
-        if (impactoNormalizado.equals("ALTO") && urgenciaNormalizada.equals("ALTA")) {
+        String urgenciaNormalizada =
+                urgencia.trim().toUpperCase();
+
+        if (
+                impactoNormalizado.equals("ALTO")
+                && urgenciaNormalizada.equals("ALTA")
+        ) {
             return "P1_CRITICA";
         }
 
-        if (impactoNormalizado.equals("ALTO") && urgenciaNormalizada.equals("MEDIA")) {
+        if (
+                impactoNormalizado.equals("ALTO")
+                && urgenciaNormalizada.equals("MEDIA")
+        ) {
             return "P2_ALTA";
         }
 
-        if (impactoNormalizado.equals("MEDIO") && urgenciaNormalizada.equals("ALTA")) {
+        if (
+                impactoNormalizado.equals("MEDIO")
+                && urgenciaNormalizada.equals("ALTA")
+        ) {
             return "P2_ALTA";
         }
 
-        if (impactoNormalizado.equals("MEDIO") && urgenciaNormalizada.equals("MEDIA")) {
+        if (
+                impactoNormalizado.equals("MEDIO")
+                && urgenciaNormalizada.equals("MEDIA")
+        ) {
             return "P3_MEDIA";
         }
 
         return "P4_BAJA";
     }
 
-    private void validarEstado(String estado) {
-        if (!TRANSICIONES_VALIDAS.containsKey(estado)) {
-            throw new RuntimeException("Estado no valido.");
+    private void validarEstado(
+            String estado) {
+
+        if (!TRANSICIONES_VALIDAS.containsKey(
+                estado)) {
+
+            throw new RuntimeException(
+                    "Estado no válido."
+            );
         }
     }
 
-    private void validarTransicion(String estadoActual, String nuevoEstado) {
+    private void validarTransicion(
+            String estadoActual,
+            String nuevoEstado) {
+
         validarEstado(estadoActual);
 
         if (estadoActual.equals(nuevoEstado)) {
-            throw new RuntimeException("El ticket ya se encuentra en ese estado.");
+            throw new RuntimeException(
+                    "El ticket ya se encuentra "
+                            + "en ese estado."
+            );
         }
 
-        if (!TRANSICIONES_VALIDAS.get(estadoActual).contains(nuevoEstado)) {
-            throw new RuntimeException("Transicion no permitida: " + estadoActual + " -> " + nuevoEstado + ".");
+        if (
+                !TRANSICIONES_VALIDAS
+                        .get(estadoActual)
+                        .contains(nuevoEstado)
+        ) {
+            throw new RuntimeException(
+                    "Transición no permitida: "
+                            + estadoActual
+                            + " -> "
+                            + nuevoEstado
+                            + "."
+            );
         }
     }
 
-    private String normalizarOpcional(String valor) {
-        if (valor == null || valor.isBlank()) {
+    private String normalizarOpcional(
+            String valor) {
+
+        if (
+                valor == null
+                || valor.isBlank()
+        ) {
             return null;
         }
 
         return valor.trim();
     }
 
-    private TicketResponseDTO convertirADTO(Ticket ticket) {
+    private TicketResponseDTO convertirADTO(
+            Ticket ticket) {
 
-        String clienteNombre = ticket.getCliente().getNombre() + " " + ticket.getCliente().getApellido();
+        String clienteNombre =
+                ticket.getCliente().getNombre()
+                        + " "
+                        + ticket.getCliente().getApellido();
 
         Integer agenteId = null;
         String agenteNombre = null;
 
         if (ticket.getAgenteAsignado() != null) {
-            agenteId = ticket.getAgenteAsignado().getId();
-            agenteNombre = ticket.getAgenteAsignado().getNombre() + " " + ticket.getAgenteAsignado().getApellido();
+
+            agenteId =
+                    ticket.getAgenteAsignado().getId();
+
+            agenteNombre =
+                    ticket.getAgenteAsignado().getNombre()
+                            + " "
+                            + ticket.getAgenteAsignado()
+                                    .getApellido();
         }
 
         return new TicketResponseDTO(

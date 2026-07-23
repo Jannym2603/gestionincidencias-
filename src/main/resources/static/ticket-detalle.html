@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
 
@@ -142,27 +143,31 @@
 
         </header>
 
-        <!-- Encabezado del ticket -->
+        <!-- Botón de regreso -->
 
-        <section class="action-bar ticket-action-bar">
-
-            <div>
-                <h2 id="ticketNumero">
-                    Ticket
-                </h2>
-
-                <p id="ticketTitulo">
-                    Cargando información del ticket...
-                </p>
-            </div>
+        <section class="ticket-back-row">
 
             <button
-                class="secondary-btn ticket-back-btn"
+                class="ticket-back-button"
                 type="button"
                 onclick="window.location.href='tickets.html'"
             >
                 ← Volver a tickets
             </button>
+
+        </section>
+
+        <!-- Título del ticket -->
+
+        <section class="ticket-title-section">
+
+            <h2 id="ticketNumero">
+                Ticket
+            </h2>
+
+            <p id="ticketTitulo">
+                Cargando información del ticket...
+            </p>
 
         </section>
 
@@ -222,6 +227,7 @@
 
                     <div class="ticket-data-item ticket-data-full">
                         <span>Agente asignado</span>
+
                         <strong id="ticketAgente">
                             Sin asignar
                         </strong>
@@ -276,33 +282,75 @@
 
             <div class="ticket-actions-grid">
 
+                <!-- Supervisor y administrador -->
+
                 <div
                     id="accionesSupervisor"
                     class="ticket-action-panel"
                     style="display: none;"
                 >
 
-                    <div class="form-group">
-                        <label for="agenteId">
-                            Asignar agente
-                        </label>
+                    <div class="ticket-action-columns">
 
-                        <select id="agenteId">
-                            <option value="">
-                                Seleccione agente
-                            </option>
-                        </select>
+                        <div class="ticket-action-column">
+
+                            <div class="form-group">
+
+                                <label for="agenteId">
+                                    Asignar agente
+                                </label>
+
+                                <select id="agenteId">
+
+                                    <option value="">
+                                        Seleccione agente
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+                            <button
+                                class="primary-btn"
+                                type="button"
+                                onclick="asignarTicket()"
+                            >
+                                Asignar ticket
+                            </button>
+
+                        </div>
+
+                        <div class="ticket-action-column">
+
+                            <div class="form-group">
+
+                                <label>
+                                    Compartir acceso
+                                </label>
+
+                                <small class="form-help-text">
+                                    Genera un enlace privado y selecciona
+                                    qué acciones podrá realizar la persona.
+                                </small>
+
+                            </div>
+
+                            <button
+                                id="btnAbrirCompartirTicket"
+                                class="secondary-btn"
+                                type="button"
+                                onclick="abrirModalCompartirTicket()"
+                            >
+                                Compartir ticket
+                            </button>
+
+                        </div>
+
                     </div>
 
-                    <button
-                        class="primary-btn"
-                        type="button"
-                        onclick="asignarTicket()"
-                    >
-                        Asignar ticket
-                    </button>
-
                 </div>
+
+                <!-- Agente -->
 
                 <div
                     id="accionesAgente"
@@ -315,11 +363,13 @@
                         <div class="ticket-action-column">
 
                             <div class="form-group">
+
                                 <label for="nuevoEstado">
                                     Cambiar estado
                                 </label>
 
                                 <select id="nuevoEstado">
+
                                     <option value="ASIGNADO">
                                         ASIGNADO
                                     </option>
@@ -335,10 +385,13 @@
                                     <option value="CERRADO">
                                         CERRADO
                                     </option>
+
                                 </select>
+
                             </div>
 
                             <div class="form-group">
+
                                 <label for="notaResolucion">
                                     Nota de resolución
                                 </label>
@@ -347,6 +400,7 @@
                                     id="notaResolucion"
                                     placeholder="Obligatoria al resolver o cerrar el ticket."
                                 ></textarea>
+
                             </div>
 
                             <button
@@ -362,11 +416,13 @@
                         <div class="ticket-action-column">
 
                             <div class="form-group">
+
                                 <label for="nuevaPrioridad">
                                     Ajustar prioridad
                                 </label>
 
                                 <select id="nuevaPrioridad">
+
                                     <option value="P1_CRITICA">
                                         P1_CRITICA
                                     </option>
@@ -382,10 +438,13 @@
                                     <option value="P4_BAJA">
                                         P4_BAJA
                                     </option>
+
                                 </select>
+
                             </div>
 
                             <div class="form-group">
+
                                 <label for="justificacionPrioridad">
                                     Justificación del cambio
                                 </label>
@@ -394,6 +453,7 @@
                                     id="justificacionPrioridad"
                                     placeholder="Explica por qué se ajusta la prioridad."
                                 ></textarea>
+
                             </div>
 
                             <button
@@ -418,6 +478,129 @@
             >
                 Acciones disponibles según tu rol.
             </p>
+
+        </section>
+
+        <!-- Integración con Aranda -->
+
+        <section
+            id="seccionIntegracionAranda"
+            class="table-section ticket-section-compact"
+            style="display: none;"
+        >
+
+            <div class="section-header ticket-section-header">
+
+                <div>
+                    <h2>Integración con Aranda</h2>
+
+                    <p>
+                        Estado de sincronización del ticket
+                        con Aranda ASMS.
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="ticket-data-grid">
+
+                <div class="ticket-data-item">
+                    <span>Estado</span>
+                    <strong id="arandaEstado">
+                        CONSULTANDO
+                    </strong>
+                </div>
+
+                <div class="ticket-data-item">
+                    <span>Número del caso</span>
+                    <strong id="arandaNumeroCaso">
+                        -
+                    </strong>
+                </div>
+
+                <div class="ticket-data-item">
+                    <span>ID interno de Aranda</span>
+                    <strong id="arandaItemId">
+                        -
+                    </strong>
+                </div>
+
+                <div class="ticket-data-item">
+                    <span>Última sincronización</span>
+                    <strong id="arandaFechaSincronizacion">
+                        -
+                    </strong>
+                </div>
+
+            </div>
+
+            <p
+                id="mensajeIntegracionAranda"
+                class="info-box ticket-actions-message"
+                hidden
+            ></p>
+
+        </section>
+
+        <!-- Enlaces compartidos -->
+
+        <section
+            id="seccionEnlacesCompartidos"
+            class="table-section ticket-section-compact"
+            style="display: none;"
+        >
+
+            <div class="section-header ticket-section-header">
+
+                <div>
+                    <h2>Enlaces compartidos</h2>
+
+                    <p>
+                        Administra los accesos externos generados
+                        para este ticket.
+                    </p>
+                </div>
+
+                <button
+                    class="primary-btn"
+                    type="button"
+                    onclick="abrirModalCompartirTicket()"
+                >
+                    + Generar enlace
+                </button>
+
+            </div>
+
+            <div class="table-wrapper">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+                            <th>Destinatario</th>
+                            <th>Permisos</th>
+                            <th>Creación</th>
+                            <th>Vencimiento</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="enlacesCompartidosBody">
+
+                        <tr>
+                            <td colspan="6">
+                                Cargando enlaces compartidos...
+                            </td>
+                        </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
 
         </section>
 
@@ -479,7 +662,7 @@
 
         </section>
 
-        <!-- Adjuntos como última sección -->
+        <!-- Adjuntos -->
 
         <section class="table-section ticket-section-compact">
 
@@ -531,6 +714,7 @@
                 <table>
 
                     <thead>
+
                         <tr>
                             <th>Archivo</th>
                             <th>Tipo</th>
@@ -538,6 +722,7 @@
                             <th>Fecha</th>
                             <th>Acción</th>
                         </tr>
+
                     </thead>
 
                     <tbody id="adjuntosBody">
@@ -578,6 +763,7 @@
         <div class="modal-header">
 
             <div>
+
                 <h2 id="modalComentarioTitulo">
                     Agregar comentario
                 </h2>
@@ -585,6 +771,7 @@
                 <p>
                     Registra un comentario público o interno.
                 </p>
+
             </div>
 
             <button
@@ -607,6 +794,7 @@
                 </label>
 
                 <select id="tipoComentario">
+
                     <option value="PUBLICO">
                         PÚBLICO
                     </option>
@@ -614,6 +802,7 @@
                     <option value="INTERNO">
                         INTERNO
                     </option>
+
                 </select>
 
             </div>
@@ -657,8 +846,249 @@
 
 </div>
 
+<!-- Modal para compartir ticket -->
+
+<div
+    class="modal-overlay"
+    id="modalCompartirTicket"
+    aria-hidden="true"
+>
+
+    <div
+        class="modal-card modal-compartir-ticket"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modalCompartirTitulo"
+    >
+
+        <div class="modal-header">
+
+            <div>
+
+                <h2 id="modalCompartirTitulo">
+                    Compartir ticket
+                </h2>
+
+                <p>
+                    Genera un enlace privado con permisos específicos.
+                </p>
+
+            </div>
+
+            <button
+                class="modal-close-btn"
+                type="button"
+                aria-label="Cerrar modal"
+                onclick="cerrarModalCompartirTicket()"
+            >
+                ×
+            </button>
+
+        </div>
+
+        <div class="modal-body">
+
+            <div class="form-group">
+
+                <label for="correoDestinatarioCompartido">
+                    Correo del destinatario
+                </label>
+
+                <input
+                    type="email"
+                    id="correoDestinatarioCompartido"
+                    maxlength="150"
+                    placeholder="persona@empresa.com"
+                    autocomplete="email"
+                >
+
+                <small class="form-help-text">
+                    El enlace será enviado a este correo.
+                </small>
+
+            </div>
+
+            <div class="form-group">
+
+                <label for="fechaExpiracionCompartida">
+                    Fecha y hora de vencimiento
+                </label>
+
+                <input
+                    type="datetime-local"
+                    id="fechaExpiracionCompartida"
+                >
+
+                <small class="form-help-text">
+                    Puedes dejarla vacía para crear un enlace sin vencimiento.
+                </small>
+
+            </div>
+
+            <fieldset class="shared-permissions-fieldset">
+
+                <legend>
+                    Permisos autorizados
+                </legend>
+
+                <label class="shared-permission-option">
+
+                    <input
+                        type="checkbox"
+                        id="permisoVerTicket"
+                        checked
+                        disabled
+                    >
+
+                    <span>
+                        <strong>Ver ticket</strong>
+                        <small>
+                            Permite consultar la información general.
+                        </small>
+                    </span>
+
+                </label>
+
+                <label class="shared-permission-option">
+
+                    <input
+                        type="checkbox"
+                        id="permisoComentarTicket"
+                    >
+
+                    <span>
+                        <strong>Agregar comentarios</strong>
+                        <small>
+                            Permite escribir comentarios públicos.
+                        </small>
+                    </span>
+
+                </label>
+
+                <label class="shared-permission-option">
+
+                    <input
+                        type="checkbox"
+                        id="permisoVerAdjuntosTicket"
+                    >
+
+                    <span>
+                        <strong>Ver adjuntos</strong>
+                        <small>
+                            Permite consultar y descargar archivos.
+                        </small>
+                    </span>
+
+                </label>
+
+                <label class="shared-permission-option">
+
+                    <input
+                        type="checkbox"
+                        id="permisoSubirAdjuntosTicket"
+                    >
+
+                    <span>
+                        <strong>Subir adjuntos</strong>
+                        <small>
+                            Permite agregar nuevos archivos.
+                        </small>
+                    </span>
+
+                </label>
+
+                <label class="shared-permission-option">
+
+                    <input
+                        type="checkbox"
+                        id="permisoCambiarEstadoTicket"
+                    >
+
+                    <span>
+                        <strong>Cambiar estado</strong>
+                        <small>
+                            Permite actualizar el estado del ticket.
+                        </small>
+                    </span>
+
+                </label>
+
+            </fieldset>
+
+            <p
+                id="mensajeCompartirTicket"
+                class="info-box"
+                hidden
+            ></p>
+
+            <div
+                id="resultadoEnlaceCompartido"
+                class="shared-link-result"
+                hidden
+            >
+
+                <div class="form-group">
+
+                    <label for="enlaceCompartidoGenerado">
+                        Enlace generado
+                    </label>
+
+                    <div class="shared-link-copy-row">
+
+                        <input
+                            type="text"
+                            id="enlaceCompartidoGenerado"
+                            readonly
+                        >
+
+                        <button
+                            class="secondary-btn"
+                            type="button"
+                            onclick="copiarEnlaceCompartido()"
+                        >
+                            Copiar
+                        </button>
+
+                    </div>
+
+                </div>
+
+                <small class="form-help-text">
+                    El enlace también fue enviado al correo indicado.
+                </small>
+
+            </div>
+
+        </div>
+
+        <div class="modal-actions">
+
+            <button
+                class="secondary-btn"
+                type="button"
+                onclick="cerrarModalCompartirTicket()"
+            >
+                Cancelar
+            </button>
+
+            <button
+                class="primary-btn"
+                id="btnGenerarEnlaceCompartido"
+                type="button"
+                onclick="generarEnlaceCompartido()"
+            >
+                Generar y enviar enlace
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
 <script src="app.js"></script>
 <script src="ticket-detalle.js"></script>
 
 </body>
+
 </html>
