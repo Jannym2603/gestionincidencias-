@@ -1,7 +1,6 @@
 let ticketActual = null;
 let ticketId = null;
 let enlacesCompartidosActuales = [];
-let integracionArandaActual = null;
 
 document.addEventListener("DOMContentLoaded", () => {
     inicializarLayout();
@@ -17,13 +16,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     cargarDetalleTicket();
     cargarComentarios();
-    cargarHistorial();
     cargarAdjuntosTicket();
     cargarUsuariosParaAsignar();
     configurarVistaPorRol();
+    configurarModalHistorial();
     configurarModalComentario();
     configurarModalCompartirTicket();
-    consultarIntegracionAranda();
 });
 
 /* =====================================================
@@ -820,6 +818,68 @@ async function crearComentario() {
 
         alert("Error creando comentario.");
     }
+}
+
+/* =====================================================
+   MODAL DE HISTORIAL
+===================================================== */
+
+function configurarModalHistorial() {
+    const modal = document.getElementById("modalHistorial");
+
+    if (!modal) {
+        return;
+    }
+
+    modal.addEventListener("click", event => {
+        if (event.target === modal) {
+            cerrarModalHistorial();
+        }
+    });
+
+    document.addEventListener("keydown", event => {
+        if (
+            event.key === "Escape" &&
+            modal.classList.contains("activo")
+        ) {
+            cerrarModalHistorial();
+        }
+    });
+}
+
+async function abrirModalHistorial() {
+    const modal = document.getElementById("modalHistorial");
+    const contenedor = document.getElementById("listaHistorial");
+
+    if (!modal) {
+        return;
+    }
+
+    modal.classList.add("activo");
+    modal.setAttribute("aria-hidden", "false");
+    document.body.classList.add("modal-abierto");
+
+    if (contenedor) {
+        contenedor.innerHTML = `
+            <p class="empty-message">
+                Cargando historial...
+            </p>
+        `;
+    }
+
+    await cargarHistorial();
+}
+
+function cerrarModalHistorial() {
+    const modal = document.getElementById("modalHistorial");
+
+    if (!modal) {
+        return;
+    }
+
+    modal.classList.remove("activo");
+    modal.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("modal-abierto");
 }
 
 /* =====================================================
@@ -1705,401 +1765,6 @@ async function obtenerMensajeErrorCompartido(
             texto ||
             `Error ${response.status}`
         );
-
-    } catch (error) {
-        return `Error ${response.status}`;
-    }
-}
-
-/* =====================================================
-   INTEGRACIÓN CON ARANDA
-===================================================== */
-
-async function consultarIntegracionAranda() {
-    const usuario = obtenerSesion();
-
-    const seccion =
-        document.getElementById("seccionIntegracionAranda");
-
-    if (
-        !usuario ||
-        (
-            usuario.rol !== "SUPERVISOR" &&
-            usuario.rol !== "ADMIN"
-        )
-    ) {
-        if (seccion) {
-            seccion.style.display = "none";
-        }
-
-        return;
-    }
-
-    if (seccion) {
-        seccion.style.display = "block";
-    }
-
-    mostrarEstadoArandaCargando();
-
-    try {
-        const response = await fetch(
-            `${API_BASE}/aranda/tickets/${ticketId}`
-        );
-
-        if (response.status === 404) {
-            integracionArandaActual = null;
-            mostrarArandaNoSincronizado();
-            return;
-        }
-
-        if (!response.ok) {
-            const mensaje =
-                await obtenerMensajeErrorAranda(response);
-
-            throw new Error(mensaje);
-        }
-
-        integracionArandaActual = await response.json();
-
-        mostrarArandaSincronizado(
-            integracionArandaActual
-        );
-
-    } catch (error) {
-        console.error(
-            "Error consultando integración con Aranda:",
-            error
-        );
-
-        mostrarArandaError(
-            error.message ||
-            "No se pudo consultar la integración con Aranda."
-        );
-    }
-}
-
-async function enviarTicketAAranda() {
-    const usuario = obtenerSesion();
-
-    if (
-        !usuario ||
-        (
-            usuario.rol !== "SUPERVISOR" &&
-            usuario.rol !== "ADMIN"
-        )
-    ) {
-        alert(
-            "Solo el supervisor o administrador puede enviar tickets a Aranda."
-        );
-        return;
-    }
-
-    if (integracionArandaActual) {
-        alert(
-            "Este ticket ya está sincronizado con Aranda."
-        );
-        return;
-    }
-
-    const confirmado = confirm(
-        "¿Deseas enviar este ticket a Aranda?"
-    );
-
-    if (!confirmado) {
-        return;
-    }
-
-    const boton =
-        document.getElementById("btnEnviarAranda");
-
-    const mensaje =
-        document.getElementById("mensajeIntegracionAranda");
-
-    try {
-        if (boton) {
-            boton.disabled = true;
-            boton.textContent = "Enviando a Aranda...";
-        }
-
-        if (mensaje) {
-            mensaje.hidden = false;
-            mensaje.textContent =
-                "Enviando ticket a Aranda...";
-
-            mensaje.classList.remove(
-                "success-text",
-                "danger-text"
-            );
-        }
-
-        const response = await fetch(
-            `${API_BASE}/aranda/tickets/${ticketId}/enviar`,
-            {
-                method: "POST"
-            }
-        );
-
-        if (!response.ok) {
-            const mensajeError =
-                await obtenerMensajeErrorAranda(response);
-
-            throw new Error(mensajeError);
-        }
-
-        integracionArandaActual =
-            await response.json();
-
-        mostrarArandaSincronizado(
-            integracionArandaActual
-        );
-
-        alert(
-            `Ticket enviado correctamente a Aranda. Caso: ${
-                integracionArandaActual.arandaIdProyecto ||
-                integracionArandaActual.arandaItemId
-            }`
-        );
-
-    } catch (error) {
-        console.error(
-            "Error enviando ticket a Aranda:",
-            error
-        );
-
-        mostrarArandaError(
-            error.message ||
-            "No se pudo enviar el ticket a Aranda."
-        );
-    }
-}
-
-function mostrarEstadoArandaCargando() {
-    const estado =
-        document.getElementById("arandaEstado");
-
-    const numero =
-        document.getElementById("arandaNumeroCaso");
-
-    const itemId =
-        document.getElementById("arandaItemId");
-
-    const fecha =
-        document.getElementById("arandaFechaSincronizacion");
-
-    const boton =
-        document.getElementById("btnEnviarAranda");
-
-    const mensaje =
-        document.getElementById("mensajeIntegracionAranda");
-
-    if (estado) {
-        estado.textContent = "CONSULTANDO";
-    }
-
-    if (numero) {
-        numero.textContent = "-";
-    }
-
-    if (itemId) {
-        itemId.textContent = "-";
-    }
-
-    if (fecha) {
-        fecha.textContent = "-";
-    }
-
-    if (boton) {
-        boton.disabled = true;
-        boton.textContent = "Consultando...";
-    }
-
-    if (mensaje) {
-        mensaje.hidden = true;
-        mensaje.textContent = "";
-    }
-}
-
-function mostrarArandaNoSincronizado() {
-    const estado =
-        document.getElementById("arandaEstado");
-
-    const numero =
-        document.getElementById("arandaNumeroCaso");
-
-    const itemId =
-        document.getElementById("arandaItemId");
-
-    const fecha =
-        document.getElementById("arandaFechaSincronizacion");
-
-    const boton =
-        document.getElementById("btnEnviarAranda");
-
-    const mensaje =
-        document.getElementById("mensajeIntegracionAranda");
-
-    if (estado) {
-        estado.textContent = "NO SINCRONIZADO";
-    }
-
-    if (numero) {
-        numero.textContent = "Sin caso";
-    }
-
-    if (itemId) {
-        itemId.textContent = "-";
-    }
-
-    if (fecha) {
-        fecha.textContent = "-";
-    }
-
-    if (boton) {
-        boton.disabled = false;
-        boton.textContent = "Enviar a Aranda";
-        boton.style.display = "inline-flex";
-    }
-
-    if (mensaje) {
-        mensaje.hidden = false;
-        mensaje.textContent =
-            "El ticket todavía no ha sido enviado a Aranda.";
-
-        mensaje.classList.remove(
-            "success-text",
-            "danger-text"
-        );
-    }
-}
-
-function mostrarArandaSincronizado(integracion) {
-    const estado =
-        document.getElementById("arandaEstado");
-
-    const numero =
-        document.getElementById("arandaNumeroCaso");
-
-    const itemId =
-        document.getElementById("arandaItemId");
-
-    const fecha =
-        document.getElementById("arandaFechaSincronizacion");
-
-    const boton =
-        document.getElementById("btnEnviarAranda");
-
-    const mensaje =
-        document.getElementById("mensajeIntegracionAranda");
-
-    if (estado) {
-        estado.textContent =
-            integracion.estadoSincronizacion ||
-            "SINCRONIZADO";
-    }
-
-    if (numero) {
-        numero.textContent =
-            integracion.arandaIdProyecto ||
-            "-";
-    }
-
-    if (itemId) {
-        itemId.textContent =
-            integracion.arandaItemId ||
-            "-";
-    }
-
-    if (fecha) {
-        fecha.textContent =
-            formatearFecha(
-                integracion.fechaUltimaSincronizacion ||
-                integracion.fechaCreacionAranda
-            );
-    }
-
-    if (boton) {
-        boton.disabled = true;
-        boton.textContent = "Sincronizado";
-    }
-
-    if (mensaje) {
-        mensaje.hidden = false;
-
-        mensaje.textContent =
-            `Ticket sincronizado con Aranda: ${
-                integracion.arandaIdProyecto ||
-                integracion.arandaItemId ||
-                "Caso creado"
-            }.`;
-
-        mensaje.classList.remove(
-            "danger-text"
-        );
-
-        mensaje.classList.add(
-            "success-text"
-        );
-    }
-}
-
-function mostrarArandaError(texto) {
-    const estado =
-        document.getElementById("arandaEstado");
-
-    const boton =
-        document.getElementById("btnEnviarAranda");
-
-    const mensaje =
-        document.getElementById("mensajeIntegracionAranda");
-
-    if (estado) {
-        estado.textContent = "ERROR";
-    }
-
-    if (boton) {
-        boton.disabled = false;
-        boton.textContent = "Reintentar envío";
-    }
-
-    if (mensaje) {
-        mensaje.hidden = false;
-        mensaje.textContent = texto;
-
-        mensaje.classList.remove(
-            "success-text"
-        );
-
-        mensaje.classList.add(
-            "danger-text"
-        );
-    }
-}
-
-async function obtenerMensajeErrorAranda(response) {
-    const tipoContenido =
-        response.headers.get("content-type") || "";
-
-    if (tipoContenido.includes("application/json")) {
-        try {
-            const contenido =
-                await response.json();
-
-            return (
-                contenido.message ||
-                contenido.error ||
-                `Error ${response.status}`
-            );
-
-        } catch (error) {
-            return `Error ${response.status}`;
-        }
-    }
-
-    try {
-        const texto =
-            await response.text();
-
-        return texto || `Error ${response.status}`;
 
     } catch (error) {
         return `Error ${response.status}`;

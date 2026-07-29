@@ -159,15 +159,25 @@
 
         <!-- Título del ticket -->
 
-        <section class="ticket-title-section">
+        <section class="ticket-title-section ticket-title-with-history">
 
-            <h2 id="ticketNumero">
-                Ticket
-            </h2>
+            <div class="ticket-title-content">
+                <h2 id="ticketNumero">
+                    Ticket
+                </h2>
 
-            <p id="ticketTitulo">
-                Cargando información del ticket...
-            </p>
+                <p id="ticketTitulo">
+                    Cargando información del ticket...
+                </p>
+            </div>
+
+            <button
+                class="ticket-history-link"
+                type="button"
+                onclick="abrirModalHistorial()"
+            >
+                Ver historial
+            </button>
 
         </section>
 
@@ -481,67 +491,6 @@
 
         </section>
 
-        <!-- Integración con Aranda -->
-
-        <section
-            id="seccionIntegracionAranda"
-            class="table-section ticket-section-compact"
-            style="display: none;"
-        >
-
-            <div class="section-header ticket-section-header">
-
-                <div>
-                    <h2>Integración con Aranda</h2>
-
-                    <p>
-                        Estado de sincronización del ticket
-                        con Aranda ASMS.
-                    </p>
-                </div>
-
-            </div>
-
-            <div class="ticket-data-grid">
-
-                <div class="ticket-data-item">
-                    <span>Estado</span>
-                    <strong id="arandaEstado">
-                        CONSULTANDO
-                    </strong>
-                </div>
-
-                <div class="ticket-data-item">
-                    <span>Número del caso</span>
-                    <strong id="arandaNumeroCaso">
-                        -
-                    </strong>
-                </div>
-
-                <div class="ticket-data-item">
-                    <span>ID interno de Aranda</span>
-                    <strong id="arandaItemId">
-                        -
-                    </strong>
-                </div>
-
-                <div class="ticket-data-item">
-                    <span>Última sincronización</span>
-                    <strong id="arandaFechaSincronizacion">
-                        -
-                    </strong>
-                </div>
-
-            </div>
-
-            <p
-                id="mensajeIntegracionAranda"
-                class="info-box ticket-actions-message"
-                hidden
-            ></p>
-
-        </section>
-
         <!-- Enlaces compartidos -->
 
         <section
@@ -577,24 +526,24 @@
 
                     <thead>
 
-                        <tr>
-                            <th>Destinatario</th>
-                            <th>Permisos</th>
-                            <th>Creación</th>
-                            <th>Vencimiento</th>
-                            <th>Estado</th>
-                            <th>Acciones</th>
-                        </tr>
+                    <tr>
+                        <th>Destinatario</th>
+                        <th>Permisos</th>
+                        <th>Creación</th>
+                        <th>Vencimiento</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
 
                     </thead>
 
                     <tbody id="enlacesCompartidosBody">
 
-                        <tr>
-                            <td colspan="6">
-                                Cargando enlaces compartidos...
-                            </td>
-                        </tr>
+                    <tr>
+                        <td colspan="6">
+                            Cargando enlaces compartidos...
+                        </td>
+                    </tr>
 
                     </tbody>
 
@@ -633,31 +582,6 @@
                 class="ticket-comments-list"
             >
                 <p>Cargando comentarios...</p>
-            </div>
-
-        </section>
-
-        <!-- Historial -->
-
-        <section class="table-section ticket-section-compact">
-
-            <div class="section-header ticket-section-header">
-
-                <div>
-                    <h2>Historial</h2>
-
-                    <p>
-                        Registro de cambios realizados sobre el ticket.
-                    </p>
-                </div>
-
-            </div>
-
-            <div
-                id="listaHistorial"
-                class="ticket-history-list"
-            >
-                <p>Cargando historial...</p>
             </div>
 
         </section>
@@ -715,23 +639,23 @@
 
                     <thead>
 
-                        <tr>
-                            <th>Archivo</th>
-                            <th>Tipo</th>
-                            <th>Tamaño</th>
-                            <th>Fecha</th>
-                            <th>Acción</th>
-                        </tr>
+                    <tr>
+                        <th>Archivo</th>
+                        <th>Tipo</th>
+                        <th>Tamaño</th>
+                        <th>Fecha</th>
+                        <th>Acción</th>
+                    </tr>
 
                     </thead>
 
                     <tbody id="adjuntosBody">
 
-                        <tr>
-                            <td colspan="5">
-                                Cargando adjuntos...
-                            </td>
-                        </tr>
+                    <tr>
+                        <td colspan="5">
+                            Cargando adjuntos...
+                        </td>
+                    </tr>
 
                     </tbody>
 
@@ -742,6 +666,71 @@
         </section>
 
     </main>
+
+</div>
+
+<!-- Modal de historial del ticket -->
+
+<div
+    class="modal-overlay"
+    id="modalHistorial"
+    aria-hidden="true"
+>
+
+    <div
+        class="modal-card modal-historial-ticket"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modalHistorialTitulo"
+    >
+
+        <div class="modal-header">
+
+            <div>
+                <h2 id="modalHistorialTitulo">
+                    Historial del ticket
+                </h2>
+
+                <p>
+                    Registro de cambios y acciones realizadas sobre el caso.
+                </p>
+            </div>
+
+            <button
+                class="modal-close-btn"
+                type="button"
+                aria-label="Cerrar historial"
+                onclick="cerrarModalHistorial()"
+            >
+                ×
+            </button>
+
+        </div>
+
+        <div class="modal-body modal-historial-body">
+
+            <div
+                id="listaHistorial"
+                class="ticket-history-list"
+            >
+                <p class="empty-message">
+                    Abre el historial para cargar los registros.
+                </p>
+            </div>
+
+        </div>
+
+        <div class="modal-actions">
+            <button
+                class="secondary-btn"
+                type="button"
+                onclick="cerrarModalHistorial()"
+            >
+                Cerrar
+            </button>
+        </div>
+
+    </div>
 
 </div>
 
@@ -942,6 +931,7 @@
 
                     <span>
                         <strong>Ver ticket</strong>
+
                         <small>
                             Permite consultar la información general.
                         </small>
@@ -958,6 +948,7 @@
 
                     <span>
                         <strong>Agregar comentarios</strong>
+
                         <small>
                             Permite escribir comentarios públicos.
                         </small>
@@ -974,6 +965,7 @@
 
                     <span>
                         <strong>Ver adjuntos</strong>
+
                         <small>
                             Permite consultar y descargar archivos.
                         </small>
@@ -990,6 +982,7 @@
 
                     <span>
                         <strong>Subir adjuntos</strong>
+
                         <small>
                             Permite agregar nuevos archivos.
                         </small>
@@ -1006,6 +999,7 @@
 
                     <span>
                         <strong>Cambiar estado</strong>
+
                         <small>
                             Permite actualizar el estado del ticket.
                         </small>

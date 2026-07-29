@@ -30,17 +30,64 @@ public class TicketResponseDTO {
     private LocalDateTime fechaActualizacion;
     private LocalDateTime fechaResolucion;
 
+    /*
+     * Datos del SLA de primera respuesta.
+     */
+    private LocalDateTime fechaLimiteRespuesta;
+    private LocalDateTime fechaPrimeraRespuesta;
+    private Boolean slaRespuestaCumplido;
+
+    /*
+     * Datos del SLA de resolución.
+     */
+    private LocalDateTime fechaLimiteResolucion;
+    private Boolean slaResolucionCumplido;
+
+    /*
+     * Estado calculado que se mostrará en el frontend.
+     *
+     * Valores posibles:
+     * EN_TIEMPO
+     * EN_RIESGO
+     * VENCIDO
+     * CUMPLIDO
+     * INCUMPLIDO
+     */
+    private String estadoSlaRespuesta;
+    private String estadoSlaResolucion;
+
     public TicketResponseDTO() {
     }
 
-    public TicketResponseDTO(Integer id, String numeroTicket, String titulo, String descripcion,
-                             Integer tipoIncidenciaId, String tipoIncidenciaNombre,
-                             Integer clienteId, String clienteNombre, String clienteCorreo,
-                             Integer agenteId, String agenteNombre,
-                             String estado, String prioridad, String severidad, String criticidad,
-                             String impacto, String urgencia,
-                             LocalDateTime fechaCreacion, LocalDateTime fechaActualizacion,
-                             LocalDateTime fechaResolucion) {
+    public TicketResponseDTO(
+            Integer id,
+            String numeroTicket,
+            String titulo,
+            String descripcion,
+            Integer tipoIncidenciaId,
+            String tipoIncidenciaNombre,
+            Integer clienteId,
+            String clienteNombre,
+            String clienteCorreo,
+            Integer agenteId,
+            String agenteNombre,
+            String estado,
+            String prioridad,
+            String severidad,
+            String criticidad,
+            String impacto,
+            String urgencia,
+            LocalDateTime fechaCreacion,
+            LocalDateTime fechaActualizacion,
+            LocalDateTime fechaResolucion,
+            LocalDateTime fechaLimiteRespuesta,
+            LocalDateTime fechaPrimeraRespuesta,
+            Boolean slaRespuestaCumplido,
+            LocalDateTime fechaLimiteResolucion,
+            Boolean slaResolucionCumplido,
+            String estadoSlaRespuesta,
+            String estadoSlaResolucion) {
+
         this.id = id;
         this.numeroTicket = numeroTicket;
         this.titulo = titulo;
@@ -61,6 +108,13 @@ public class TicketResponseDTO {
         this.fechaCreacion = fechaCreacion;
         this.fechaActualizacion = fechaActualizacion;
         this.fechaResolucion = fechaResolucion;
+        this.fechaLimiteRespuesta = fechaLimiteRespuesta;
+        this.fechaPrimeraRespuesta = fechaPrimeraRespuesta;
+        this.slaRespuestaCumplido = slaRespuestaCumplido;
+        this.fechaLimiteResolucion = fechaLimiteResolucion;
+        this.slaResolucionCumplido = slaResolucionCumplido;
+        this.estadoSlaRespuesta = estadoSlaRespuesta;
+        this.estadoSlaResolucion = estadoSlaResolucion;
     }
 
     public Integer getId() {
@@ -141,5 +195,33 @@ public class TicketResponseDTO {
 
     public LocalDateTime getFechaResolucion() {
         return fechaResolucion;
+    }
+
+    public LocalDateTime getFechaLimiteRespuesta() {
+        return fechaLimiteRespuesta;
+    }
+
+    public LocalDateTime getFechaPrimeraRespuesta() {
+        return fechaPrimeraRespuesta;
+    }
+
+    public Boolean getSlaRespuestaCumplido() {
+        return slaRespuestaCumplido;
+    }
+
+    public LocalDateTime getFechaLimiteResolucion() {
+        return fechaLimiteResolucion;
+    }
+
+    public Boolean getSlaResolucionCumplido() {
+        return slaResolucionCumplido;
+    }
+
+    public String getEstadoSlaRespuesta() {
+        return estadoSlaRespuesta;
+    }
+
+    public String getEstadoSlaResolucion() {
+        return estadoSlaResolucion;
     }
 }

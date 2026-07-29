@@ -1,5 +1,6 @@
 package com.practica.gestionincidencias.controller;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.Year;
 import java.util.List;
@@ -16,14 +17,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.practica.gestionincidencias.config.ArandaProperties;
 import com.practica.gestionincidencias.dto.AsignarTicketRequestDTO;
 import com.practica.gestionincidencias.dto.CambiarEstadoTicketRequestDTO;
 import com.practica.gestionincidencias.dto.CambiarPrioridadTicketRequestDTO;
 import com.practica.gestionincidencias.dto.TicketRequestDTO;
 import com.practica.gestionincidencias.dto.TicketResponseDTO;
 import com.practica.gestionincidencias.entity.HistorialTicket;
-import com.practica.gestionincidencias.entity.IntegracionAranda;
 import com.practica.gestionincidencias.entity.Ticket;
 import com.practica.gestionincidencias.entity.TipoIncidencia;
 import com.practica.gestionincidencias.entity.Usuario;
@@ -31,7 +30,6 @@ import com.practica.gestionincidencias.repository.HistorialTicketRepository;
 import com.practica.gestionincidencias.repository.TicketRepository;
 import com.practica.gestionincidencias.repository.TipoIncidenciaRepository;
 import com.practica.gestionincidencias.repository.UsuarioRepository;
-import com.practica.gestionincidencias.service.ArandaService;
 import com.practica.gestionincidencias.service.NotificacionService;
 
 import jakarta.validation.Valid;
@@ -47,38 +45,33 @@ public class TicketController {
             "P4_BAJA"
     );
 
-    private static final Map<String, Set<String>> TRANSICIONES_VALIDAS = Map.of(
-            "NUEVO", Set.of("ASIGNADO"),
-            "ASIGNADO", Set.of("EN_PROGRESO"),
-            "EN_PROGRESO", Set.of("RESUELTO"),
-            "RESUELTO", Set.of("CERRADO"),
-            "CERRADO", Set.of()
-    );
+    private static final Map<String, Set<String>> TRANSICIONES_VALIDAS =
+            Map.of(
+                    "NUEVO", Set.of("ASIGNADO"),
+                    "ASIGNADO", Set.of("EN_PROGRESO"),
+                    "EN_PROGRESO", Set.of("RESUELTO"),
+                    "RESUELTO", Set.of("CERRADO"),
+                    "CERRADO", Set.of()
+            );
 
     private final TicketRepository ticketRepository;
     private final TipoIncidenciaRepository tipoIncidenciaRepository;
     private final UsuarioRepository usuarioRepository;
     private final HistorialTicketRepository historialTicketRepository;
     private final NotificacionService notificacionService;
-    private final ArandaService arandaService;
-    private final ArandaProperties arandaProperties;
 
     public TicketController(
             TicketRepository ticketRepository,
             TipoIncidenciaRepository tipoIncidenciaRepository,
             UsuarioRepository usuarioRepository,
             HistorialTicketRepository historialTicketRepository,
-            NotificacionService notificacionService,
-            ArandaService arandaService,
-            ArandaProperties arandaProperties) {
+            NotificacionService notificacionService) {
 
         this.ticketRepository = ticketRepository;
         this.tipoIncidenciaRepository = tipoIncidenciaRepository;
         this.usuarioRepository = usuarioRepository;
         this.historialTicketRepository = historialTicketRepository;
         this.notificacionService = notificacionService;
-        this.arandaService = arandaService;
-        this.arandaProperties = arandaProperties;
     }
 
     @GetMapping
@@ -122,6 +115,9 @@ public class TicketController {
                         request.getUrgencia()
                 );
 
+        LocalDateTime fechaCreacion =
+                LocalDateTime.now();
+
         Ticket ticket = Ticket.builder()
                 .numeroTicket(numeroTicket)
                 .titulo(request.getTitulo().trim())
@@ -151,15 +147,16 @@ public class TicketController {
                                 .trim()
                                 .toUpperCase()
                 )
-                .fechaCreacion(LocalDateTime.now())
-                .fechaActualizacion(LocalDateTime.now())
+                .fechaCreacion(fechaCreacion)
+                .fechaActualizacion(fechaCreacion)
                 .fechaResolucion(null)
+                .fechaPrimeraRespuesta(null)
+                .slaRespuestaCumplido(null)
+                .slaResolucionCumplido(null)
                 .build();
 
-        /*
-         * El ticket se guarda primero en PostgreSQL.
-         * Así no se pierde aunque Aranda no esté disponible.
-         */
+        configurarFechasSla(ticket);
+
         Ticket ticketGuardado =
                 ticketRepository.save(ticket);
 
@@ -173,20 +170,8 @@ public class TicketController {
                         + ticketGuardado.getNumeroTicket()
         );
 
-        /*
-         * La notificación por correo se mantiene
-         * independiente de la integración con Aranda.
-         */
         notificacionService
                 .notificarTicketCreado(ticketGuardado);
-
-        /*
-         * Sincronización automática con Aranda.
-         * Si falla, el ticket local permanece creado.
-         */
-        sincronizarConArandaAutomaticamente(
-                ticketGuardado
-        );
 
         return convertirADTO(ticketGuardado);
     }
@@ -194,8 +179,7 @@ public class TicketController {
     @PutMapping("/{id}/asignar")
     public TicketResponseDTO asignarTicket(
             @PathVariable Integer id,
-            @Valid @RequestBody
-            AsignarTicketRequestDTO request) {
+            @Valid @RequestBody AsignarTicketRequestDTO request) {
 
         Ticket ticket =
                 ticketRepository.findById(id)
@@ -217,9 +201,8 @@ public class TicketController {
         String agenteAnterior =
                 ticket.getAgenteAsignado() != null
                         ? ticket.getAgenteAsignado().getNombre()
-                                + " "
-                                + ticket.getAgenteAsignado()
-                                        .getApellido()
+                        + " "
+                        + ticket.getAgenteAsignado().getApellido()
                         : "SIN_ASIGNAR";
 
         String agenteNuevo =
@@ -231,6 +214,7 @@ public class TicketController {
                 ticket.getEstado();
 
         if (ticket.getAgenteAsignado() == null) {
+
             validarTransicion(
                     estadoAnterior,
                     "ASIGNADO"
@@ -240,6 +224,7 @@ public class TicketController {
         }
 
         ticket.setAgenteAsignado(agente);
+
         ticket.setFechaActualizacion(
                 LocalDateTime.now()
         );
@@ -282,8 +267,7 @@ public class TicketController {
     @PutMapping("/{id}/estado")
     public TicketResponseDTO cambiarEstado(
             @PathVariable Integer id,
-            @Valid @RequestBody
-            CambiarEstadoTicketRequestDTO request) {
+            @Valid @RequestBody CambiarEstadoTicketRequestDTO request) {
 
         Ticket ticket =
                 ticketRepository.findById(id)
@@ -315,35 +299,38 @@ public class TicketController {
 
         if (
                 (
-                    nuevoEstado.equals("RESUELTO")
-                    || nuevoEstado.equals("CERRADO")
+                        nuevoEstado.equals("RESUELTO")
+                                || nuevoEstado.equals("CERRADO")
                 )
-                && (
-                    notaResolucion == null
-                    || notaResolucion.isBlank()
+                        && (
+                        notaResolucion == null
+                                || notaResolucion.isBlank()
                 )
         ) {
+
             throw new RuntimeException(
                     "Debes agregar una nota de resolución "
                             + "para resolver o cerrar el ticket."
             );
         }
 
+        LocalDateTime ahora =
+                LocalDateTime.now();
+
         ticket.setEstado(nuevoEstado);
-        ticket.setFechaActualizacion(
-                LocalDateTime.now()
-        );
+        ticket.setFechaActualizacion(ahora);
 
         if (
                 (
-                    nuevoEstado.equals("RESUELTO")
-                    || nuevoEstado.equals("CERRADO")
+                        nuevoEstado.equals("RESUELTO")
+                                || nuevoEstado.equals("CERRADO")
                 )
-                && ticket.getFechaResolucion() == null
+                        && ticket.getFechaResolucion() == null
         ) {
-            ticket.setFechaResolucion(
-                    LocalDateTime.now()
-            );
+
+            ticket.setFechaResolucion(ahora);
+
+            evaluarCumplimientoResolucion(ticket);
         }
 
         Ticket ticketActualizado =
@@ -357,8 +344,9 @@ public class TicketController {
 
         if (
                 notaResolucion != null
-                && !notaResolucion.isBlank()
+                        && !notaResolucion.isBlank()
         ) {
+
             descripcion +=
                     ". Nota: " + notaResolucion;
         }
@@ -385,8 +373,7 @@ public class TicketController {
     @PutMapping("/{id}/prioridad")
     public TicketResponseDTO cambiarPrioridad(
             @PathVariable Integer id,
-            @Valid @RequestBody
-            CambiarPrioridadTicketRequestDTO request) {
+            @Valid @RequestBody CambiarPrioridadTicketRequestDTO request) {
 
         Ticket ticket =
                 ticketRepository.findById(id)
@@ -425,6 +412,10 @@ public class TicketController {
 
         ticket.setPrioridad(prioridadNueva);
 
+        configurarFechasSla(ticket);
+        evaluarCumplimientoRespuesta(ticket);
+        evaluarCumplimientoResolucion(ticket);
+
         ticket.setFechaActualizacion(
                 LocalDateTime.now()
         );
@@ -445,10 +436,12 @@ public class TicketController {
 
         if (
                 justificacion != null
-                && !justificacion.isBlank()
+                        && !justificacion.isBlank()
         ) {
+
             descripcion +=
-                    ". Justificación: " + justificacion;
+                    ". Justificación: "
+                            + justificacion;
         }
 
         registrarHistorial(
@@ -461,115 +454,6 @@ public class TicketController {
         );
 
         return convertirADTO(ticketActualizado);
-    }
-
-    /*
-     * Intenta enviar automáticamente el ticket a Aranda.
-     *
-     * La integración solo se ejecuta cuando:
-     * aranda.api.enabled=true
-     *
-     * Si Aranda falla, el error no cancela la creación
-     * del ticket local.
-     */
-    private void sincronizarConArandaAutomaticamente(
-            Ticket ticketGuardado) {
-
-        if (!arandaProperties.isEnabled()) {
-            return;
-        }
-
-        try {
-            IntegracionAranda integracion =
-                    arandaService.enviarTicketAAranda(
-                            ticketGuardado.getId()
-                    );
-
-            String numeroCaso =
-                    integracion.getArandaIdProyecto() != null
-                            ? integracion.getArandaIdProyecto()
-                            : String.valueOf(
-                                    integracion.getArandaItemId()
-                            );
-
-            registrarHistorial(
-                    ticketGuardado,
-                    ticketGuardado.getCliente(),
-                    "SINCRONIZACION_ARANDA",
-                    null,
-                    numeroCaso,
-                    "El ticket fue enviado automáticamente "
-                            + "a Aranda. Caso: "
-                            + numeroCaso
-            );
-
-            System.out.println(
-                    "Ticket "
-                            + ticketGuardado.getNumeroTicket()
-                            + " sincronizado automáticamente "
-                            + "con Aranda. Caso: "
-                            + numeroCaso
-            );
-
-        } catch (Exception error) {
-
-            String mensajeError =
-                    obtenerMensajeExcepcion(error);
-
-            System.err.println(
-                    "El ticket "
-                            + ticketGuardado.getNumeroTicket()
-                            + " fue creado localmente, "
-                            + "pero no pudo sincronizarse "
-                            + "con Aranda: "
-                            + mensajeError
-            );
-
-            /*
-             * Se registra el fallo en el historial,
-             * pero no se cancela la creación del ticket.
-             */
-            try {
-                registrarHistorial(
-                        ticketGuardado,
-                        ticketGuardado.getCliente(),
-                        "ERROR_SINCRONIZACION_ARANDA",
-                        null,
-                        "ERROR",
-                        "El ticket no pudo sincronizarse "
-                                + "automáticamente con Aranda. "
-                                + "Detalle: "
-                                + mensajeError
-                );
-
-            } catch (Exception errorHistorial) {
-
-                System.err.println(
-                        "No se pudo registrar el error "
-                                + "de Aranda en el historial: "
-                                + obtenerMensajeExcepcion(
-                                        errorHistorial
-                                )
-                );
-            }
-        }
-    }
-
-    private String obtenerMensajeExcepcion(
-            Exception error) {
-
-        if (error == null) {
-            return "Error desconocido";
-        }
-
-        if (
-                error.getMessage() != null
-                && !error.getMessage().isBlank()
-        ) {
-            return error.getMessage();
-        }
-
-        return error.getClass().getSimpleName();
     }
 
     private void registrarHistorial(
@@ -630,33 +514,263 @@ public class TicketController {
 
         if (
                 impactoNormalizado.equals("ALTO")
-                && urgenciaNormalizada.equals("ALTA")
+                        && urgenciaNormalizada.equals("ALTA")
         ) {
+
             return "P1_CRITICA";
         }
 
         if (
                 impactoNormalizado.equals("ALTO")
-                && urgenciaNormalizada.equals("MEDIA")
+                        && urgenciaNormalizada.equals("MEDIA")
         ) {
+
             return "P2_ALTA";
         }
 
         if (
                 impactoNormalizado.equals("MEDIO")
-                && urgenciaNormalizada.equals("ALTA")
+                        && urgenciaNormalizada.equals("ALTA")
         ) {
+
             return "P2_ALTA";
         }
 
         if (
                 impactoNormalizado.equals("MEDIO")
-                && urgenciaNormalizada.equals("MEDIA")
+                        && urgenciaNormalizada.equals("MEDIA")
         ) {
+
             return "P3_MEDIA";
         }
 
         return "P4_BAJA";
+    }
+
+    private void configurarFechasSla(
+            Ticket ticket) {
+
+        if (ticket.getFechaCreacion() == null) {
+
+            ticket.setFechaCreacion(
+                    LocalDateTime.now()
+            );
+        }
+
+        LocalDateTime fechaBase =
+                ticket.getFechaCreacion();
+
+        switch (ticket.getPrioridad()) {
+
+            case "P1_CRITICA" -> {
+
+                ticket.setFechaLimiteRespuesta(
+                        fechaBase.plusMinutes(30)
+                );
+
+                ticket.setFechaLimiteResolucion(
+                        fechaBase.plusHours(4)
+                );
+            }
+
+            case "P2_ALTA" -> {
+
+                ticket.setFechaLimiteRespuesta(
+                        fechaBase.plusHours(1)
+                );
+
+                ticket.setFechaLimiteResolucion(
+                        fechaBase.plusHours(8)
+                );
+            }
+
+            case "P3_MEDIA" -> {
+
+                ticket.setFechaLimiteRespuesta(
+                        fechaBase.plusHours(4)
+                );
+
+                ticket.setFechaLimiteResolucion(
+                        fechaBase.plusHours(24)
+                );
+            }
+
+            case "P4_BAJA" -> {
+
+                ticket.setFechaLimiteRespuesta(
+                        fechaBase.plusHours(8)
+                );
+
+                ticket.setFechaLimiteResolucion(
+                        fechaBase.plusHours(72)
+                );
+            }
+
+            default ->
+                    throw new RuntimeException(
+                            "No se pudo calcular el SLA porque "
+                                    + "la prioridad no es válida."
+                    );
+        }
+    }
+
+    private void evaluarCumplimientoRespuesta(
+            Ticket ticket) {
+
+        if (ticket.getFechaPrimeraRespuesta() == null) {
+
+            ticket.setSlaRespuestaCumplido(null);
+            return;
+        }
+
+        if (ticket.getFechaLimiteRespuesta() == null) {
+
+            configurarFechasSla(ticket);
+        }
+
+        boolean cumplido =
+                !ticket.getFechaPrimeraRespuesta()
+                        .isAfter(
+                                ticket.getFechaLimiteRespuesta()
+                        );
+
+        ticket.setSlaRespuestaCumplido(cumplido);
+    }
+
+    private void evaluarCumplimientoResolucion(
+            Ticket ticket) {
+
+        if (ticket.getFechaResolucion() == null) {
+
+            ticket.setSlaResolucionCumplido(null);
+            return;
+        }
+
+        if (ticket.getFechaLimiteResolucion() == null) {
+
+            configurarFechasSla(ticket);
+        }
+
+        boolean cumplido =
+                !ticket.getFechaResolucion()
+                        .isAfter(
+                                ticket.getFechaLimiteResolucion()
+                        );
+
+        ticket.setSlaResolucionCumplido(cumplido);
+    }
+
+    private String calcularEstadoSlaRespuesta(
+            Ticket ticket) {
+
+        /*
+         * Los tickets creados antes de implementar SLA
+         * pueden tener la fecha límite en null.
+         */
+        if (ticket.getFechaLimiteRespuesta() == null) {
+
+            configurarFechasSla(ticket);
+        }
+
+        if (ticket.getFechaPrimeraRespuesta() != null) {
+
+            boolean cumplido =
+                    !ticket.getFechaPrimeraRespuesta()
+                            .isAfter(
+                                    ticket.getFechaLimiteRespuesta()
+                            );
+
+            return cumplido
+                    ? "CUMPLIDO"
+                    : "INCUMPLIDO";
+        }
+
+        return calcularEstadoSlaPendiente(
+                ticket.getFechaCreacion(),
+                ticket.getFechaLimiteRespuesta()
+        );
+    }
+
+    private String calcularEstadoSlaResolucion(
+            Ticket ticket) {
+
+        /*
+         * Los tickets creados antes de implementar SLA
+         * pueden tener la fecha límite en null.
+         */
+        if (ticket.getFechaLimiteResolucion() == null) {
+
+            configurarFechasSla(ticket);
+        }
+
+        if (ticket.getFechaResolucion() != null) {
+
+            boolean cumplido =
+                    !ticket.getFechaResolucion()
+                            .isAfter(
+                                    ticket.getFechaLimiteResolucion()
+                            );
+
+            return cumplido
+                    ? "CUMPLIDO"
+                    : "INCUMPLIDO";
+        }
+
+        return calcularEstadoSlaPendiente(
+                ticket.getFechaCreacion(),
+                ticket.getFechaLimiteResolucion()
+        );
+    }
+
+    private String calcularEstadoSlaPendiente(
+            LocalDateTime fechaInicio,
+            LocalDateTime fechaLimite) {
+
+        if (fechaInicio == null || fechaLimite == null) {
+
+            return "SIN_CONFIGURAR";
+        }
+
+        LocalDateTime ahora =
+                LocalDateTime.now();
+
+        if (ahora.isAfter(fechaLimite)) {
+
+            return "VENCIDO";
+        }
+
+        long minutosTotales =
+                Duration.between(
+                        fechaInicio,
+                        fechaLimite
+                ).toMinutes();
+
+        long minutosConsumidos =
+                Duration.between(
+                        fechaInicio,
+                        ahora
+                ).toMinutes();
+
+        if (minutosConsumidos < 0) {
+
+            minutosConsumidos = 0;
+        }
+
+        if (minutosTotales <= 0) {
+
+            return "VENCIDO";
+        }
+
+        double porcentajeConsumido =
+                (double) minutosConsumidos
+                        / minutosTotales;
+
+        if (porcentajeConsumido >= 0.75) {
+
+            return "EN_RIESGO";
+        }
+
+        return "EN_TIEMPO";
     }
 
     private void validarEstado(
@@ -678,6 +792,7 @@ public class TicketController {
         validarEstado(estadoActual);
 
         if (estadoActual.equals(nuevoEstado)) {
+
             throw new RuntimeException(
                     "El ticket ya se encuentra "
                             + "en ese estado."
@@ -689,6 +804,7 @@ public class TicketController {
                         .get(estadoActual)
                         .contains(nuevoEstado)
         ) {
+
             throw new RuntimeException(
                     "Transición no permitida: "
                             + estadoActual
@@ -704,8 +820,9 @@ public class TicketController {
 
         if (
                 valor == null
-                || valor.isBlank()
+                        || valor.isBlank()
         ) {
+
             return null;
         }
 
@@ -714,6 +831,23 @@ public class TicketController {
 
     private TicketResponseDTO convertirADTO(
             Ticket ticket) {
+
+        /*
+         * Inicializa y guarda las fechas SLA de los tickets
+         * creados antes de implementar esta función.
+         */
+        boolean slaSinConfigurar =
+                ticket.getFechaLimiteRespuesta() == null
+                        || ticket.getFechaLimiteResolucion() == null;
+
+        if (slaSinConfigurar) {
+
+            configurarFechasSla(ticket);
+            evaluarCumplimientoRespuesta(ticket);
+            evaluarCumplimientoResolucion(ticket);
+
+            ticketRepository.save(ticket);
+        }
 
         String clienteNombre =
                 ticket.getCliente().getNombre()
@@ -760,7 +894,17 @@ public class TicketController {
 
                 ticket.getFechaCreacion(),
                 ticket.getFechaActualizacion(),
-                ticket.getFechaResolucion()
+                ticket.getFechaResolucion(),
+
+                ticket.getFechaLimiteRespuesta(),
+                ticket.getFechaPrimeraRespuesta(),
+                ticket.getSlaRespuestaCumplido(),
+
+                ticket.getFechaLimiteResolucion(),
+                ticket.getSlaResolucionCumplido(),
+
+                calcularEstadoSlaRespuesta(ticket),
+                calcularEstadoSlaResolucion(ticket)
         );
     }
 }

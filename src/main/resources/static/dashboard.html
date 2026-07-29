@@ -6,11 +6,10 @@
     <title>Gestión de Incidencias | Dashboard</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="dashboard-page">
 
     <div class="app-container">
 
-        <!-- SIDEBAR -->
         <aside class="sidebar">
             <div class="sidebar-logo">
                 <div class="logo-icon">GI</div>
@@ -31,10 +30,8 @@
             </nav>
         </aside>
 
-        <!-- MAIN -->
         <main class="main-content">
 
-            <!-- HEADER -->
             <header class="topbar">
                 <div>
                     <h1>Dashboard</h1>
@@ -56,7 +53,6 @@
                 </div>
             </header>
 
-            <!-- QUICK ACTION -->
             <section class="action-bar">
                 <div>
                     <h2>Panel principal</h2>
@@ -68,113 +64,38 @@
                 </button>
             </section>
 
-            <!-- METRICS -->
             <section class="metrics-grid">
-                <div class="metric-card">
-                    <span>Total tickets</span>
-                    <h3 id="totalTickets">0</h3>
-                    <p>Registrados</p>
-                </div>
-
-                <div class="metric-card blue">
-                    <span>Nuevos</span>
-                    <h3 id="ticketsNuevos">0</h3>
-                    <p>Pendientes de atención</p>
-                </div>
-
-                <div class="metric-card purple">
-                    <span>Asignados</span>
-                    <h3 id="ticketsAsignados">0</h3>
-                    <p>Con agente asignado</p>
-                </div>
-
-                <div class="metric-card orange">
-                    <span>En progreso</span>
-                    <h3 id="ticketsEnProgreso">0</h3>
-                    <p>En proceso</p>
-                </div>
-
-                <div class="metric-card green">
-                    <span>Resueltos</span>
-                    <h3 id="ticketsResueltos">0</h3>
-                    <p>Solucionados</p>
-                </div>
-
-                <div class="metric-card gray">
-                    <span>Cerrados</span>
-                    <h3 id="ticketsCerrados">0</h3>
-                    <p>Finalizados</p>
-                </div>
-
-                <div class="metric-card">
-                    <span>Usuarios</span>
-                    <h3 id="totalUsuarios">0</h3>
-                    <p>Registrados</p>
-                </div>
-
-                <div class="metric-card">
-                    <span>Comentarios</span>
-                    <h3 id="totalComentarios">0</h3>
-                    <p>Seguimientos</p>
-                </div>
+                <div class="metric-card"><span>Total tickets</span><h3 id="totalTickets">0</h3><p>Registrados</p></div>
+                <div class="metric-card blue"><span>Nuevos</span><h3 id="ticketsNuevos">0</h3><p>Pendientes de atención</p></div>
+                <div class="metric-card purple"><span>Asignados</span><h3 id="ticketsAsignados">0</h3><p>Con agente asignado</p></div>
+                <div class="metric-card orange"><span>En progreso</span><h3 id="ticketsEnProgreso">0</h3><p>En proceso</p></div>
+                <div class="metric-card green"><span>Resueltos</span><h3 id="ticketsResueltos">0</h3><p>Solucionados</p></div>
+                <div class="metric-card gray"><span>Cerrados</span><h3 id="ticketsCerrados">0</h3><p>Finalizados</p></div>
+                <div class="metric-card"><span>Usuarios</span><h3 id="totalUsuarios">0</h3><p>Registrados</p></div>
+                <div class="metric-card"><span>Comentarios</span><h3 id="totalComentarios">0</h3><p>Seguimientos</p></div>
             </section>
 
-            <!-- REPORTS -->
             <section class="reports-grid">
-                <div class="report-card">
-                    <h3>Tickets por estado</h3>
-                    <div id="estadoReporte" class="report-list">
-                        <p>Cargando datos...</p>
-                    </div>
-                </div>
-
-                <div class="report-card">
-                    <h3>Tickets por prioridad</h3>
-                    <div id="prioridadReporte" class="report-list">
-                        <p>Cargando datos...</p>
-                    </div>
-                </div>
-
-                <div class="report-card">
-                    <h3>Tickets por tipo</h3>
-                    <div id="tipoReporte" class="report-list">
-                        <p>Cargando datos...</p>
-                    </div>
-                </div>
+                <div class="report-card"><h3>Tickets por estado</h3><div id="estadoReporte" class="report-list"><p>Cargando datos...</p></div></div>
+                <div class="report-card"><h3>Tickets por prioridad</h3><div id="prioridadReporte" class="report-list"><p>Cargando datos...</p></div></div>
+                <div class="report-card"><h3>Tickets por tipo</h3><div id="tipoReporte" class="report-list"><p>Cargando datos...</p></div></div>
             </section>
 
-            <!-- TABLE -->
             <section class="table-section">
                 <div class="section-header">
                     <div>
                         <h2>Tickets recientes</h2>
                         <p>Últimas incidencias registradas en el sistema</p>
                     </div>
-
-                    <button class="secondary-btn" onclick="window.location.href='tickets.html'">
-                        Ver todos
-                    </button>
+                    <button class="secondary-btn" onclick="window.location.href='tickets.html'">Ver todos</button>
                 </div>
 
                 <div class="table-wrapper">
                     <table>
                         <thead>
-                            <tr>
-                                <th>Número</th>
-                                <th>Título</th>
-                                <th>Tipo</th>
-                                <th>Cliente</th>
-                                <th>Estado</th>
-                                <th>Prioridad</th>
-                                <th>Fecha creación</th>
-                                <th>Acción</th>
-                            </tr>
+                            <tr><th>Número</th><th>Título</th><th>Tipo</th><th>Cliente</th><th>Estado</th><th>Prioridad</th><th>Fecha creación</th><th>Acción</th></tr>
                         </thead>
-                        <tbody id="ticketsTableBody">
-                            <tr>
-                                <td colspan="8">Cargando tickets...</td>
-                            </tr>
-                        </tbody>
+                        <tbody id="ticketsTableBody"><tr><td colspan="8">Cargando tickets...</td></tr></tbody>
                     </table>
                 </div>
             </section>

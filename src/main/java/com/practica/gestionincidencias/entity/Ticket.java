@@ -29,7 +29,12 @@ public class Ticket {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "numero_ticket", nullable = false, unique = true, length = 30)
+    @Column(
+            name = "numero_ticket",
+            nullable = false,
+            unique = true,
+            length = 30
+    )
     private String numeroTicket;
 
     @Column(nullable = false, length = 150)
@@ -39,11 +44,17 @@ public class Ticket {
     private String descripcion;
 
     @ManyToOne
-    @JoinColumn(name = "tipo_incidencia_id", nullable = false)
+    @JoinColumn(
+            name = "tipo_incidencia_id",
+            nullable = false
+    )
     private TipoIncidencia tipoIncidencia;
 
     @ManyToOne
-    @JoinColumn(name = "cliente_id", nullable = false)
+    @JoinColumn(
+            name = "cliente_id",
+            nullable = false
+    )
     private Usuario cliente;
 
     @ManyToOne
@@ -76,4 +87,47 @@ public class Ticket {
 
     @Column(name = "fecha_resolucion")
     private LocalDateTime fechaResolucion;
+
+    /*
+     * Fecha máxima en la que el ticket debe recibir
+     * la primera respuesta de un agente.
+     */
+    @Column(name = "fecha_limite_respuesta")
+    private LocalDateTime fechaLimiteRespuesta;
+
+    /*
+     * Fecha en la que el ticket recibió
+     * su primera respuesta.
+     */
+    @Column(name = "fecha_primera_respuesta")
+    private LocalDateTime fechaPrimeraRespuesta;
+
+    /*
+     * Fecha máxima en la que el ticket
+     * debe ser resuelto.
+     */
+    @Column(name = "fecha_limite_resolucion")
+    private LocalDateTime fechaLimiteResolucion;
+
+    /*
+     * Indica si el SLA de primera respuesta
+     * fue cumplido.
+     *
+     * null  = todavía no existe primera respuesta.
+     * true  = respondió dentro del tiempo.
+     * false = respondió fuera del tiempo.
+     */
+    @Column(name = "sla_respuesta_cumplido")
+    private Boolean slaRespuestaCumplido;
+
+    /*
+     * Indica si el SLA de resolución
+     * fue cumplido.
+     *
+     * null  = ticket todavía no resuelto.
+     * true  = resuelto dentro del tiempo.
+     * false = resuelto fuera del tiempo.
+     */
+    @Column(name = "sla_resolucion_cumplido")
+    private Boolean slaResolucionCumplido;
 }

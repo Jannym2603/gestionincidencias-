@@ -1,4 +1,178 @@
-const API_BASE = "http://localhost:8081/api";
+const API_BASE = "/api";
+
+const FEATURE_FLAGS_KEY = "gestionIncidenciasFeatureFlags";
+
+const FEATURE_FLAGS_DEFAULT = {
+    crearTicket: true,
+    reportes: true,
+    historial: true,
+    varianteVisual: "A"
+};
+
+let featureFlagsActuales = { ...FEATURE_FLAGS_DEFAULT };
+
+function normalizarFeatureFlags(data = {}) {
+    return {
+        crearTicket:
+            data.crearTicketActivo ??
+            data.crearTicket ??
+            FEATURE_FLAGS_DEFAULT.crearTicket,
+
+        reportes:
+            data.reportesActivos ??
+            data.reportes ??
+            FEATURE_FLAGS_DEFAULT.reportes,
+
+        historial:
+            data.historialActivo ??
+            data.historial ??
+            FEATURE_FLAGS_DEFAULT.historial,
+
+        varianteVisual:
+            String(
+                data.varianteVisual ??
+                FEATURE_FLAGS_DEFAULT.varianteVisual
+            ).toUpperCase() === "B" ? "B" : "A"
+    };
+}
+
+function obtenerFeatureFlags() {
+    return { ...featureFlagsActuales };
+}
+
+function guardarCacheFeatureFlags(flags) {
+    featureFlagsActuales = normalizarFeatureFlags(flags);
+
+    localStorage.setItem(
+        FEATURE_FLAGS_KEY,
+        JSON.stringify(featureFlagsActuales)
+    );
+
+    return obtenerFeatureFlags();
+}
+
+function cargarCacheFeatureFlags() {
+    const data = localStorage.getItem(FEATURE_FLAGS_KEY);
+
+    if (!data) {
+        return guardarCacheFeatureFlags(FEATURE_FLAGS_DEFAULT);
+    }
+
+    try {
+        return guardarCacheFeatureFlags(JSON.parse(data));
+    } catch (error) {
+        console.error("La caché de funciones experimentales no es válida:", error);
+        localStorage.removeItem(FEATURE_FLAGS_KEY);
+        return guardarCacheFeatureFlags(FEATURE_FLAGS_DEFAULT);
+    }
+}
+
+async function cargarFeatureFlagsGlobales() {
+    const cache = cargarCacheFeatureFlags();
+    aplicarFeatureFlags(cache);
+
+    try {
+        const response = await fetch(`${API_BASE}/configuracion-sistema`);
+
+        if (!response.ok) {
+            throw new Error(
+                `No se pudo consultar la configuración global (${response.status}).`
+            );
+        }
+
+        const data = await response.json();
+        const flags = guardarCacheFeatureFlags(data);
+        aplicarFeatureFlags(flags);
+
+        return flags;
+    } catch (error) {
+        console.error("Error cargando la configuración global:", error);
+        return cache;
+    }
+}
+
+async function actualizarFeatureFlagsGlobales(flags) {
+    const configuracion = normalizarFeatureFlags(flags);
+
+    const response = await fetch(`${API_BASE}/configuracion-sistema`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            crearTicketActivo: configuracion.crearTicket,
+            reportesActivos: configuracion.reportes,
+            historialActivo: configuracion.historial,
+            varianteVisual: configuracion.varianteVisual
+        })
+    });
+
+    if (!response.ok) {
+        let mensaje = "No se pudo guardar la configuración global.";
+
+        try {
+            const data = await response.json();
+            mensaje = data.message || mensaje;
+        } catch (error) {
+            // La respuesta no tenía un cuerpo JSON utilizable.
+        }
+
+        throw new Error(mensaje);
+    }
+
+    const data = await response.json();
+    const guardadas = guardarCacheFeatureFlags(data);
+    aplicarFeatureFlags(guardadas);
+
+    return guardadas;
+}
+
+function aplicarFeatureFlags(flags = obtenerFeatureFlags()) {
+    const configuracion = normalizarFeatureFlags(flags);
+
+    const mapaMenu = {
+        "crear-ticket": configuracion.crearTicket,
+        reportes: configuracion.reportes,
+        historial: configuracion.historial
+    };
+
+    Object.entries(mapaMenu).forEach(([menu, activo]) => {
+        const elemento = document.querySelector(`[data-menu='${menu}']`);
+
+        if (!elemento) {
+            return;
+        }
+
+        const ocultoPorRol = elemento.dataset.ocultoPorRol === "true";
+        elemento.style.display = activo && !ocultoPorRol ? "block" : "none";
+    });
+
+    document.body.classList.toggle(
+        "ui-variante-b",
+        configuracion.varianteVisual === "B"
+    );
+
+    protegerPaginaPorFeatureFlag(configuracion);
+}
+
+function protegerPaginaPorFeatureFlag(flags) {
+    const paginaActual = window.location.pathname.split("/").pop();
+
+    const paginasControladas = {
+        "crear-ticket.html": flags.crearTicket,
+        "reportes.html": flags.reportes,
+        "historial.html": flags.historial
+    };
+
+    if (
+        Object.prototype.hasOwnProperty.call(paginasControladas, paginaActual) &&
+        !paginasControladas[paginaActual]
+    ) {
+        alert("Esta función está desactivada temporalmente.");
+        window.location.href = "dashboard.html";
+    }
+}
+
 
 /*
  * Conservamos la función fetch original del navegador.
@@ -392,6 +566,14 @@ function inicializarLayout() {
     pintarUsuarioHeader();
     configurarMenuPorRol();
 
+    document.querySelectorAll("[data-menu]").forEach(item => {
+        item.dataset.ocultoPorRol = String(item.style.display === "none");
+    });
+
+    cargarFeatureFlagsGlobales();
+    configurarSidebarColapsable();
+    configurarTopbarSticky();
+
     const btnLogout =
         document.getElementById("btnLogout");
 
@@ -401,6 +583,98 @@ function inicializarLayout() {
             cerrarSesion
         );
     }
+}
+
+
+function configurarTopbarSticky() {
+    const topbar = document.querySelector(".topbar");
+
+    if (!topbar) {
+        return;
+    }
+
+    let actualizando = false;
+
+    const actualizarEstado = () => {
+        topbar.classList.toggle("topbar-con-sombra", window.scrollY > 8);
+        actualizando = false;
+    };
+
+    window.addEventListener(
+        "scroll",
+        () => {
+            if (!actualizando) {
+                window.requestAnimationFrame(actualizarEstado);
+                actualizando = true;
+            }
+        },
+        { passive: true }
+    );
+
+    actualizarEstado();
+}
+
+
+
+function configurarSidebarColapsable() {
+    const sidebar = document.querySelector(".sidebar");
+    const appContainer = document.querySelector(".app-container");
+
+    if (!sidebar || !appContainer) {
+        return;
+    }
+
+    sidebar.querySelectorAll(".menu-item").forEach(item => {
+        item.dataset.tooltip = item.textContent.trim();
+    });
+
+    let boton = sidebar.querySelector(".sidebar-toggle-btn");
+
+    if (!boton) {
+        boton = document.createElement("button");
+        boton.type = "button";
+        boton.className = "sidebar-toggle-btn";
+        boton.setAttribute("aria-label", "Contraer barra lateral");
+        boton.setAttribute("title", "Contraer barra lateral");
+        boton.innerHTML = `<span class="sidebar-toggle-arrow" aria-hidden="true">‹</span>`;
+        sidebar.appendChild(boton);
+    }
+
+    const estadoGuardado = localStorage.getItem("sidebarColapsada") === "true";
+
+    if (estadoGuardado && window.innerWidth > 760) {
+        appContainer.classList.add("sidebar-colapsada");
+        boton.innerHTML = `<span class="sidebar-toggle-arrow" aria-hidden="true">›</span>`;
+        boton.setAttribute("aria-label", "Expandir barra lateral");
+        boton.setAttribute("title", "Expandir barra lateral");
+    }
+
+    boton.addEventListener("click", () => {
+        const colapsada = appContainer.classList.toggle("sidebar-colapsada");
+
+        localStorage.setItem("sidebarColapsada", String(colapsada));
+        boton.innerHTML = colapsada
+            ? `<span class="sidebar-toggle-arrow" aria-hidden="true">›</span>`
+            : `<span class="sidebar-toggle-arrow" aria-hidden="true">‹</span>`;
+        boton.setAttribute(
+            "aria-label",
+            colapsada ? "Expandir barra lateral" : "Contraer barra lateral"
+        );
+        boton.setAttribute(
+            "title",
+            colapsada ? "Expandir barra lateral" : "Contraer barra lateral"
+        );
+    });
+
+    window.addEventListener("resize", () => {
+        if (window.innerWidth <= 760) {
+            appContainer.classList.remove("sidebar-colapsada");
+            boton.innerHTML = `<span class="sidebar-toggle-arrow" aria-hidden="true">‹</span>`;
+        } else if (localStorage.getItem("sidebarColapsada") === "true") {
+            appContainer.classList.add("sidebar-colapsada");
+            boton.innerHTML = `<span class="sidebar-toggle-arrow" aria-hidden="true">›</span>`;
+        }
+    });
 }
 
 function obtenerClaseEstado(estado) {

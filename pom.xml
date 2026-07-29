@@ -95,8 +95,8 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- Genera metadatos para las propiedades personalizadas -->
-        <!-- Permite que VS Code reconozca app.frontend.* y aranda.api.* -->
+        <!-- Genera metadatos para propiedades personalizadas -->
+        <!-- Permite que VS Code reconozca app.frontend.*, app.jwt.* y app.mail.* -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-configuration-processor</artifactId>

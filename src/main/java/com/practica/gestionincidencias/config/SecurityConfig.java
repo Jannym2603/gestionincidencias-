@@ -89,9 +89,6 @@ public class SecurityConfig {
                         /*
                          * Endpoint público para consultar un ticket
                          * mediante su token compartido.
-                         *
-                         * Esta regla debe estar antes de /api/**
-                         * para que no solicite un JWT.
                          */
                         .requestMatchers(
                                 "/api/public/**"
@@ -143,6 +140,39 @@ public class SecurityConfig {
                          */
                         .requestMatchers(
                                 "/api/reportes/**"
+                        ).hasAnyRole(
+                                "SUPERVISOR",
+                                "ADMIN"
+                        )
+
+                        /*
+                         * Consultar la configuración global:
+                         * cualquier usuario autenticado.
+                         */
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/configuracion-sistema"
+                        ).authenticated()
+
+                        /*
+                         * Modificar la configuración global:
+                         * solamente SUPERVISOR o ADMIN.
+                         */
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/configuracion-sistema"
+                        ).hasAnyRole(
+                                "SUPERVISOR",
+                                "ADMIN"
+                        )
+
+                        /*
+                         * Consultar la auditoría de configuración:
+                         * solamente SUPERVISOR o ADMIN.
+                         */
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/configuracion-sistema/auditoria"
                         ).hasAnyRole(
                                 "SUPERVISOR",
                                 "ADMIN"

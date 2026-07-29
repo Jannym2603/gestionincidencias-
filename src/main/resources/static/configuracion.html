@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -10,7 +9,6 @@
 <body class="config-page">
 
 <div class="app-container">
-
     <aside class="sidebar">
         <div class="sidebar-logo">
             <div class="logo-icon">GI</div>
@@ -32,11 +30,10 @@
     </aside>
 
     <main class="main-content">
-
         <header class="topbar">
             <div>
                 <h1>Configuración</h1>
-                <p>Administra tu perfil y seguridad de acceso.</p>
+                <p>Administra tu perfil, seguridad y funciones del sistema.</p>
             </div>
 
             <div class="topbar-actions">
@@ -47,136 +44,162 @@
                         <span id="rolUsuario">Rol</span>
                     </div>
                 </div>
-
                 <button class="logout-btn" id="btnLogout">Cerrar sesión</button>
             </div>
         </header>
 
         <section id="configMenu" class="table-section">
-
             <div class="section-header">
                 <div>
                     <h2>Opciones de configuración</h2>
-                    <p>Selecciona qué deseas realizar.</p>
+                    <p>Selecciona qué deseas administrar.</p>
                 </div>
             </div>
 
             <div class="config-options-grid">
-
-                <div class="config-option-card blue" onclick="mostrarSeccionConfig('perfil')">
+                <button class="config-option-card blue" type="button" onclick="mostrarSeccionConfig('perfil')">
                     <span>Perfil</span>
                     <h3>Mi perfil</h3>
                     <p>Consulta tu nombre, correo y rol actual.</p>
-                </div>
+                </button>
 
-                <div class="config-option-card green" onclick="mostrarSeccionConfig('password')">
+                <button class="config-option-card green" type="button" onclick="mostrarSeccionConfig('password')">
                     <span>Seguridad</span>
                     <h3>Contraseña</h3>
                     <p>Cambia tu contraseña de acceso al sistema.</p>
-                </div>
+                </button>
 
+                <button id="opcionFeatureFlags" class="config-option-card purple" type="button" onclick="mostrarSeccionConfig('features')">
+                    <span>Sistema</span>
+                    <h3>Funciones experimentales</h3>
+                    <p>Activa módulos y selecciona una variante visual.</p>
+                </button>
             </div>
-
         </section>
 
         <section id="seccionPerfil" class="form-card config-section" style="display: none;">
-
-            <h2 style="margin-bottom: 18px;">Mi perfil</h2>
-
-            <div class="info-box">
-                Esta información pertenece al usuario que inició sesión actualmente.
-            </div>
-
+            <h2 class="config-section-title">Mi perfil</h2>
+            <div class="info-box">Esta información pertenece al usuario que inició sesión actualmente.</div>
             <div class="form-grid">
-                <div class="form-group">
-                    <label>Nombre</label>
-                    <input type="text" id="perfilNombre" disabled>
-                </div>
-
-                <div class="form-group">
-                    <label>Correo</label>
-                    <input type="text" id="perfilCorreo" disabled>
-                </div>
-
-                <div class="form-group">
-                    <label>Rol</label>
-                    <input type="text" id="perfilRol" disabled>
-                </div>
+                <div class="form-group"><label>Nombre</label><input type="text" id="perfilNombre" disabled></div>
+                <div class="form-group"><label>Correo</label><input type="text" id="perfilCorreo" disabled></div>
+                <div class="form-group"><label>Rol</label><input type="text" id="perfilRol" disabled></div>
             </div>
-
         </section>
 
         <section id="seccionPassword" class="form-card config-section" style="display: none;">
-
-            <h2 style="margin-bottom: 18px;">Cambiar contraseña</h2>
-
-            <div class="info-box">
-                Al cambiar la contraseña, tendrás que iniciar sesión nuevamente.
-            </div>
-
+            <h2 class="config-section-title">Cambiar contraseña</h2>
+            <div class="info-box">Al cambiar la contraseña, tendrás que iniciar sesión nuevamente.</div>
             <form id="configPasswordForm">
-
                 <div class="form-grid">
-
                     <div class="form-group">
                         <label for="nuevaPasswordConfig">Nueva contraseña</label>
                         <div class="password-wrapper">
-                            <input 
-                                type="password" 
-                                id="nuevaPasswordConfig" 
-                                placeholder="Ingresa la nueva contraseña"
-                                required
-                            >
-                            <button 
-                                type="button" 
-                                class="password-toggle" 
-                                onclick="togglePasswordConfig('nuevaPasswordConfig', this)"
-                            >
-                                👁
-                            </button>
+                            <input type="password" id="nuevaPasswordConfig" placeholder="Ingresa la nueva contraseña" required>
+                            <button type="button" class="password-toggle" onclick="togglePasswordConfig('nuevaPasswordConfig', this)">👁</button>
                         </div>
                     </div>
-
                     <div class="form-group">
                         <label for="confirmarPasswordConfig">Confirmar contraseña</label>
                         <div class="password-wrapper">
-                            <input 
-                                type="password" 
-                                id="confirmarPasswordConfig" 
-                                placeholder="Confirma la nueva contraseña"
-                                required
-                            >
-                            <button 
-                                type="button" 
-                                class="password-toggle" 
-                                onclick="togglePasswordConfig('confirmarPasswordConfig', this)"
-                            >
-                                👁
-                            </button>
+                            <input type="password" id="confirmarPasswordConfig" placeholder="Confirma la nueva contraseña" required>
+                            <button type="button" class="password-toggle" onclick="togglePasswordConfig('confirmarPasswordConfig', this)">👁</button>
                         </div>
                     </div>
-
                 </div>
-
                 <div class="form-actions">
-                    <button type="submit" class="primary-btn">
-                        Guardar nueva contraseña
-                    </button>
-
-                    <button type="button" class="secondary-btn" onclick="document.getElementById('configPasswordForm').reset()">
-                        Limpiar
-                    </button>
+                    <button type="submit" class="primary-btn">Guardar nueva contraseña</button>
+                    <button type="button" class="secondary-btn" onclick="document.getElementById('configPasswordForm').reset()">Limpiar</button>
                 </div>
-
             </form>
-
         </section>
 
+        <section id="seccionFeatures" class="form-card config-section" style="display: none;">
+            <div class="feature-flags-header">
+                <div>
+                    <h2>Funciones experimentales</h2>
+                    <p>Estos ajustes se guardan globalmente y se aplican a todos los usuarios.</p>
+                </div>
+                <span class="feature-status-badge">ADMIN / SUPERVISOR</span>
+            </div>
+
+            <div class="info-box">Desactivar una función oculta su opción del menú y bloquea el acceso directo a su página.</div>
+
+            <form id="featureFlagsForm">
+                <div class="feature-flags-grid">
+                    <label class="feature-flag-card">
+                        <div><strong>Crear Ticket</strong><p>Permite registrar nuevas incidencias.</p></div>
+                        <input type="checkbox" id="flagCrearTicket">
+                        <span class="feature-switch" aria-hidden="true"></span>
+                    </label>
+                    <label class="feature-flag-card">
+                        <div><strong>Reportes</strong><p>Muestra el módulo de reportes administrativos.</p></div>
+                        <input type="checkbox" id="flagReportes">
+                        <span class="feature-switch" aria-hidden="true"></span>
+                    </label>
+                    <label class="feature-flag-card">
+                        <div><strong>Historial</strong><p>Muestra la consulta general de movimientos.</p></div>
+                        <input type="checkbox" id="flagHistorial">
+                        <span class="feature-switch" aria-hidden="true"></span>
+                    </label>
+                </div>
+
+                <fieldset class="ab-test-panel">
+                    <legend>Prueba visual A/B</legend>
+                    <p>Selecciona la presentación que se aplicará al sistema.</p>
+                    <div class="ab-options">
+                        <label class="ab-option">
+                            <input type="radio" name="varianteVisual" value="A">
+                            <span><strong>Variante A</strong><small>Interfaz actual, compacta y neutra.</small></span>
+                        </label>
+                        <label class="ab-option">
+                            <input type="radio" name="varianteVisual" value="B">
+                            <span><strong>Variante B</strong><small>Tarjetas más suaves y mayor contraste visual.</small></span>
+                        </label>
+                    </div>
+                </fieldset>
+
+                <div class="form-actions feature-actions">
+                    <button type="submit" class="primary-btn">Guardar configuración</button>
+                    <button type="button" class="secondary-btn" id="btnRestablecerFeatures">Restablecer valores</button>
+                    <button type="button" class="secondary-btn feature-audit-btn" id="btnVerAuditoria">
+                        Ver historial de cambios
+                    </button>
+                </div>
+                <p id="featureFlagsMensaje" class="feature-save-message" aria-live="polite"></p>
+            </form>
+        </section>
     </main>
+</div>
+
+
+<div class="modal-overlay" id="modalAuditoriaConfiguracion" aria-hidden="true">
+    <div class="modal-card modal-auditoria-config" role="dialog" aria-modal="true" aria-labelledby="tituloAuditoriaConfiguracion">
+        <div class="modal-header">
+            <div>
+                <h2 id="tituloAuditoriaConfiguracion">Historial de cambios</h2>
+                <p>Registro de modificaciones realizadas en las funciones experimentales.</p>
+            </div>
+            <button type="button" class="modal-close-btn" id="btnCerrarAuditoria" aria-label="Cerrar">×</button>
+        </div>
+
+        <div class="modal-body modal-auditoria-body">
+            <div class="audit-summary-bar">
+                <span id="totalCambiosAuditoria">0 cambios registrados</span>
+                <button type="button" class="action-link" id="btnActualizarAuditoria">Actualizar</button>
+            </div>
+            <div id="listaAuditoriaConfiguracion" class="audit-list">
+                <p class="empty-message">Selecciona “Ver historial de cambios” para cargar los registros.</p>
+            </div>
+        </div>
+
+        <div class="modal-actions">
+            <button type="button" class="secondary-btn" id="btnCerrarAuditoriaInferior">Cerrar</button>
+        </div>
+    </div>
 </div>
 
 <script src="app.js"></script>
 <script src="configuracion.js"></script>
 </body>
 </html>
-```
