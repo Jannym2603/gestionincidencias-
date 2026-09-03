@@ -3,11 +3,14 @@ package com.practica.gestionincidencias.controller;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.practica.gestionincidencias.dto.CambiarPasswordRequestDTO;
 import com.practica.gestionincidencias.dto.ConfirmarRecuperacionPasswordRequestDTO;
@@ -93,19 +96,74 @@ public class AuthController {
         );
     }
 
+    /*
+     * Cambio de contraseña del usuario autenticado.
+     *
+     * Ya no se acepta un correo enviado desde el navegador.
+     * La cuenta se obtiene directamente del JWT autenticado.
+     * Además, se exige la contraseña actual antes de guardar
+     * la nueva contraseña.
+     */
     @PostMapping("/cambiar-password")
-    public String cambiarPassword(@Valid @RequestBody CambiarPasswordRequestDTO request) {
+    public String cambiarPassword(
+            @Valid @RequestBody CambiarPasswordRequestDTO request,
+            Authentication authentication) {
 
-        String correoNormalizado = request.getCorreo().trim().toLowerCase();
-
-        Usuario usuario = usuarioRepository.findByCorreo(correoNormalizado)
-                .orElseThrow(() -> new RuntimeException("Correo no registrado."));
-
-        if (usuario.getEstado() == null || !usuario.getEstado()) {
-            throw new RuntimeException("Este usuario esta inactivo.");
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "Debes iniciar sesión para cambiar tu contraseña."
+            );
         }
 
-        usuario.setPassword(passwordEncoder.encode(request.getNuevaPassword().trim()));
+        String correoAutenticado = authentication.getName()
+                .trim()
+                .toLowerCase();
+
+        Usuario usuario = usuarioRepository.findByCorreo(correoAutenticado)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "El usuario autenticado no existe."
+                ));
+
+        if (usuario.getEstado() == null || !usuario.getEstado()) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Este usuario esta inactivo."
+            );
+        }
+
+        String passwordActual = request.getPasswordActual().trim();
+        String nuevaPassword = request.getNuevaPassword().trim();
+
+        if (!passwordValida(usuario, passwordActual)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "La contraseña actual es incorrecta."
+            );
+        }
+
+        if (nuevaPassword.length() < 6) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "La nueva contraseña debe tener al menos 6 caracteres."
+            );
+        }
+
+        if (passwordEncoder.matches(
+                nuevaPassword,
+                usuario.getPassword()
+        )) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "La nueva contraseña debe ser diferente a la actual."
+            );
+        }
+
+        usuario.setPassword(
+                passwordEncoder.encode(nuevaPassword)
+        );
+
         usuarioRepository.save(usuario);
 
         return "Contrasena actualizada correctamente.";
@@ -182,7 +240,9 @@ public class AuthController {
         return "Contrasena actualizada correctamente.";
     }
 
-    private boolean passwordValida(Usuario usuario, String passwordIngresada) {
+    private boolean passwordValida(
+            Usuario usuario,
+            String passwordIngresada) {
 
         String passwordGuardada = usuario.getPassword();
 
@@ -200,6 +260,11 @@ public class AuthController {
             );
         }
 
+        /*
+         * Compatibilidad con usuarios antiguos que todavía
+         * pudieran tener una contraseña sin BCrypt.
+         * Si coincide, se migra inmediatamente a BCrypt.
+         */
         if (!passwordGuardada.equals(passwordIngresada)) {
             return false;
         }

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,8 +23,8 @@ import com.practica.gestionincidencias.entity.Usuario;
 import com.practica.gestionincidencias.repository.ComentarioRepository;
 import com.practica.gestionincidencias.repository.HistorialTicketRepository;
 import com.practica.gestionincidencias.repository.TicketRepository;
-import com.practica.gestionincidencias.repository.UsuarioRepository;
 import com.practica.gestionincidencias.repository.UsuarioRolRepository;
+import com.practica.gestionincidencias.service.AccesoProyectoService;
 import com.practica.gestionincidencias.service.NotificacionService;
 
 import jakarta.validation.Valid;
@@ -41,28 +42,29 @@ public class ComentarioController {
 
     private final ComentarioRepository comentarioRepository;
     private final TicketRepository ticketRepository;
-    private final UsuarioRepository usuarioRepository;
     private final UsuarioRolRepository usuarioRolRepository;
     private final HistorialTicketRepository historialTicketRepository;
     private final NotificacionService notificacionService;
+    private final AccesoProyectoService accesoProyectoService;
 
     public ComentarioController(
             ComentarioRepository comentarioRepository,
             TicketRepository ticketRepository,
-            UsuarioRepository usuarioRepository,
             UsuarioRolRepository usuarioRolRepository,
             HistorialTicketRepository historialTicketRepository,
-            NotificacionService notificacionService) {
+            NotificacionService notificacionService,
+            AccesoProyectoService accesoProyectoService) {
 
         this.comentarioRepository = comentarioRepository;
         this.ticketRepository = ticketRepository;
-        this.usuarioRepository = usuarioRepository;
         this.usuarioRolRepository = usuarioRolRepository;
         this.historialTicketRepository = historialTicketRepository;
         this.notificacionService = notificacionService;
+        this.accesoProyectoService = accesoProyectoService;
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERVISOR')")
     public List<ComentarioResponseDTO> listarComentarios() {
 
         return comentarioRepository.findAll()
@@ -75,9 +77,35 @@ public class ComentarioController {
     public List<ComentarioResponseDTO> listarComentariosPorTicket(
             @PathVariable Integer ticketId) {
 
+        Ticket ticket = ticketRepository
+                .findById(ticketId)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Ticket no encontrado."
+                        )
+                );
+
+        Usuario usuario =
+                accesoProyectoService.obtenerUsuarioAutenticado();
+
+        String rol =
+                accesoProyectoService.obtenerRol(usuario);
+
+        accesoProyectoService.validarAccesoTicket(
+                usuario,
+                rol,
+                ticket
+        );
+
         return comentarioRepository
                 .findByTicketId(ticketId)
                 .stream()
+                .filter(comentario ->
+                        !"CLIENTE".equals(rol)
+                                || "PUBLICO".equalsIgnoreCase(
+                                        comentario.getTipoComentario()
+                                )
+                )
                 .map(this::convertirADTO)
                 .toList();
     }
@@ -97,13 +125,26 @@ public class ComentarioController {
                         );
 
         Usuario usuario =
-                usuarioRepository
-                        .findById(request.getUsuarioId())
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Usuario no encontrado."
-                                )
-                        );
+                accesoProyectoService.obtenerUsuarioAutenticado();
+
+        String rol =
+                accesoProyectoService.obtenerRol(usuario);
+
+        accesoProyectoService.validarAccesoTicket(
+                usuario,
+                rol,
+                ticket
+        );
+
+        if (
+                request.getUsuarioId() != null
+                        && !usuario.getId().equals(request.getUsuarioId())
+        ) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "No puedes publicar comentarios a nombre de otro usuario."
+            );
+        }
 
         String tipoComentario =
                 request.getTipoComentario()
@@ -118,6 +159,16 @@ public class ComentarioController {
             throw new RuntimeException(
                     "Tipo de comentario no válido. "
                             + "Use PUBLICO o INTERNO."
+            );
+        }
+
+        if (
+                "CLIENTE".equals(rol)
+                        && "INTERNO".equals(tipoComentario)
+        ) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Los clientes solo pueden agregar comentarios públicos."
             );
         }
 

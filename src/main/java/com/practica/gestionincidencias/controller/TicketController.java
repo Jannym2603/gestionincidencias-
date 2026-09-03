@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,16 +22,23 @@ import org.springframework.web.bind.annotation.RestController;
 import com.practica.gestionincidencias.dto.AsignarTicketRequestDTO;
 import com.practica.gestionincidencias.dto.CambiarEstadoTicketRequestDTO;
 import com.practica.gestionincidencias.dto.CambiarPrioridadTicketRequestDTO;
+import com.practica.gestionincidencias.dto.SolicitudRecursoRequestDTO;
 import com.practica.gestionincidencias.dto.TicketRequestDTO;
 import com.practica.gestionincidencias.dto.TicketResponseDTO;
 import com.practica.gestionincidencias.entity.HistorialTicket;
+import com.practica.gestionincidencias.entity.Proyecto;
+import com.practica.gestionincidencias.entity.SolicitudRecurso;
 import com.practica.gestionincidencias.entity.Ticket;
 import com.practica.gestionincidencias.entity.TipoIncidencia;
 import com.practica.gestionincidencias.entity.Usuario;
 import com.practica.gestionincidencias.repository.HistorialTicketRepository;
+import com.practica.gestionincidencias.repository.ProyectoRepository;
+import com.practica.gestionincidencias.repository.SolicitudRecursoRepository;
 import com.practica.gestionincidencias.repository.TicketRepository;
 import com.practica.gestionincidencias.repository.TipoIncidenciaRepository;
+import com.practica.gestionincidencias.repository.UsuarioProyectoRepository;
 import com.practica.gestionincidencias.repository.UsuarioRepository;
+import com.practica.gestionincidencias.service.AccesoProyectoService;
 import com.practica.gestionincidencias.service.NotificacionService;
 
 import jakarta.validation.Valid;
@@ -57,36 +66,169 @@ public class TicketController {
     private final TicketRepository ticketRepository;
     private final TipoIncidenciaRepository tipoIncidenciaRepository;
     private final UsuarioRepository usuarioRepository;
+    private final ProyectoRepository proyectoRepository;
+    private final SolicitudRecursoRepository solicitudRecursoRepository;
+    private final UsuarioProyectoRepository usuarioProyectoRepository;
     private final HistorialTicketRepository historialTicketRepository;
     private final NotificacionService notificacionService;
+    private final AccesoProyectoService accesoProyectoService;
 
     public TicketController(
             TicketRepository ticketRepository,
             TipoIncidenciaRepository tipoIncidenciaRepository,
             UsuarioRepository usuarioRepository,
+            ProyectoRepository proyectoRepository,
+            SolicitudRecursoRepository solicitudRecursoRepository,
+            UsuarioProyectoRepository usuarioProyectoRepository,
             HistorialTicketRepository historialTicketRepository,
-            NotificacionService notificacionService) {
+            NotificacionService notificacionService,
+            AccesoProyectoService accesoProyectoService) {
 
         this.ticketRepository = ticketRepository;
         this.tipoIncidenciaRepository = tipoIncidenciaRepository;
         this.usuarioRepository = usuarioRepository;
+        this.proyectoRepository = proyectoRepository;
+        this.solicitudRecursoRepository = solicitudRecursoRepository;
+        this.usuarioProyectoRepository = usuarioProyectoRepository;
         this.historialTicketRepository = historialTicketRepository;
         this.notificacionService = notificacionService;
+        this.accesoProyectoService = accesoProyectoService;
     }
 
     @GetMapping
     public List<TicketResponseDTO> listarTickets() {
 
-        return ticketRepository.findAll()
-                .stream()
+        Usuario usuarioAutenticado =
+                accesoProyectoService.obtenerUsuarioAutenticado();
+
+        String rol =
+                accesoProyectoService.obtenerRol(
+                        usuarioAutenticado
+                );
+
+        List<Ticket> tickets;
+
+        if (rol.equals("ADMIN")) {
+
+            tickets =
+                    ticketRepository.findAll();
+
+        } else {
+
+            List<Integer> proyectoIds =
+                    usuarioProyectoRepository
+                            .findByUsuarioIdAndEstadoTrue(
+                                    usuarioAutenticado.getId()
+                            )
+                            .stream()
+                            .filter(asignacion ->
+                                    asignacion.getProyecto() != null
+                                            && Boolean.TRUE.equals(
+                                                    asignacion
+                                                            .getProyecto()
+                                                            .getEstado()
+                                            )
+                                            && asignacion
+                                                    .getProyecto()
+                                                    .getCompania() != null
+                                            && Boolean.TRUE.equals(
+                                                    asignacion
+                                                            .getProyecto()
+                                                            .getCompania()
+                                                            .getEstado()
+                                            )
+                            )
+                            .map(asignacion ->
+                                    asignacion
+                                            .getProyecto()
+                                            .getId()
+                            )
+                            .distinct()
+                            .toList();
+
+            if (proyectoIds.isEmpty()) {
+                return List.of();
+            }
+
+            tickets =
+                    switch (rol) {
+
+                        case "CLIENTE" ->
+                                ticketRepository
+                                        .findByClienteIdAndProyectoIdInOrderByFechaCreacionDesc(
+                                                usuarioAutenticado.getId(),
+                                                proyectoIds
+                                        );
+
+                        case "AGENTE" ->
+                                ticketRepository
+                                        .findByAgenteAsignadoIdAndProyectoIdInOrderByFechaCreacionDesc(
+                                                usuarioAutenticado.getId(),
+                                                proyectoIds
+                                        );
+
+                        case "SUPERVISOR" ->
+                                ticketRepository
+                                        .findByProyectoIdInOrderByFechaCreacionDesc(
+                                                proyectoIds
+                                        );
+
+                        default ->
+                                throw new RuntimeException(
+                                        "El rol del usuario no tiene acceso "
+                                                + "al listado de tickets."
+                                );
+                    };
+        }
+
+        return tickets.stream()
                 .map(this::convertirADTO)
                 .toList();
     }
 
+    @GetMapping("/{id}")
+    public TicketResponseDTO obtenerTicket(
+            @PathVariable Integer id) {
+
+        Ticket ticket = ticketRepository
+                .findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Ticket no encontrado."
+                        )
+                );
+
+        Usuario usuario =
+                accesoProyectoService.obtenerUsuarioAutenticado();
+
+        String rol =
+                accesoProyectoService.obtenerRol(usuario);
+
+        accesoProyectoService.validarAccesoTicket(
+                usuario,
+                rol,
+                ticket
+        );
+
+        return convertirADTO(ticket);
+    }
+
     @PostMapping
+    @Transactional
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize(
+            "@moduloAccesoService.puedeCrearTicket(authentication)"
+    )
     public TicketResponseDTO crearTicket(
             @Valid @RequestBody TicketRequestDTO request) {
+
+        Usuario usuarioAutenticado =
+                accesoProyectoService.obtenerUsuarioAutenticado();
+
+        String rolAutenticado =
+                accesoProyectoService.obtenerRol(
+                        usuarioAutenticado
+                );
 
         TipoIncidencia tipoIncidencia =
                 tipoIncidenciaRepository
@@ -106,6 +248,62 @@ public class TicketController {
                                 )
                         );
 
+        Proyecto proyecto =
+                proyectoRepository
+                        .findById(request.getProyectoId())
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Proyecto no encontrado."
+                                )
+                        );
+
+        if ("CLIENTE".equals(rolAutenticado)) {
+            if (!usuarioAutenticado.getId().equals(cliente.getId())) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                        HttpStatus.FORBIDDEN,
+                        "Un cliente solo puede registrar tickets a su propio nombre."
+                );
+            }
+
+            cliente = usuarioAutenticado;
+        }
+
+        if (!accesoProyectoService.esRol(cliente, "CLIENTE")) {
+            throw new RuntimeException(
+                    "El usuario seleccionado no tiene rol CLIENTE."
+            );
+        }
+
+        if (!Boolean.TRUE.equals(cliente.getEstado())) {
+            throw new RuntimeException(
+                    "No se puede registrar un ticket para un cliente inactivo."
+            );
+        }
+
+        accesoProyectoService.validarProyectoDisponible(proyecto);
+
+        if ("SUPERVISOR".equals(rolAutenticado)
+                || "AGENTE".equals(rolAutenticado)) {
+            accesoProyectoService.validarAccesoProyecto(
+                    usuarioAutenticado,
+                    rolAutenticado,
+                    proyecto
+            );
+        }
+
+        boolean clienteTieneAcceso =
+                usuarioProyectoRepository
+                        .existsByUsuarioIdAndProyectoIdAndEstadoTrue(
+                                cliente.getId(),
+                                proyecto.getId()
+                        );
+
+        if (!clienteTieneAcceso) {
+            throw new RuntimeException(
+                    "El cliente no tiene acceso al proyecto seleccionado."
+            );
+        }
+
         String numeroTicket =
                 generarNumeroTicket();
 
@@ -114,6 +312,16 @@ public class TicketController {
                         request.getImpacto(),
                         request.getUrgencia()
                 );
+
+        String tipoAtencion =
+                normalizarTipoAtencion(
+                        request.getTipoAtencion()
+                );
+
+        validarSolicitudRecurso(
+                tipoAtencion,
+                request.getSolicitudRecurso()
+        );
 
         LocalDateTime fechaCreacion =
                 LocalDateTime.now();
@@ -125,6 +333,8 @@ public class TicketController {
                 .tipoIncidencia(tipoIncidencia)
                 .cliente(cliente)
                 .agenteAsignado(null)
+                .proyecto(proyecto)
+                .tipoAtencion(tipoAtencion)
                 .estado("NUEVO")
                 .prioridad(prioridadCalculada)
                 .severidad(
@@ -160,14 +370,39 @@ public class TicketController {
         Ticket ticketGuardado =
                 ticketRepository.save(ticket);
 
+        if ("RECURSO_EXTERNO".equals(tipoAtencion)) {
+
+            SolicitudRecurso solicitudCreada =
+                    crearSolicitudRecurso(
+                            ticketGuardado,
+                            request.getSolicitudRecurso(),
+                            fechaCreacion
+                    );
+
+            registrarHistorial(
+                    ticketGuardado,
+                    usuarioAutenticado,
+                    "RECURSO_CREADO",
+                    null,
+                    "NUEVO",
+                    construirDescripcionSolicitudRecursoCreada(
+                            solicitudCreada
+                    )
+            );
+        }
+
         registrarHistorial(
                 ticketGuardado,
-                cliente,
+                usuarioAutenticado,
                 "CREACION_TICKET",
                 null,
                 "NUEVO",
                 "Se creó el ticket "
                         + ticketGuardado.getNumeroTicket()
+                        + " en el proyecto "
+                        + proyecto.getNombre()
+                        + ". Tipo de atención: "
+                        + tipoAtencion
         );
 
         notificacionService
@@ -177,6 +412,7 @@ public class TicketController {
     }
 
     @PutMapping("/{id}/asignar")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERVISOR')")
     public TicketResponseDTO asignarTicket(
             @PathVariable Integer id,
             @Valid @RequestBody AsignarTicketRequestDTO request) {
@@ -189,6 +425,18 @@ public class TicketController {
                                 )
                         );
 
+        Usuario usuarioAutenticado =
+                accesoProyectoService.obtenerUsuarioAutenticado();
+
+        String rolAutenticado =
+                accesoProyectoService.obtenerRol(usuarioAutenticado);
+
+        accesoProyectoService.validarAccesoTicket(
+                usuarioAutenticado,
+                rolAutenticado,
+                ticket
+        );
+
         Usuario agente =
                 usuarioRepository
                         .findById(request.getAgenteId())
@@ -197,6 +445,34 @@ public class TicketController {
                                         "Agente no encontrado."
                                 )
                         );
+
+        if (!Boolean.TRUE.equals(agente.getEstado())) {
+            throw new RuntimeException(
+                    "No se puede asignar el ticket a un agente inactivo."
+            );
+        }
+
+        if (!accesoProyectoService.esRol(agente, "AGENTE")) {
+            throw new RuntimeException(
+                    "El usuario seleccionado no tiene rol AGENTE."
+            );
+        }
+
+        accesoProyectoService.validarProyectoDisponible(
+                ticket.getProyecto()
+        );
+
+        if (
+                ticket.getProyecto() == null
+                        || !accesoProyectoService.usuarioTieneAccesoProyecto(
+                                agente.getId(),
+                                ticket.getProyecto().getId()
+                        )
+        ) {
+            throw new RuntimeException(
+                    "El agente no tiene acceso al proyecto del ticket."
+            );
+        }
 
         String agenteAnterior =
                 ticket.getAgenteAsignado() != null
@@ -213,6 +489,16 @@ public class TicketController {
         String estadoAnterior =
                 ticket.getEstado();
 
+        /*
+         * La asignación de agente se mantiene disponible también para
+         * RECURSO_EXTERNO. Es una asignación administrativa de
+         * responsabilidad y no sustituye ni modifica el estado del recurso.
+         *
+         * Conservamos el comportamiento existente de marcar el ticket como
+         * ASIGNADO cuando recibe su primer agente. A partir de ahí, el flujo
+         * operativo manual queda bloqueado para RECURSO_EXTERNO y el avance
+         * real continúa en SolicitudRecurso.estadoRecurso.
+         */
         if (ticket.getAgenteAsignado() == null) {
 
             validarTransicion(
@@ -234,7 +520,7 @@ public class TicketController {
 
         registrarHistorial(
                 ticketActualizado,
-                agente,
+                usuarioAutenticado,
                 "ASIGNACION_AGENTE",
                 agenteAnterior,
                 agenteNuevo,
@@ -247,7 +533,7 @@ public class TicketController {
 
             registrarHistorial(
                     ticketActualizado,
-                    agente,
+                    usuarioAutenticado,
                     "CAMBIO_ESTADO",
                     estadoAnterior,
                     ticketActualizado.getEstado(),
@@ -265,6 +551,7 @@ public class TicketController {
     }
 
     @PutMapping("/{id}/estado")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERVISOR', 'AGENTE')")
     public TicketResponseDTO cambiarEstado(
             @PathVariable Integer id,
             @Valid @RequestBody CambiarEstadoTicketRequestDTO request) {
@@ -276,6 +563,40 @@ public class TicketController {
                                         "Ticket no encontrado."
                                 )
                         );
+
+        Usuario usuarioAutenticado =
+                accesoProyectoService.obtenerUsuarioAutenticado();
+
+        String rolAutenticado =
+                accesoProyectoService.obtenerRol(usuarioAutenticado);
+
+        accesoProyectoService.validarAccesoTicket(
+                usuarioAutenticado,
+                rolAutenticado,
+                ticket
+        );
+
+        /*
+         * Los tickets de RECURSO_EXTERNO no utilizan el flujo
+         * operativo NUEVO -> ASIGNADO -> EN_PROGRESO -> RESUELTO
+         * -> CERRADO.
+         *
+         * Su avance se administra exclusivamente mediante
+         * SolicitudRecurso.estadoRecurso.
+         *
+         * Esta validación es de backend, por lo que también bloquea
+         * llamadas directas al endpoint aunque se intente omitir
+         * la restricción del frontend.
+         */
+        if (esRecursoExterno(ticket)) {
+
+            throw new org.springframework.web.server.ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Los tickets de recurso externo no utilizan el flujo "
+                            + "operativo de estados. Administra el avance desde "
+                            + "Solicitudes de Recursos."
+            );
+        }
 
         String estadoAnterior =
                 ticket.getEstado();
@@ -353,7 +674,7 @@ public class TicketController {
 
         registrarHistorial(
                 ticketActualizado,
-                ticketActualizado.getAgenteAsignado(),
+                usuarioAutenticado,
                 "CAMBIO_ESTADO",
                 estadoAnterior,
                 nuevoEstado,
@@ -371,6 +692,7 @@ public class TicketController {
     }
 
     @PutMapping("/{id}/prioridad")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERVISOR', 'AGENTE')")
     public TicketResponseDTO cambiarPrioridad(
             @PathVariable Integer id,
             @Valid @RequestBody CambiarPrioridadTicketRequestDTO request) {
@@ -384,13 +706,26 @@ public class TicketController {
                         );
 
         Usuario usuario =
-                usuarioRepository
-                        .findById(request.getUsuarioId())
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Usuario no encontrado."
-                                )
-                        );
+                accesoProyectoService.obtenerUsuarioAutenticado();
+
+        String rolAutenticado =
+                accesoProyectoService.obtenerRol(usuario);
+
+        accesoProyectoService.validarAccesoTicket(
+                usuario,
+                rolAutenticado,
+                ticket
+        );
+
+        if (
+                request.getUsuarioId() != null
+                        && !usuario.getId().equals(request.getUsuarioId())
+        ) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "No puedes registrar el cambio a nombre de otro usuario."
+            );
+        }
 
         String prioridadAnterior =
                 ticket.getPrioridad();
@@ -455,6 +790,125 @@ public class TicketController {
 
         return convertirADTO(ticketActualizado);
     }
+
+    private void validarSolicitudRecurso(
+            String tipoAtencion,
+            SolicitudRecursoRequestDTO solicitud) {
+
+        if (!"RECURSO_EXTERNO".equals(tipoAtencion)) {
+            return;
+        }
+
+        if (solicitud == null) {
+            throw new RuntimeException(
+                    "Debes completar los datos de la solicitud de recurso."
+            );
+        }
+
+        if (solicitud.getCategoria() == null
+                || solicitud.getCategoria().isBlank()) {
+            throw new RuntimeException(
+                    "La categoría del recurso es obligatoria."
+            );
+        }
+
+        if (solicitud.getRecurso() == null
+                || solicitud.getRecurso().isBlank()) {
+            throw new RuntimeException(
+                    "El recurso solicitado es obligatorio."
+            );
+        }
+
+        if (solicitud.getCantidad() == null
+                || solicitud.getCantidad() < 1) {
+            throw new RuntimeException(
+                    "La cantidad del recurso debe ser mayor o igual a 1."
+            );
+        }
+    }
+
+    private SolicitudRecurso crearSolicitudRecurso(
+            Ticket ticket,
+            SolicitudRecursoRequestDTO request,
+            LocalDateTime fechaCreacion) {
+
+        SolicitudRecurso solicitud =
+                SolicitudRecurso.builder()
+                        .ticket(ticket)
+                        .categoria(
+                                request.getCategoria()
+                                        .trim()
+                                        .toUpperCase()
+                        )
+                        .recurso(
+                                request.getRecurso()
+                                        .trim()
+                        )
+                        .cantidad(
+                                request.getCantidad()
+                        )
+                        .proveedor(null)
+                        .estadoRecurso("NUEVO")
+                        .fechaSolicitudProveedor(null)
+                        .fechaEstimadaEntrega(null)
+                        .fechaRecepcion(null)
+                        .fechaEntregaCliente(null)
+                        .observaciones(
+                                normalizarOpcional(
+                                        request.getObservaciones()
+                                )
+                        )
+                        .fechaCreacion(fechaCreacion)
+                        .fechaActualizacion(fechaCreacion)
+                        .build();
+
+        return solicitudRecursoRepository.save(solicitud);
+    }
+
+    private String construirDescripcionSolicitudRecursoCreada(
+            SolicitudRecurso solicitud) {
+
+        if (solicitud == null) {
+            return "Se creó una solicitud de recurso asociada al ticket.";
+        }
+
+        String categoria =
+                solicitud.getCategoria() != null
+                        ? solicitud.getCategoria()
+                        : "SIN_CATEGORIA";
+
+        String recurso =
+                solicitud.getRecurso() != null
+                        ? solicitud.getRecurso()
+                        : "Sin recurso";
+
+        Integer cantidad =
+                solicitud.getCantidad() != null
+                        ? solicitud.getCantidad()
+                        : 1;
+
+        String descripcion =
+                "Se creó la solicitud de recurso. "
+                        + "Categoría: "
+                        + categoria
+                        + ". Recurso: "
+                        + recurso
+                        + ". Cantidad: "
+                        + cantidad
+                        + ". Estado inicial: NUEVO.";
+
+        if (solicitud.getObservaciones() != null
+                && !solicitud.getObservaciones().isBlank()) {
+
+            descripcion +=
+                    " Observaciones: "
+                            + solicitud.getObservaciones()
+                            + ".";
+        }
+
+        return descripcion;
+    }
+
 
     private void registrarHistorial(
             Ticket ticket,
@@ -563,44 +1017,36 @@ public class TicketController {
         switch (ticket.getPrioridad()) {
 
             case "P1_CRITICA" -> {
-
                 ticket.setFechaLimiteRespuesta(
                         fechaBase.plusMinutes(30)
                 );
-
                 ticket.setFechaLimiteResolucion(
                         fechaBase.plusHours(4)
                 );
             }
 
             case "P2_ALTA" -> {
-
                 ticket.setFechaLimiteRespuesta(
                         fechaBase.plusHours(1)
                 );
-
                 ticket.setFechaLimiteResolucion(
                         fechaBase.plusHours(8)
                 );
             }
 
             case "P3_MEDIA" -> {
-
                 ticket.setFechaLimiteRespuesta(
                         fechaBase.plusHours(4)
                 );
-
                 ticket.setFechaLimiteResolucion(
                         fechaBase.plusHours(24)
                 );
             }
 
             case "P4_BAJA" -> {
-
                 ticket.setFechaLimiteRespuesta(
                         fechaBase.plusHours(8)
                 );
-
                 ticket.setFechaLimiteResolucion(
                         fechaBase.plusHours(72)
                 );
@@ -611,6 +1057,11 @@ public class TicketController {
                             "No se pudo calcular el SLA porque "
                                     + "la prioridad no es válida."
                     );
+        }
+
+        if (esRecursoExterno(ticket)) {
+            ticket.setFechaLimiteResolucion(null);
+            ticket.setSlaResolucionCumplido(null);
         }
     }
 
@@ -640,14 +1091,17 @@ public class TicketController {
     private void evaluarCumplimientoResolucion(
             Ticket ticket) {
 
-        if (ticket.getFechaResolucion() == null) {
+        if (esRecursoExterno(ticket)) {
+            ticket.setSlaResolucionCumplido(null);
+            return;
+        }
 
+        if (ticket.getFechaResolucion() == null) {
             ticket.setSlaResolucionCumplido(null);
             return;
         }
 
         if (ticket.getFechaLimiteResolucion() == null) {
-
             configurarFechasSla(ticket);
         }
 
@@ -694,12 +1148,11 @@ public class TicketController {
     private String calcularEstadoSlaResolucion(
             Ticket ticket) {
 
-        /*
-         * Los tickets creados antes de implementar SLA
-         * pueden tener la fecha límite en null.
-         */
-        if (ticket.getFechaLimiteResolucion() == null) {
+        if (esRecursoExterno(ticket)) {
+            return "NO_APLICA";
+        }
 
+        if (ticket.getFechaLimiteResolucion() == null) {
             configurarFechasSla(ticket);
         }
 
@@ -815,6 +1268,41 @@ public class TicketController {
         }
     }
 
+    private String normalizarTipoAtencion(
+            String tipoAtencion) {
+
+        if (tipoAtencion == null
+                || tipoAtencion.isBlank()) {
+            return "OPERATIVO";
+        }
+
+        String valor =
+                tipoAtencion
+                        .trim()
+                        .toUpperCase();
+
+        if (!Set.of(
+                "OPERATIVO",
+                "RECURSO_EXTERNO"
+        ).contains(valor)) {
+            throw new RuntimeException(
+                    "Tipo de atención no válido. "
+                            + "Use OPERATIVO o RECURSO_EXTERNO."
+            );
+        }
+
+        return valor;
+    }
+
+    private boolean esRecursoExterno(
+            Ticket ticket) {
+
+        return ticket != null
+                && "RECURSO_EXTERNO".equalsIgnoreCase(
+                        ticket.getTipoAtencion()
+                );
+    }
+
     private String normalizarOpcional(
             String valor) {
 
@@ -838,7 +1326,10 @@ public class TicketController {
          */
         boolean slaSinConfigurar =
                 ticket.getFechaLimiteRespuesta() == null
-                        || ticket.getFechaLimiteResolucion() == null;
+                        || (
+                        !esRecursoExterno(ticket)
+                                && ticket.getFechaLimiteResolucion() == null
+                );
 
         if (slaSinConfigurar) {
 
@@ -856,6 +1347,33 @@ public class TicketController {
 
         Integer agenteId = null;
         String agenteNombre = null;
+
+        Integer proyectoId = null;
+        String proyectoNombre = null;
+        Integer companiaId = null;
+        String companiaNombre = null;
+
+        if (ticket.getProyecto() != null) {
+
+            proyectoId =
+                    ticket.getProyecto().getId();
+
+            proyectoNombre =
+                    ticket.getProyecto().getNombre();
+
+            if (ticket.getProyecto().getCompania() != null) {
+
+                companiaId =
+                        ticket.getProyecto()
+                                .getCompania()
+                                .getId();
+
+                companiaNombre =
+                        ticket.getProyecto()
+                                .getCompania()
+                                .getNombre();
+            }
+        }
 
         if (ticket.getAgenteAsignado() != null) {
 
@@ -884,6 +1402,14 @@ public class TicketController {
 
                 agenteId,
                 agenteNombre,
+
+                proyectoId,
+                proyectoNombre,
+
+                companiaId,
+                companiaNombre,
+
+                ticket.getTipoAtencion(),
 
                 ticket.getEstado(),
                 ticket.getPrioridad(),

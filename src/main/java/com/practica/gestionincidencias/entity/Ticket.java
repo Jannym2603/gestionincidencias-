@@ -37,10 +37,16 @@ public class Ticket {
     )
     private String numeroTicket;
 
-    @Column(nullable = false, length = 150)
+    @Column(
+            nullable = false,
+            length = 150
+    )
     private String titulo;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(
+            nullable = false,
+            columnDefinition = "TEXT"
+    )
     private String descripcion;
 
     @ManyToOne
@@ -58,13 +64,47 @@ public class Ticket {
     private Usuario cliente;
 
     @ManyToOne
-    @JoinColumn(name = "agente_asignado_id")
+    @JoinColumn(
+            name = "agente_asignado_id"
+    )
     private Usuario agenteAsignado;
 
-    @Column(nullable = false, length = 30)
+    @ManyToOne
+    @JoinColumn(
+            name = "proyecto_id",
+            nullable = false
+    )
+    private Proyecto proyecto;
+
+    /*
+     * Tipo de atención del ticket.
+     *
+     * OPERATIVO:
+     * El tiempo de resolución depende directamente
+     * del equipo de operaciones.
+     *
+     * RECURSO_EXTERNO:
+     * El ticket requiere una pieza, equipo o recurso
+     * cuya entrega depende de un proveedor externo.
+     */
+    @Builder.Default
+    @Column(
+            name = "tipo_atencion",
+            nullable = false,
+            length = 30
+    )
+    private String tipoAtencion = "OPERATIVO";
+
+    @Column(
+            nullable = false,
+            length = 30
+    )
     private String estado;
 
-    @Column(nullable = false, length = 30)
+    @Column(
+            nullable = false,
+            length = 30
+    )
     private String prioridad;
 
     @Column(length = 30)
@@ -88,46 +128,18 @@ public class Ticket {
     @Column(name = "fecha_resolucion")
     private LocalDateTime fechaResolucion;
 
-    /*
-     * Fecha máxima en la que el ticket debe recibir
-     * la primera respuesta de un agente.
-     */
     @Column(name = "fecha_limite_respuesta")
     private LocalDateTime fechaLimiteRespuesta;
 
-    /*
-     * Fecha en la que el ticket recibió
-     * su primera respuesta.
-     */
     @Column(name = "fecha_primera_respuesta")
     private LocalDateTime fechaPrimeraRespuesta;
 
-    /*
-     * Fecha máxima en la que el ticket
-     * debe ser resuelto.
-     */
     @Column(name = "fecha_limite_resolucion")
     private LocalDateTime fechaLimiteResolucion;
 
-    /*
-     * Indica si el SLA de primera respuesta
-     * fue cumplido.
-     *
-     * null  = todavía no existe primera respuesta.
-     * true  = respondió dentro del tiempo.
-     * false = respondió fuera del tiempo.
-     */
     @Column(name = "sla_respuesta_cumplido")
     private Boolean slaRespuestaCumplido;
 
-    /*
-     * Indica si el SLA de resolución
-     * fue cumplido.
-     *
-     * null  = ticket todavía no resuelto.
-     * true  = resuelto dentro del tiempo.
-     * false = resuelto fuera del tiempo.
-     */
     @Column(name = "sla_resolucion_cumplido")
     private Boolean slaResolucionCumplido;
 }

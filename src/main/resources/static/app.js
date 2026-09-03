@@ -4,9 +4,29 @@ const FEATURE_FLAGS_KEY = "gestionIncidenciasFeatureFlags";
 
 const FEATURE_FLAGS_DEFAULT = {
     crearTicket: true,
+    solicitudesRecursos: true,
     reportes: true,
     historial: true,
-    varianteVisual: "A"
+
+    crearTicketCliente: true,
+    crearTicketAgente: true,
+    crearTicketSupervisor: true,
+    crearTicketAdmin: true,
+
+    solicitudesRecursosCliente: true,
+    solicitudesRecursosAgente: true,
+    solicitudesRecursosSupervisor: true,
+    solicitudesRecursosAdmin: true,
+
+    reportesCliente: true,
+    reportesAgente: true,
+    reportesSupervisor: true,
+    reportesAdmin: true,
+
+    historialCliente: true,
+    historialAgente: true,
+    historialSupervisor: true,
+    historialAdmin: true
 };
 
 let featureFlagsActuales = { ...FEATURE_FLAGS_DEFAULT };
@@ -18,6 +38,11 @@ function normalizarFeatureFlags(data = {}) {
             data.crearTicket ??
             FEATURE_FLAGS_DEFAULT.crearTicket,
 
+        solicitudesRecursos:
+            data.solicitudesRecursosActivo ??
+            data.solicitudesRecursos ??
+            FEATURE_FLAGS_DEFAULT.solicitudesRecursos,
+
         reportes:
             data.reportesActivos ??
             data.reportes ??
@@ -28,11 +53,69 @@ function normalizarFeatureFlags(data = {}) {
             data.historial ??
             FEATURE_FLAGS_DEFAULT.historial,
 
-        varianteVisual:
-            String(
-                data.varianteVisual ??
-                FEATURE_FLAGS_DEFAULT.varianteVisual
-            ).toUpperCase() === "B" ? "B" : "A"
+        crearTicketCliente:
+            data.crearTicketCliente ??
+            FEATURE_FLAGS_DEFAULT.crearTicketCliente,
+
+        crearTicketAgente:
+            data.crearTicketAgente ??
+            FEATURE_FLAGS_DEFAULT.crearTicketAgente,
+
+        crearTicketSupervisor:
+            data.crearTicketSupervisor ??
+            FEATURE_FLAGS_DEFAULT.crearTicketSupervisor,
+
+        crearTicketAdmin:
+            data.crearTicketAdmin ??
+            FEATURE_FLAGS_DEFAULT.crearTicketAdmin,
+
+        solicitudesRecursosCliente:
+            data.solicitudesRecursosCliente ??
+            FEATURE_FLAGS_DEFAULT.solicitudesRecursosCliente,
+
+        solicitudesRecursosAgente:
+            data.solicitudesRecursosAgente ??
+            FEATURE_FLAGS_DEFAULT.solicitudesRecursosAgente,
+
+        solicitudesRecursosSupervisor:
+            data.solicitudesRecursosSupervisor ??
+            FEATURE_FLAGS_DEFAULT.solicitudesRecursosSupervisor,
+
+        solicitudesRecursosAdmin:
+            data.solicitudesRecursosAdmin ??
+            FEATURE_FLAGS_DEFAULT.solicitudesRecursosAdmin,
+
+        reportesCliente:
+            data.reportesCliente ??
+            FEATURE_FLAGS_DEFAULT.reportesCliente,
+
+        reportesAgente:
+            data.reportesAgente ??
+            FEATURE_FLAGS_DEFAULT.reportesAgente,
+
+        reportesSupervisor:
+            data.reportesSupervisor ??
+            FEATURE_FLAGS_DEFAULT.reportesSupervisor,
+
+        reportesAdmin:
+            data.reportesAdmin ??
+            FEATURE_FLAGS_DEFAULT.reportesAdmin,
+
+        historialCliente:
+            data.historialCliente ??
+            FEATURE_FLAGS_DEFAULT.historialCliente,
+
+        historialAgente:
+            data.historialAgente ??
+            FEATURE_FLAGS_DEFAULT.historialAgente,
+
+        historialSupervisor:
+            data.historialSupervisor ??
+            FEATURE_FLAGS_DEFAULT.historialSupervisor,
+
+        historialAdmin:
+            data.historialAdmin ??
+            FEATURE_FLAGS_DEFAULT.historialAdmin
     };
 }
 
@@ -61,7 +144,7 @@ function cargarCacheFeatureFlags() {
     try {
         return guardarCacheFeatureFlags(JSON.parse(data));
     } catch (error) {
-        console.error("La caché de funciones experimentales no es válida:", error);
+        console.error("La caché de configuración del sistema no es válida:", error);
         localStorage.removeItem(FEATURE_FLAGS_KEY);
         return guardarCacheFeatureFlags(FEATURE_FLAGS_DEFAULT);
     }
@@ -82,17 +165,22 @@ async function cargarFeatureFlagsGlobales() {
 
         const data = await response.json();
         const flags = guardarCacheFeatureFlags(data);
+
         aplicarFeatureFlags(flags);
 
         return flags;
+
     } catch (error) {
         console.error("Error cargando la configuración global:", error);
         return cache;
     }
 }
 
-async function actualizarFeatureFlagsGlobales(flags) {
-    const configuracion = normalizarFeatureFlags(flags);
+async function actualizarFeatureFlagsGlobales(flags = {}) {
+    const configuracion = normalizarFeatureFlags({
+        ...featureFlagsActuales,
+        ...flags
+    });
 
     const response = await fetch(`${API_BASE}/configuracion-sistema`, {
         method: "PUT",
@@ -101,9 +189,31 @@ async function actualizarFeatureFlagsGlobales(flags) {
         },
         body: JSON.stringify({
             crearTicketActivo: configuracion.crearTicket,
+            solicitudesRecursosActivo: configuracion.solicitudesRecursos,
             reportesActivos: configuracion.reportes,
             historialActivo: configuracion.historial,
-            varianteVisual: configuracion.varianteVisual
+
+            crearTicketCliente: configuracion.crearTicketCliente,
+            crearTicketAgente: configuracion.crearTicketAgente,
+            crearTicketSupervisor: configuracion.crearTicketSupervisor,
+            crearTicketAdmin: configuracion.crearTicketAdmin,
+
+            solicitudesRecursosCliente: configuracion.solicitudesRecursosCliente,
+            solicitudesRecursosAgente: configuracion.solicitudesRecursosAgente,
+            solicitudesRecursosSupervisor: configuracion.solicitudesRecursosSupervisor,
+            solicitudesRecursosAdmin: configuracion.solicitudesRecursosAdmin,
+
+            reportesCliente: configuracion.reportesCliente,
+            reportesAgente: configuracion.reportesAgente,
+            reportesSupervisor: configuracion.reportesSupervisor,
+            reportesAdmin: configuracion.reportesAdmin,
+
+            historialCliente: configuracion.historialCliente,
+            historialAgente: configuracion.historialAgente,
+            historialSupervisor: configuracion.historialSupervisor,
+            historialAdmin: configuracion.historialAdmin,
+
+            varianteVisual: "A"
         })
     });
 
@@ -114,7 +224,6 @@ async function actualizarFeatureFlagsGlobales(flags) {
             const data = await response.json();
             mensaje = data.message || mensaje;
         } catch (error) {
-            // La respuesta no tenía un cuerpo JSON utilizable.
         }
 
         throw new Error(mensaje);
@@ -122,55 +231,148 @@ async function actualizarFeatureFlagsGlobales(flags) {
 
     const data = await response.json();
     const guardadas = guardarCacheFeatureFlags(data);
+
     aplicarFeatureFlags(guardadas);
 
     return guardadas;
 }
 
+function obtenerPermisosModuloPorRol(configuracion, rol) {
+    const rolNormalizado = String(rol || "").trim().toUpperCase();
+
+    const permisos = {
+        CLIENTE: {
+            crearTicket: configuracion.crearTicketCliente,
+            solicitudesRecursos: configuracion.solicitudesRecursosCliente,
+            reportes: configuracion.reportesCliente,
+            historial: configuracion.historialCliente
+        },
+
+        AGENTE: {
+            crearTicket: configuracion.crearTicketAgente,
+            solicitudesRecursos: configuracion.solicitudesRecursosAgente,
+            reportes: configuracion.reportesAgente,
+            historial: configuracion.historialAgente
+        },
+
+        SUPERVISOR: {
+            crearTicket: configuracion.crearTicketSupervisor,
+            solicitudesRecursos: configuracion.solicitudesRecursosSupervisor,
+            reportes: configuracion.reportesSupervisor,
+            historial: configuracion.historialSupervisor
+        },
+
+        /*
+         * ADMIN siempre conserva acceso por rol.
+         * El interruptor global sí puede desactivar el módulo para ADMIN.
+         */
+        ADMIN: {
+            crearTicket: true,
+            solicitudesRecursos: true,
+            reportes: true,
+            historial: true
+        }
+    };
+
+    return permisos[rolNormalizado] || {
+        crearTicket: false,
+        solicitudesRecursos: false,
+        reportes: false,
+        historial: false
+    };
+}
+
+function obtenerDisponibilidadModulos(configuracion) {
+    const usuario = obtenerSesion();
+
+    const permisosRol = obtenerPermisosModuloPorRol(
+        configuracion,
+        usuario?.rol
+    );
+
+    return {
+        crearTicket:
+            Boolean(configuracion.crearTicket) &&
+            Boolean(permisosRol.crearTicket),
+
+        solicitudesRecursos:
+            Boolean(configuracion.solicitudesRecursos) &&
+            Boolean(permisosRol.solicitudesRecursos),
+
+        reportes:
+            Boolean(configuracion.reportes) &&
+            Boolean(permisosRol.reportes),
+
+        historial:
+            Boolean(configuracion.historial) &&
+            Boolean(permisosRol.historial)
+    };
+}
+
 function aplicarFeatureFlags(flags = obtenerFeatureFlags()) {
     const configuracion = normalizarFeatureFlags(flags);
+    const disponibilidad = obtenerDisponibilidadModulos(configuracion);
 
     const mapaMenu = {
-        "crear-ticket": configuracion.crearTicket,
-        reportes: configuracion.reportes,
-        historial: configuracion.historial
+        "crear-ticket": disponibilidad.crearTicket,
+        "solicitudes-recursos": disponibilidad.solicitudesRecursos,
+        reportes: disponibilidad.reportes,
+        historial: disponibilidad.historial
     };
 
     Object.entries(mapaMenu).forEach(([menu, activo]) => {
-        const elemento = document.querySelector(`[data-menu='${menu}']`);
-
-        if (!elemento) {
-            return;
-        }
-
-        const ocultoPorRol = elemento.dataset.ocultoPorRol === "true";
-        elemento.style.display = activo && !ocultoPorRol ? "block" : "none";
+        document
+            .querySelectorAll(`[data-menu='${menu}']`)
+            .forEach(elemento => {
+                elemento.style.display =
+                    activo ? "block" : "none";
+            });
     });
 
-    document.body.classList.toggle(
-        "ui-variante-b",
-        configuracion.varianteVisual === "B"
-    );
+    const mapaAcciones = {
+        "crear-ticket": disponibilidad.crearTicket,
+        "solicitudes-recursos": disponibilidad.solicitudesRecursos,
+        reportes: disponibilidad.reportes,
+        historial: disponibilidad.historial
+    };
 
-    protegerPaginaPorFeatureFlag(configuracion);
+    Object.entries(mapaAcciones).forEach(([modulo, activo]) => {
+        document
+            .querySelectorAll(
+                `[data-feature-action='${modulo}']`
+            )
+            .forEach(elemento => {
+                elemento.style.display =
+                    activo ? "" : "none";
+            });
+    });
+
+    protegerPaginaPorFeatureFlag(disponibilidad);
 }
 
-function protegerPaginaPorFeatureFlag(flags) {
-    const paginaActual = window.location.pathname.split("/").pop();
+function protegerPaginaPorFeatureFlag(disponibilidad) {
+    const paginaActual =
+        window.location.pathname.split("/").pop();
 
     const paginasControladas = {
-        "crear-ticket.html": flags.crearTicket,
-        "reportes.html": flags.reportes,
-        "historial.html": flags.historial
+        "crear-ticket.html": disponibilidad.crearTicket,
+        "solicitudes-recursos.html": disponibilidad.solicitudesRecursos,
+        "reportes.html": disponibilidad.reportes,
+        "historial.html": disponibilidad.historial
     };
 
     if (
-        Object.prototype.hasOwnProperty.call(paginasControladas, paginaActual) &&
+        Object.prototype.hasOwnProperty.call(
+            paginasControladas,
+            paginaActual
+        ) &&
         !paginasControladas[paginaActual]
     ) {
-        alert("Esta función está desactivada temporalmente.");
-        window.location.href = "dashboard.html";
+        window.location.replace("dashboard.html");
+        return false;
     }
+
+    return true;
 }
 
 
@@ -379,7 +581,15 @@ function configurarMenuPorRol() {
         return;
     }
 
-    const rol = usuario.rol;
+    const rol = String(usuario.rol || "")
+        .trim()
+        .toUpperCase();
+
+    const menu = document.querySelector(".menu");
+
+    if (!menu) {
+        return;
+    }
 
     const itemUsuarios =
         document.querySelector("[data-menu='usuarios']");
@@ -387,14 +597,142 @@ function configurarMenuPorRol() {
     const itemReportes =
         document.querySelector("[data-menu='reportes']");
 
-    const itemHistorial =
+    let itemHistorial =
         document.querySelector("[data-menu='historial']");
 
     const itemCrearTicket =
         document.querySelector("[data-menu='crear-ticket']");
 
+    let itemSolicitudesRecursos =
+        document.querySelector("[data-menu='solicitudes-recursos']");
+
+    if (!itemSolicitudesRecursos) {
+        itemSolicitudesRecursos = document.createElement("a");
+        itemSolicitudesRecursos.href = "solicitudes-recursos.html";
+        itemSolicitudesRecursos.className = "menu-item";
+        itemSolicitudesRecursos.dataset.menu = "solicitudes-recursos";
+        itemSolicitudesRecursos.textContent = "Solicitudes de Recursos";
+
+        if (itemCrearTicket) {
+            itemCrearTicket.insertAdjacentElement(
+                "afterend",
+                itemSolicitudesRecursos
+            );
+        } else {
+            const itemTickets =
+                menu.querySelector("a[href='tickets.html']");
+
+            if (itemTickets) {
+                itemTickets.insertAdjacentElement(
+                    "afterend",
+                    itemSolicitudesRecursos
+                );
+            } else {
+                menu.appendChild(itemSolicitudesRecursos);
+            }
+        }
+    }
+
     const itemConfiguracion =
         document.querySelector("[data-menu='configuracion']");
+
+    /*
+     * HISTORIAL
+     *
+     * Disponible para todos los roles.
+     * El backend limita los eventos según los tickets
+     * que cada usuario realmente puede consultar.
+     */
+    if (!itemHistorial) {
+        itemHistorial = document.createElement("a");
+        itemHistorial.href = "historial.html";
+        itemHistorial.className = "menu-item";
+        itemHistorial.dataset.menu = "historial";
+        itemHistorial.textContent = "Historial";
+
+        const itemReportesExistente =
+            menu.querySelector("[data-menu='reportes']");
+
+        const itemConfiguracionExistente =
+            menu.querySelector("[data-menu='configuracion']");
+
+        if (itemReportesExistente) {
+            itemReportesExistente.insertAdjacentElement(
+                "afterend",
+                itemHistorial
+            );
+        } else if (itemConfiguracionExistente) {
+            menu.insertBefore(
+                itemHistorial,
+                itemConfiguracionExistente
+            );
+        } else {
+            menu.appendChild(itemHistorial);
+        }
+    }
+
+    /*
+     * PROYECTOS
+     *
+     * Es una opción operativa y debe estar disponible
+     * para ADMIN, SUPERVISOR, AGENTE y CLIENTE.
+     */
+    let itemProyectos =
+        document.querySelector("[data-menu='proyectos']");
+
+    if (!itemProyectos) {
+        itemProyectos = document.createElement("a");
+        itemProyectos.href = "proyectos.html";
+        itemProyectos.className = "menu-item";
+        itemProyectos.dataset.menu = "proyectos";
+        itemProyectos.textContent = "Proyectos";
+
+        const itemTickets =
+            menu.querySelector("a[href='tickets.html']");
+
+        if (itemTickets) {
+            itemTickets.insertAdjacentElement(
+                "afterend",
+                itemProyectos
+            );
+        } else {
+            menu.prepend(itemProyectos);
+        }
+    }
+
+    itemProyectos.style.display = "block";
+
+    if (itemSolicitudesRecursos) {
+        itemSolicitudesRecursos.style.display = "block";
+    }
+
+    /*
+     * GESTIÓN ORGANIZACIONAL
+     *
+     * Se conserva como opción administrativa.
+     */
+    let itemCompaniasProyectos =
+        document.querySelector("[data-menu='companias-proyectos']");
+
+    if (!itemCompaniasProyectos) {
+        itemCompaniasProyectos = document.createElement("a");
+        itemCompaniasProyectos.href = "companias-proyectos.html";
+        itemCompaniasProyectos.className = "menu-item";
+        itemCompaniasProyectos.dataset.menu = "companias-proyectos";
+        itemCompaniasProyectos.textContent = "Gestión organizacional";
+
+        const itemConfiguracionExistente =
+            menu.querySelector("[data-menu='configuracion']");
+
+        if (itemConfiguracionExistente) {
+            menu.insertBefore(
+                itemCompaniasProyectos,
+                itemConfiguracionExistente
+            );
+        } else {
+            menu.appendChild(itemCompaniasProyectos);
+        }
+    }
 
     if (rol === "CLIENTE") {
         if (itemUsuarios) {
@@ -402,7 +740,7 @@ function configurarMenuPorRol() {
         }
 
         if (itemReportes) {
-            itemReportes.style.display = "none";
+            itemReportes.style.display = "block";
         }
 
         if (itemHistorial) {
@@ -416,6 +754,10 @@ function configurarMenuPorRol() {
         if (itemConfiguracion) {
             itemConfiguracion.style.display = "block";
         }
+
+        if (itemCompaniasProyectos) {
+            itemCompaniasProyectos.style.display = "none";
+        }
     }
 
     if (rol === "AGENTE") {
@@ -424,7 +766,7 @@ function configurarMenuPorRol() {
         }
 
         if (itemReportes) {
-            itemReportes.style.display = "none";
+            itemReportes.style.display = "block";
         }
 
         if (itemHistorial) {
@@ -437,6 +779,10 @@ function configurarMenuPorRol() {
 
         if (itemConfiguracion) {
             itemConfiguracion.style.display = "block";
+        }
+
+        if (itemCompaniasProyectos) {
+            itemCompaniasProyectos.style.display = "none";
         }
     }
 
@@ -460,6 +806,10 @@ function configurarMenuPorRol() {
         if (itemConfiguracion) {
             itemConfiguracion.style.display = "block";
         }
+
+        if (itemCompaniasProyectos) {
+            itemCompaniasProyectos.style.display = "block";
+        }
     }
 
     if (rol === "ADMIN") {
@@ -482,6 +832,47 @@ function configurarMenuPorRol() {
         if (itemConfiguracion) {
             itemConfiguracion.style.display = "block";
         }
+
+        if (itemCompaniasProyectos) {
+            itemCompaniasProyectos.style.display = "block";
+        }
+    }
+
+    /*
+     * Cuando estamos en Proyectos o en el detalle de un proyecto,
+     * se marca "Proyectos" como la opción activa de la barra.
+     */
+    const paginaActual =
+        window.location.pathname.split("/").pop();
+
+    if (
+        paginaActual === "proyectos.html" ||
+        paginaActual === "proyecto-detalle.html"
+    ) {
+        menu.querySelectorAll(".menu-item").forEach(item => {
+            item.classList.remove("active");
+        });
+
+        itemProyectos.classList.add("active");
+    }
+
+    if (paginaActual === "historial.html" && itemHistorial) {
+        menu.querySelectorAll(".menu-item").forEach(item => {
+            item.classList.remove("active");
+        });
+
+        itemHistorial.classList.add("active");
+    }
+
+    if (
+        paginaActual === "solicitudes-recursos.html" &&
+        itemSolicitudesRecursos
+    ) {
+        menu.querySelectorAll(".menu-item").forEach(item => {
+            item.classList.remove("active");
+        });
+
+        itemSolicitudesRecursos.classList.add("active");
     }
 }
 
@@ -492,7 +883,9 @@ function bloquearPaginasPorRol() {
         return;
     }
 
-    const rol = usuario.rol;
+    const rol = String(usuario.rol || "")
+        .trim()
+        .toUpperCase();
 
     const paginaActual =
         window.location.pathname.split("/").pop();
@@ -500,8 +893,12 @@ function bloquearPaginasPorRol() {
     const paginasCliente = [
         "dashboard.html",
         "tickets.html",
+        "proyectos.html",
+        "proyecto-detalle.html",
         "crear-ticket.html",
+        "solicitudes-recursos.html",
         "ticket-detalle.html",
+        "reportes.html",
         "historial.html",
         "configuracion.html"
     ];
@@ -509,7 +906,12 @@ function bloquearPaginasPorRol() {
     const paginasAgente = [
         "dashboard.html",
         "tickets.html",
+        "proyectos.html",
+        "proyecto-detalle.html",
+        "crear-ticket.html",
+        "solicitudes-recursos.html",
         "ticket-detalle.html",
+        "reportes.html",
         "historial.html",
         "configuracion.html"
     ];
@@ -517,23 +919,31 @@ function bloquearPaginasPorRol() {
     const paginasSupervisor = [
         "dashboard.html",
         "tickets.html",
+        "proyectos.html",
+        "proyecto-detalle.html",
         "crear-ticket.html",
+        "solicitudes-recursos.html",
         "ticket-detalle.html",
         "usuarios.html",
         "reportes.html",
         "historial.html",
-        "configuracion.html"
+        "configuracion.html",
+        "companias-proyectos.html"
     ];
 
     const paginasAdmin = [
         "dashboard.html",
         "tickets.html",
+        "proyectos.html",
+        "proyecto-detalle.html",
         "crear-ticket.html",
+        "solicitudes-recursos.html",
         "ticket-detalle.html",
         "usuarios.html",
         "reportes.html",
         "historial.html",
-        "configuracion.html"
+        "configuracion.html",
+        "companias-proyectos.html"
     ];
 
     let paginasPermitidas = [];
@@ -550,7 +960,6 @@ function bloquearPaginasPorRol() {
 
     if (!paginasPermitidas.includes(paginaActual)) {
         alert("No tienes permiso para acceder a esta pantalla.");
-
         redirigirSegunRol(rol);
     }
 }

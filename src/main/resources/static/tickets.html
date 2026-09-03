@@ -1,136 +1,478 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tickets | Gestión de Incidencias</title>
-    <link rel="stylesheet" href="style.css">
+
+    <title>
+        Tickets | Gestión de Incidencias
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
 </head>
+
 <body>
 
 <div class="app-container">
 
+    <!-- =========================
+         SIDEBAR
+    ========================== -->
     <aside class="sidebar">
+
         <div class="sidebar-logo">
-            <div class="logo-icon">GI</div>
+
+            <div class="logo-icon">
+                GI
+            </div>
+
             <div>
                 <h2>Gestión</h2>
                 <span>de Incidencias</span>
             </div>
+
         </div>
 
+
         <nav class="menu">
-            <a href="dashboard.html" class="menu-item">Dashboard</a>
-            <a href="tickets.html" class="menu-item active">Tickets</a>
-            <a href="crear-ticket.html" class="menu-item" data-menu="crear-ticket">Crear Ticket</a>
-            <a href="usuarios.html" class="menu-item" data-menu="usuarios">Usuarios</a>
-            <a href="reportes.html" class="menu-item" data-menu="reportes">Reportes</a>
-            <a href="historial.html" class="menu-item" data-menu="historial">Historial</a>
-            <a href="configuracion.html" class="menu-item" data-menu="configuracion">Configuración</a>
+
+            <a
+                href="dashboard.html"
+                class="menu-item">
+                Dashboard
+            </a>
+
+            <a
+                href="tickets.html"
+                class="menu-item active">
+                Tickets
+            </a>
+
+            <a
+                href="crear-ticket.html"
+                class="menu-item"
+                data-menu="crear-ticket">
+                Crear Ticket
+            </a>
+
+            <a
+                href="solicitudes-recursos.html"
+                class="menu-item"
+                data-menu="solicitudes-recursos">
+                Solicitudes de Recursos
+            </a>
+
+            <a
+                href="usuarios.html"
+                class="menu-item"
+                data-menu="usuarios">
+                Usuarios
+            </a>
+
+            <a
+                href="reportes.html"
+                class="menu-item"
+                data-menu="reportes">
+                Reportes
+            </a>
+
+            <a
+                href="historial.html"
+                class="menu-item"
+                data-menu="historial">
+                Historial
+            </a>
+
+            <!-- NUEVO -->
+            <a
+                href="companias-proyectos.html"
+                class="menu-item"
+                data-menu="companias-proyectos">
+                Gestión organizacional
+            </a>
+
+            <a
+                href="configuracion.html"
+                class="menu-item"
+                data-menu="configuracion">
+                Configuración
+            </a>
+
         </nav>
+
     </aside>
 
+
+    <!-- =========================
+         CONTENIDO PRINCIPAL
+    ========================== -->
     <main class="main-content">
 
+
+        <!-- =========================
+             TOPBAR
+        ========================== -->
         <header class="topbar">
+
             <div>
-                <h1>Tickets</h1>
-                <p>Consulta y administra las incidencias registradas.</p>
+
+                <h1>
+                    Tickets
+                </h1>
+
+                <p>
+                    Consulta y administra las incidencias
+                    registradas por compañía y proyecto.
+                </p>
+
             </div>
+
 
             <div class="topbar-actions">
+
                 <div class="user-box">
-                    <div class="avatar" id="avatarUsuario">JR</div>
-                    <div>
-                        <strong id="nombreUsuario">Janeth Ramos</strong>
-                        <span id="rolUsuario">ADMIN</span>
+
+                    <div
+                        class="avatar"
+                        id="avatarUsuario">
+                        JR
                     </div>
+
+                    <div>
+
+                        <strong id="nombreUsuario">
+                            Janeth Ramos
+                        </strong>
+
+                        <span id="rolUsuario">
+                            ADMIN
+                        </span>
+
+                    </div>
+
                 </div>
 
-                <button class="logout-btn" id="btnLogout">Cerrar sesión</button>
+
+                <button
+                    class="logout-btn"
+                    id="btnLogout"
+                    type="button">
+                    Cerrar sesión
+                </button>
+
             </div>
+
         </header>
 
+
+        <!-- =========================
+             LISTADO
+        ========================== -->
         <section class="table-section">
+
+
+            <!-- ENCABEZADO -->
             <div class="section-header">
+
                 <div>
-                    <h2>Listado de tickets</h2>
-                    <p id="descripcionVista">Tickets disponibles según tu rol.</p>
+
+                    <h2>
+                        Listado de tickets
+                    </h2>
+
+                    <p id="descripcionVista">
+                        Tickets disponibles según tu rol
+                        y los proyectos a los que tienes acceso.
+                    </p>
+
                 </div>
 
-                <button class="primary-btn" onclick="window.location.href='crear-ticket.html'">
+
+                <button
+                    class="primary-btn"
+                    id="btnCrearTicketListado"
+                    data-feature-action="crear-ticket"
+                    type="button"
+                    onclick="window.location.href='crear-ticket.html'">
+
                     Crear ticket
+
                 </button>
+
             </div>
 
-            <div class="form-grid" style="margin-bottom: 18px;">
+
+            <!-- =========================
+                 FILTROS
+            ========================== -->
+            <div
+                class="form-grid"
+                style="margin-bottom: 18px;">
+
+
+                <!-- BUSCADOR -->
                 <div class="form-group">
-                    <label>Buscar ticket</label>
-                    <input 
-                        type="text" 
-                        id="buscarTicket" 
-                        placeholder="Buscar por número, título, cliente, agente o estado..."
+
+                    <label for="buscarTicket">
+                        Buscar ticket
+                    </label>
+
+                    <input
+                        type="text"
+                        id="buscarTicket"
+                        placeholder="Número, título, cliente, compañía, proyecto..."
                     >
+
                 </div>
 
+
+                <!-- COMPAÑÍA -->
                 <div class="form-group">
-                    <label>Filtrar por estado</label>
+
+                    <label for="filtroCompania">
+                        Filtrar por compañía
+                    </label>
+
+                    <select id="filtroCompania">
+
+                        <option value="">
+                            Todas las compañías
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- PROYECTO -->
+                <div class="form-group">
+
+                    <label for="filtroProyecto">
+                        Filtrar por proyecto
+                    </label>
+
+                    <select id="filtroProyecto">
+
+                        <option value="">
+                            Todos los proyectos
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- TIPO DE ATENCIÓN -->
+                <div class="form-group">
+
+                    <label for="filtroTipoAtencion">
+                        Tipo de atención
+                    </label>
+
+                    <select id="filtroTipoAtencion">
+
+                        <option value="">
+                            Todos
+                        </option>
+
+                        <option value="OPERATIVO">
+                            OPERATIVO
+                        </option>
+
+                        <option value="RECURSO_EXTERNO">
+                            RECURSO EXTERNO
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- ESTADO -->
+                <div class="form-group">
+
+                    <label for="filtroEstado">
+                        Filtrar por estado
+                    </label>
+
                     <select id="filtroEstado">
-                        <option value="">Todos</option>
-                        <option value="NUEVO">NUEVO</option>
-                        <option value="ASIGNADO">ASIGNADO</option>
-                        <option value="EN_PROGRESO">EN_PROGRESO</option>
-                        <option value="RESUELTO">RESUELTO</option>
-                        <option value="CERRADO">CERRADO</option>
+
+                        <option value="">
+                            Todos
+                        </option>
+
+                        <option value="NUEVO">
+                            NUEVO
+                        </option>
+
+                        <option value="ASIGNADO">
+                            ASIGNADO
+                        </option>
+
+                        <option value="EN_PROGRESO">
+                            EN_PROGRESO
+                        </option>
+
+                        <option value="RESUELTO">
+                            RESUELTO
+                        </option>
+
+                        <option value="CERRADO">
+                            CERRADO
+                        </option>
+
                     </select>
+
                 </div>
 
+
+                <!-- PRIORIDAD -->
                 <div class="form-group">
-                    <label>Filtrar por prioridad</label>
+
+                    <label for="filtroPrioridad">
+                        Filtrar por prioridad
+                    </label>
+
                     <select id="filtroPrioridad">
-                        <option value="">Todas</option>
-                        <option value="P1_CRITICA">P1_CRITICA</option>
-                        <option value="P2_ALTA">P2_ALTA</option>
-                        <option value="P3_MEDIA">P3_MEDIA</option>
-                        <option value="P4_BAJA">P4_BAJA</option>
+
+                        <option value="">
+                            Todas
+                        </option>
+
+                        <option value="P1_CRITICA">
+                            P1_CRITICA
+                        </option>
+
+                        <option value="P2_ALTA">
+                            P2_ALTA
+                        </option>
+
+                        <option value="P3_MEDIA">
+                            P3_MEDIA
+                        </option>
+
+                        <option value="P4_BAJA">
+                            P4_BAJA
+                        </option>
+
                     </select>
+
                 </div>
 
-                <div class="form-group" id="grupoFiltroCliente" style="display: none;">
-                    <label>Filtrar por cliente</label>
+
+                <!-- CLIENTE -->
+                <div
+                    class="form-group"
+                    id="grupoFiltroCliente"
+                    style="display: none;">
+
+                    <label for="filtroCliente">
+                        Filtrar por cliente
+                    </label>
+
                     <select id="filtroCliente">
-                        <option value="">Todos los clientes</option>
+
+                        <option value="">
+                            Todos los clientes
+                        </option>
+
                     </select>
+
                 </div>
+
             </div>
 
+
+            <!-- =========================
+                 TABLA
+            ========================== -->
             <div class="table-wrapper">
+
                 <table>
+
                     <thead>
+
                         <tr>
-                            <th>Número</th>
-                            <th>Título</th>
-                            <th>Cliente</th>
-                            <th>Agente</th>
-                            <th>Estado</th>
-                            <th>Prioridad</th>
-                            <th>Fecha</th>
-                            <th>Acción</th>
+
+                            <th>
+                                Número
+                            </th>
+
+                            <th>
+                                Título
+                            </th>
+
+                            <th>
+                                Compañía
+                            </th>
+
+                            <th>
+                                Proyecto
+                            </th>
+
+                            <th>
+                                Atención
+                            </th>
+
+                            <th>
+                                Cliente
+                            </th>
+
+                            <th>
+                                Agente
+                            </th>
+
+                            <th>
+                                Estado
+                            </th>
+
+                            <th>
+                                Prioridad
+                            </th>
+
+                            <th>
+                                Fecha
+                            </th>
+
+                            <th>
+                                Acción
+                            </th>
+
                         </tr>
+
                     </thead>
+
+
                     <tbody id="ticketsBody">
+
                         <tr>
-                            <td colspan="8">Cargando tickets...</td>
+
+                            <td colspan="11">
+                                Cargando tickets...
+                            </td>
+
                         </tr>
+
                     </tbody>
+
                 </table>
+
             </div>
+
         </section>
 
     </main>
+
 </div>
+
 
 <script src="app.js"></script>
 <script src="tickets.js"></script>
+
 </body>
+
 </html>

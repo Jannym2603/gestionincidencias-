@@ -1,0 +1,25 @@
+{
+  "name": "gestionincidencias",
+  "version": "1.0.0",
+  "description": "Este proyecto corresponde a un Sistema de Gestión de Incidencias desarrollado con Spring Boot, Java 17, PostgreSQL, HTML, CSS y JavaScript.",
+  "main": "index.js",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jannym2603/gestionincidencias-.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Jannym2603/gestionincidencias-/issues"
+  },
+  "homepage": "https://github.com/Jannym2603/gestionincidencias-#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
+  }
+}

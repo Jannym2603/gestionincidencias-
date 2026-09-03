@@ -25,11 +25,23 @@ public class ConfiguracionSistema {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+
+    // =========================
+    // ESTADO GLOBAL
+    // =========================
+
     @Column(
         name = "crear_ticket_activo",
         nullable = false
     )
     private Boolean crearTicketActivo;
+
+    @Column(
+        name = "solicitudes_recursos_activo",
+        nullable = false
+    )
+    @Builder.Default
+    private Boolean solicitudesRecursosActivo = true;
 
     @Column(
         name = "reportes_activos",
@@ -43,10 +55,149 @@ public class ConfiguracionSistema {
     )
     private Boolean historialActivo;
 
+
+    // =========================
+    // CREAR TICKET POR ROL
+    // =========================
+
+    @Column(
+        name = "crear_ticket_cliente",
+        nullable = false
+    )
+    @Builder.Default
+    private Boolean crearTicketCliente = true;
+
+    @Column(
+        name = "crear_ticket_agente",
+        nullable = false
+    )
+    @Builder.Default
+    private Boolean crearTicketAgente = true;
+
+    @Column(
+        name = "crear_ticket_supervisor",
+        nullable = false
+    )
+    @Builder.Default
+    private Boolean crearTicketSupervisor = true;
+
+    @Column(
+        name = "crear_ticket_admin",
+        nullable = false
+    )
+    @Builder.Default
+    private Boolean crearTicketAdmin = true;
+
+
+    // =========================
+    // SOLICITUDES DE RECURSOS
+    // POR ROL
+    // =========================
+
+    @Column(
+        name = "solicitudes_recursos_cliente",
+        nullable = false
+    )
+    @Builder.Default
+    private Boolean solicitudesRecursosCliente = true;
+
+    @Column(
+        name = "solicitudes_recursos_agente",
+        nullable = false
+    )
+    @Builder.Default
+    private Boolean solicitudesRecursosAgente = true;
+
+    @Column(
+        name = "solicitudes_recursos_supervisor",
+        nullable = false
+    )
+    @Builder.Default
+    private Boolean solicitudesRecursosSupervisor = true;
+
+    @Column(
+        name = "solicitudes_recursos_admin",
+        nullable = false
+    )
+    @Builder.Default
+    private Boolean solicitudesRecursosAdmin = true;
+
+
+    // =========================
+    // REPORTES POR ROL
+    // =========================
+
+    @Column(
+        name = "reportes_cliente",
+        nullable = false
+    )
+    @Builder.Default
+    private Boolean reportesCliente = true;
+
+    @Column(
+        name = "reportes_agente",
+        nullable = false
+    )
+    @Builder.Default
+    private Boolean reportesAgente = true;
+
+    @Column(
+        name = "reportes_supervisor",
+        nullable = false
+    )
+    @Builder.Default
+    private Boolean reportesSupervisor = true;
+
+    @Column(
+        name = "reportes_admin",
+        nullable = false
+    )
+    @Builder.Default
+    private Boolean reportesAdmin = true;
+
+
+    // =========================
+    // HISTORIAL POR ROL
+    // =========================
+
+    @Column(
+        name = "historial_cliente",
+        nullable = false
+    )
+    @Builder.Default
+    private Boolean historialCliente = true;
+
+    @Column(
+        name = "historial_agente",
+        nullable = false
+    )
+    @Builder.Default
+    private Boolean historialAgente = true;
+
+    @Column(
+        name = "historial_supervisor",
+        nullable = false
+    )
+    @Builder.Default
+    private Boolean historialSupervisor = true;
+
+    @Column(
+        name = "historial_admin",
+        nullable = false
+    )
+    @Builder.Default
+    private Boolean historialAdmin = true;
+
+
+    // =========================
+    // COMPATIBILIDAD ANTERIOR
+    // =========================
+
     @Column(
         name = "variante_visual",
         nullable = false,
         length = 1
     )
-    private String varianteVisual;
+    @Builder.Default
+    private String varianteVisual = "A";
 }

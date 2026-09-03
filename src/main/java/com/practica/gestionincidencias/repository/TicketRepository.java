@@ -7,20 +7,89 @@ import org.springframework.data.jpa.repository.Query;
 
 import com.practica.gestionincidencias.entity.Ticket;
 
-public interface TicketRepository extends JpaRepository<Ticket, Integer> {
+public interface TicketRepository
+        extends JpaRepository<Ticket, Integer> {
 
-    long countByNumeroTicketStartingWith(String prefijo);
+    /*
+     * Generación del número consecutivo del ticket.
+     */
+    long countByNumeroTicketStartingWith(
+            String prefijo
+    );
 
-    long countByEstado(String estado);
+    /*
+     * Conteos generales utilizados en reportes.
+     */
+    long countByEstado(
+            String estado
+    );
 
-    long countByPrioridad(String prioridad);
+    long countByPrioridad(
+            String prioridad
+    );
 
-    @Query("SELECT t.estado, COUNT(t) FROM Ticket t GROUP BY t.estado")
+    /*
+     * Obtiene los tickets pertenecientes a una lista
+     * de proyectos autorizados.
+     *
+     * Se utilizará para AGENTE y SUPERVISOR.
+     */
+    List<Ticket> findByProyectoIdInOrderByFechaCreacionDesc(
+            List<Integer> proyectoIds
+    );
+
+    /*
+     * Obtiene únicamente los tickets creados por un cliente
+     * dentro de los proyectos a los que tiene acceso.
+     */
+    List<Ticket> findByClienteIdAndProyectoIdInOrderByFechaCreacionDesc(
+            Integer clienteId,
+            List<Integer> proyectoIds
+    );
+
+    /*
+     * Obtiene los tickets de un proyecto específico.
+     */
+    List<Ticket> findByProyectoIdOrderByFechaCreacionDesc(
+            Integer proyectoId
+    );
+
+    /*
+     * Obtiene los tickets asignados a un agente,
+     * limitados a los proyectos autorizados.
+     */
+    List<Ticket> findByAgenteAsignadoIdAndProyectoIdInOrderByFechaCreacionDesc(
+            Integer agenteId,
+            List<Integer> proyectoIds
+    );
+
+    /*
+     * Reportes generales por estado.
+     */
+    @Query("""
+            SELECT t.estado, COUNT(t)
+            FROM Ticket t
+            GROUP BY t.estado
+            """)
     List<Object[]> contarTicketsPorEstado();
 
-    @Query("SELECT t.prioridad, COUNT(t) FROM Ticket t GROUP BY t.prioridad")
+    /*
+     * Reportes generales por prioridad.
+     */
+    @Query("""
+            SELECT t.prioridad, COUNT(t)
+            FROM Ticket t
+            GROUP BY t.prioridad
+            """)
     List<Object[]> contarTicketsPorPrioridad();
 
-    @Query("SELECT t.tipoIncidencia.nombre, COUNT(t) FROM Ticket t GROUP BY t.tipoIncidencia.nombre")
+    /*
+     * Reportes generales por tipo de incidencia.
+     */
+    @Query("""
+            SELECT t.tipoIncidencia.nombre, COUNT(t)
+            FROM Ticket t
+            GROUP BY t.tipoIncidencia.nombre
+            """)
     List<Object[]> contarTicketsPorTipoIncidencia();
 }

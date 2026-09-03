@@ -1,6 +1,13 @@
 HELP.md
+
+### Maven / Java ###
 target/
+*.class
+*.jar
+*.war
+
 .mvn/wrapper/maven-wrapper.jar
+
 !**/src/main/**/target/
 !**/src/test/**/target/
 
@@ -14,7 +21,7 @@ target/
 .sts4-cache
 
 ### IntelliJ IDEA ###
-.idea
+.idea/
 *.iws
 *.iml
 *.ipr
@@ -26,6 +33,7 @@ target/
 /nbdist/
 /.nb-gradle/
 build/
+
 !**/src/main/**/build/
 !**/src/test/**/build/
 
@@ -43,3 +51,25 @@ src/main/resources/application-local.properties
 ### Archivos subidos por usuarios ###
 uploads/*
 !uploads/.gitkeep
+
+### Node.js ###
+node_modules/
+
+### Playwright ###
+test-results/
+playwright-report/
+blob-report/
+
+### Logs ###
+*.log
+
+### Archivos temporales ###
+*.tmp
+*.temp
+*.swp
+*.swo
+
+### Sistema operativo ###
+.DS_Store
+Thumbs.db
+desktop.ini

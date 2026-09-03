@@ -35,17 +35,8 @@ public class SecurityConfig {
             HttpSecurity http) throws Exception {
 
         http
-                /*
-                 * Se desactiva CSRF porque la API utiliza
-                 * autenticación mediante JWT.
-                 */
                 .csrf(csrf -> csrf.disable())
 
-                /*
-                 * Spring Security no guardará sesiones.
-                 * Cada solicitud deberá utilizar su token JWT,
-                 * excepto las rutas públicas.
-                 */
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(
                                 SessionCreationPolicy.STATELESS
@@ -68,8 +59,7 @@ public class SecurityConfig {
                         ).permitAll()
 
                         /*
-                         * Página pública utilizada por la persona
-                         * que recibe el enlace compartido.
+                         * Página pública del enlace compartido.
                          */
                         .requestMatchers(
                                 "/ticket-compartido.html",
@@ -78,7 +68,7 @@ public class SecurityConfig {
                         ).permitAll()
 
                         /*
-                         * Endpoints públicos de autenticación.
+                         * Autenticación pública.
                          */
                         .requestMatchers(
                                 "/api/auth/login",
@@ -87,16 +77,14 @@ public class SecurityConfig {
                         ).permitAll()
 
                         /*
-                         * Endpoint público para consultar un ticket
-                         * mediante su token compartido.
+                         * Consulta pública mediante enlace compartido.
                          */
                         .requestMatchers(
                                 "/api/public/**"
                         ).permitAll()
 
                         /*
-                         * Crear y administrar enlaces compartidos:
-                         * solamente SUPERVISOR y ADMIN.
+                         * Enlaces compartidos.
                          */
                         .requestMatchers(
                                 HttpMethod.POST,
@@ -123,8 +111,38 @@ public class SecurityConfig {
                         )
 
                         /*
-                         * Crear usuarios:
-                         * solamente SUPERVISOR o ADMIN.
+                         * Cambio de contraseña del usuario autenticado.
+                         */
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/auth/cambiar-password"
+                        ).authenticated()
+
+                        /*
+                         * Perfil propio.
+                         * Disponible para cualquier usuario autenticado.
+                         */
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/usuarios/me"
+                        ).authenticated()
+
+                        /*
+                         * Directorio completo de usuarios.
+                         * CLIENTE y AGENTE no pueden consultarlo.
+                         */
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/usuarios"
+                        ).hasAnyRole(
+                                "SUPERVISOR",
+                                "ADMIN"
+                        )
+
+                        /*
+                         * Crear usuarios.
+                         * El controlador aplica además la regla:
+                         * SUPERVISOR solo puede crear CLIENTE o AGENTE.
                          */
                         .requestMatchers(
                                 HttpMethod.POST,
@@ -135,48 +153,139 @@ public class SecurityConfig {
                         )
 
                         /*
-                         * Reportes:
-                         * solamente SUPERVISOR o ADMIN.
+                         * Historial / auditoría.
+                         *
+                         * Todos los roles autenticados pueden acceder
+                         * a los endpoints de historial.
+                         *
+                         * La validación específica de qué tickets puede
+                         * consultar cada usuario se realiza dentro de
+                         * HistorialTicketController y AccesoProyectoService.
                          */
                         .requestMatchers(
-                                "/api/reportes/**"
+                                "/api/historial-tickets/**"
                         ).hasAnyRole(
+                                "CLIENTE",
+                                "AGENTE",
                                 "SUPERVISOR",
                                 "ADMIN"
                         )
 
                         /*
-                         * Consultar la configuración global:
-                         * cualquier usuario autenticado.
+                         * Reportes.
+                         */
+                        .requestMatchers(
+                                "/api/reportes/**"
+                        ).hasAnyRole(
+                                "CLIENTE",
+                                "AGENTE",
+                                "SUPERVISOR",
+                                "ADMIN"
+                        )
+
+                        /*
+                         * Configuración global.
                          */
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/configuracion-sistema"
                         ).authenticated()
 
-                        /*
-                         * Modificar la configuración global:
-                         * solamente SUPERVISOR o ADMIN.
-                         */
                         .requestMatchers(
                                 HttpMethod.PUT,
                                 "/api/configuracion-sistema"
-                        ).hasAnyRole(
-                                "SUPERVISOR",
+                        ).hasRole(
+                                "ADMIN"
+                        )
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/configuracion-sistema/auditoria"
+                        ).hasRole(
                                 "ADMIN"
                         )
 
                         /*
-                         * Consultar la auditoría de configuración:
-                         * solamente SUPERVISOR o ADMIN.
+                         * Compañías.
+                         */
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/companias"
+                        ).hasRole(
+                                "ADMIN"
+                        )
+
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/companias/**"
+                        ).hasRole(
+                                "ADMIN"
+                        )
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/companias/**"
+                        ).hasAnyRole(
+                                "ADMIN",
+                                "SUPERVISOR"
+                        )
+
+                        /*
+                         * Proyectos.
+                         */
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/proyectos"
+                        ).hasRole(
+                                "ADMIN"
+                        )
+
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/proyectos/**"
+                        ).hasRole(
+                                "ADMIN"
+                        )
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/proyectos/**"
+                        ).hasAnyRole(
+                                "ADMIN",
+                                "SUPERVISOR"
+                        )
+
+                        /*
+                         * Asignar usuarios a proyectos.
+                         * ADMIN y SUPERVISOR pueden crear,
+                         * activar o desactivar accesos.
+                         */
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/usuario-proyectos"
+                        ).hasAnyRole(
+                                "ADMIN",
+                                "SUPERVISOR"
+                        )
+
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/usuario-proyectos/**"
+                        ).hasAnyRole(
+                                "ADMIN",
+                                "SUPERVISOR"
+                        )
+
+                        /*
+                         * Consultar proyectos asignados.
+                         * Todos los usuarios autenticados pueden
+                         * acceder; el controlador aplica las
+                         * restricciones adicionales por endpoint.
                          */
                         .requestMatchers(
                                 HttpMethod.GET,
-                                "/api/configuracion-sistema/auditoria"
-                        ).hasAnyRole(
-                                "SUPERVISOR",
-                                "ADMIN"
-                        )
+                                "/api/usuario-proyectos/**"
+                        ).authenticated()
 
                         /*
                          * Administración de roles.
@@ -190,24 +299,16 @@ public class SecurityConfig {
                         )
 
                         /*
-                         * Todos los demás endpoints de la API
-                         * requieren un usuario autenticado.
+                         * Resto de la API.
                          */
                         .requestMatchers(
                                 "/api/**"
                         ).authenticated()
 
-                        /*
-                         * Otros recursos estáticos.
-                         */
                         .anyRequest()
                         .permitAll()
                 )
 
-                /*
-                 * Respuesta cuando no existe un token JWT
-                 * o el token recibido no es válido.
-                 */
                 .exceptionHandling(errors -> errors
 
                         .authenticationEntryPoint(
@@ -225,10 +326,6 @@ public class SecurityConfig {
                                 }
                         )
 
-                        /*
-                         * Respuesta cuando el usuario inició sesión,
-                         * pero no tiene el rol necesario.
-                         */
                         .accessDeniedHandler(
                                 (request, response, exception) -> {
 
@@ -245,21 +342,10 @@ public class SecurityConfig {
                         )
                 )
 
-                /*
-                 * No se utilizará el formulario de acceso
-                 * predeterminado de Spring.
-                 */
                 .formLogin(form -> form.disable())
 
-                /*
-                 * No se utilizará autenticación HTTP Basic.
-                 */
                 .httpBasic(basic -> basic.disable())
 
-                /*
-                 * Se ejecuta el filtro JWT antes del filtro
-                 * de autenticación estándar de Spring.
-                 */
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class

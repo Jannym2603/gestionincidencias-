@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>
+        Solicitudes de Recursos | Gestión de Incidencias
+    </title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="app-container">
+
+    <aside class="sidebar">
+
+        <div class="sidebar-logo">
+
+            <div class="logo-icon">
+                GI
+            </div>
+
+            <div>
+                <h2>Gestión</h2>
+                <span>de Incidencias</span>
+            </div>
+
+        </div>
+
+        <nav class="menu">
+
+            <a
+                href="dashboard.html"
+                class="menu-item">
+                Dashboard
+            </a>
+
+            <a
+                href="tickets.html"
+                class="menu-item">
+                Tickets
+            </a>
+
+            <a
+                href="crear-ticket.html"
+                class="menu-item"
+                data-menu="crear-ticket">
+                Crear Ticket
+            </a>
+
+            <a
+                href="solicitudes-recursos.html"
+                class="menu-item active"
+                data-menu="solicitudes-recursos">
+                Solicitudes de Recursos
+            </a>
+
+            <a
+                href="usuarios.html"
+                class="menu-item"
+                data-menu="usuarios">
+                Usuarios
+            </a>
+
+            <a
+                href="reportes.html"
+                class="menu-item"
+                data-menu="reportes">
+                Reportes
+            </a>
+
+            <a
+                href="historial.html"
+                class="menu-item"
+                data-menu="historial">
+                Historial
+            </a>
+
+            <a
+                href="companias-proyectos.html"
+                class="menu-item"
+                data-menu="companias-proyectos">
+                Gestión organizacional
+            </a>
+
+            <a
+                href="configuracion.html"
+                class="menu-item"
+                data-menu="configuracion">
+                Configuración
+            </a>
+
+        </nav>
+
+    </aside>
+
+    <main class="main-content">
+
+        <header class="topbar">
+
+            <div>
+                <h1>Solicitudes de Recursos</h1>
+                <p id="descripcionSolicitudes">
+                    Consulta y administra recursos que dependen de proveedores externos.
+                </p>
+            </div>
+
+            <div class="topbar-actions">
+
+                <div class="user-box">
+
+                    <div
+                        class="avatar"
+                        id="avatarUsuario">
+                        US
+                    </div>
+
+                    <div>
+                        <strong id="nombreUsuario">
+                            Usuario
+                        </strong>
+
+                        <span id="rolUsuario">
+                            Rol
+                        </span>
+                    </div>
+
+                </div>
+
+                <button
+                    class="logout-btn"
+                    id="btnLogout"
+                    type="button">
+                    Cerrar sesión
+                </button>
+
+            </div>
+
+        </header>
+
+        <div class="info-box" id="infoSolicitudes">
+            Las solicitudes de recursos se muestran según tu rol y los proyectos a los que tienes acceso.
+        </div>
+
+        <div class="info-box" id="contextoTicketSolicitud" hidden>
+            Se abrió esta pantalla desde el detalle de un ticket.
+        </div>
+
+        <section class="table-section">
+
+            <div class="section-header">
+
+                <div>
+                    <h2>Listado de solicitudes</h2>
+                    <p id="resumenSolicitudes">
+                        Cargando solicitudes...
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="form-grid">
+
+                <div class="form-group">
+                    <label for="buscarSolicitud">
+                        Buscar
+                    </label>
+
+                    <input
+                        type="text"
+                        id="buscarSolicitud"
+                        placeholder="Ticket, cliente, recurso, proveedor...">
+                </div>
+
+                <div class="form-group">
+                    <label for="filtroEstadoRecurso">
+                        Estado
+                    </label>
+
+                    <select id="filtroEstadoRecurso">
+                        <option value="">Todos</option>
+                        <option value="NUEVO">NUEVO</option>
+                        <option value="EN_VALIDACION">EN_VALIDACION</option>
+                        <option value="SOLICITADO_PROVEEDOR">SOLICITADO_PROVEEDOR</option>
+                        <option value="ESPERANDO_PROVEEDOR">ESPERANDO_PROVEEDOR</option>
+                        <option value="RECIBIDO">RECIBIDO</option>
+                        <option value="ENTREGADO">ENTREGADO</option>
+                        <option value="CERRADO">CERRADO</option>
+                        <option value="CANCELADO">CANCELADO</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="filtroRetrasoRecurso">
+                        Seguimiento
+                    </label>
+
+                    <select id="filtroRetrasoRecurso">
+                        <option value="">Todos</option>
+                        <option value="RETRASADO">Solo retrasadas</option>
+                        <option value="EN_TIEMPO">No retrasadas</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="filtroCategoriaRecurso">
+                        Categoría
+                    </label>
+
+                    <select id="filtroCategoriaRecurso">
+                        <option value="">Todas</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="filtroCompaniaRecurso">
+                        Compañía
+                    </label>
+
+                    <select id="filtroCompaniaRecurso">
+                        <option value="">Todas</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="filtroProyectoRecurso">
+                        Proyecto
+                    </label>
+
+                    <select id="filtroProyectoRecurso">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+
+            </div>
+
+            <div class="table-wrapper">
+
+                <table>
+
+                    <thead>
+                        <tr>
+                            <th>Ticket</th>
+                            <th>Cliente</th>
+                            <th>Compañía</th>
+                            <th>Proyecto</th>
+                            <th>Categoría</th>
+                            <th>Recurso</th>
+                            <th>Cantidad</th>
+                            <th>Proveedor</th>
+                            <th>Estado</th>
+                            <th>Fecha estimada</th>
+                            <th>Seguimiento</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="solicitudesBody">
+                        <tr>
+                            <td colspan="12">
+                                Cargando solicitudes...
+                            </td>
+                        </tr>
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+        <section
+            class="form-card"
+            id="panelSolicitud"
+            hidden>
+
+            <div class="section-header">
+
+                <div>
+                    <h2 id="tituloPanelSolicitud">
+                        Detalle de solicitud
+                    </h2>
+
+                    <p id="subtituloPanelSolicitud">
+                        Información de la solicitud seleccionada.
+                    </p>
+                </div>
+
+                <div class="form-actions">
+
+                    <button
+                        type="button"
+                        class="secondary-btn"
+                        id="btnVolverTicketSolicitud"
+                        hidden>
+                        Volver al ticket
+                    </button>
+
+                    <button
+                        type="button"
+                        class="secondary-btn"
+                        id="btnCerrarPanelSolicitud">
+                        Cerrar
+                    </button>
+
+                </div>
+
+            </div>
+
+            <form id="formSolicitudRecurso">
+
+                <input
+                    type="hidden"
+                    id="solicitudRecursoId">
+
+                <div class="form-grid">
+
+                    <div class="form-group">
+                        <label for="detalleNumeroTicket">
+                            Ticket
+                        </label>
+
+                        <input
+                            type="text"
+                            id="detalleNumeroTicket"
+                            readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="detalleCliente">
+                            Cliente
+                        </label>
+
+                        <input
+                            type="text"
+                            id="detalleCliente"
+                            readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="detalleCompania">
+                            Compañía
+                        </label>
+
+                        <input
+                            type="text"
+                            id="detalleCompania"
+                            readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="detalleProyecto">
+                            Proyecto
+                        </label>
+
+                        <input
+                            type="text"
+                            id="detalleProyecto"
+                            readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="detalleCategoria">
+                            Categoría
+                        </label>
+
+                        <input
+                            type="text"
+                            id="detalleCategoria">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="detalleRecurso">
+                            Recurso
+                        </label>
+
+                        <input
+                            type="text"
+                            id="detalleRecurso">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="detalleCantidad">
+                            Cantidad
+                        </label>
+
+                        <input
+                            type="number"
+                            id="detalleCantidad"
+                            min="1">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="detalleProveedor">
+                            Proveedor
+                        </label>
+
+                        <input
+                            type="text"
+                            id="detalleProveedor"
+                            placeholder="Nombre del proveedor">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="detalleEstadoRecurso">
+                            Estado del recurso
+                        </label>
+
+                        <select id="detalleEstadoRecurso">
+                            <option value="NUEVO">NUEVO</option>
+                            <option value="EN_VALIDACION">EN_VALIDACION</option>
+                            <option value="SOLICITADO_PROVEEDOR">SOLICITADO_PROVEEDOR</option>
+                            <option value="ESPERANDO_PROVEEDOR">ESPERANDO_PROVEEDOR</option>
+                            <option value="RECIBIDO">RECIBIDO</option>
+                            <option value="ENTREGADO">ENTREGADO</option>
+                            <option value="CERRADO">CERRADO</option>
+                            <option value="CANCELADO">CANCELADO</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="detalleFechaSolicitudProveedor">
+                            Fecha solicitud al proveedor
+                        </label>
+
+                        <input
+                            type="datetime-local"
+                            id="detalleFechaSolicitudProveedor">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="detalleFechaEstimadaEntrega">
+                            Fecha estimada de entrega
+                        </label>
+
+                        <input
+                            type="datetime-local"
+                            id="detalleFechaEstimadaEntrega">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="detalleSeguimientoEntrega">
+                            Seguimiento de entrega
+                        </label>
+
+                        <input
+                            type="text"
+                            id="detalleSeguimientoEntrega"
+                            readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="detalleFechaRecepcion">
+                            Fecha de recepción
+                        </label>
+
+                        <input
+                            type="datetime-local"
+                            id="detalleFechaRecepcion">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="detalleFechaEntregaCliente">
+                            Fecha de entrega al cliente
+                        </label>
+
+                        <input
+                            type="datetime-local"
+                            id="detalleFechaEntregaCliente">
+                    </div>
+
+                    <div class="form-group full">
+                        <label for="detalleObservaciones">
+                            Observaciones
+                        </label>
+
+                        <textarea
+                            id="detalleObservaciones"
+                            placeholder="Observaciones de la solicitud"></textarea>
+                    </div>
+
+                </div>
+
+                <div
+                    class="form-actions"
+                    id="accionesEdicionSolicitud">
+
+                    <button
+                        type="submit"
+                        class="primary-btn"
+                        id="btnGuardarSolicitud">
+                        Guardar cambios
+                    </button>
+
+                </div>
+
+            </form>
+
+        </section>
+
+    </main>
+
+</div>
+
+<script src="app.js"></script>
+<script src="solicitudes-recursos.js"></script>
+
+</body>
+
+</html>

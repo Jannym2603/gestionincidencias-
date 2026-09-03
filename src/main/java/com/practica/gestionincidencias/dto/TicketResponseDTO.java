@@ -19,6 +19,23 @@ public class TicketResponseDTO {
     private Integer agenteId;
     private String agenteNombre;
 
+    /*
+     * Proyecto y compañía a los que pertenece el ticket.
+     */
+    private Integer proyectoId;
+    private String proyectoNombre;
+
+    private Integer companiaId;
+    private String companiaNombre;
+
+    /*
+     * Tipo de atención:
+     *
+     * OPERATIVO
+     * RECURSO_EXTERNO
+     */
+    private String tipoAtencion;
+
     private String estado;
     private String prioridad;
     private String severidad;
@@ -44,7 +61,7 @@ public class TicketResponseDTO {
     private Boolean slaResolucionCumplido;
 
     /*
-     * Estado calculado que se mostrará en el frontend.
+     * Estados calculados del SLA.
      *
      * Valores posibles:
      * EN_TIEMPO
@@ -52,6 +69,7 @@ public class TicketResponseDTO {
      * VENCIDO
      * CUMPLIDO
      * INCUMPLIDO
+     * SIN_CONFIGURAR
      */
     private String estadoSlaRespuesta;
     private String estadoSlaResolucion;
@@ -64,27 +82,43 @@ public class TicketResponseDTO {
             String numeroTicket,
             String titulo,
             String descripcion,
+
             Integer tipoIncidenciaId,
             String tipoIncidenciaNombre,
+
             Integer clienteId,
             String clienteNombre,
             String clienteCorreo,
+
             Integer agenteId,
             String agenteNombre,
+
+            Integer proyectoId,
+            String proyectoNombre,
+
+            Integer companiaId,
+            String companiaNombre,
+
+            String tipoAtencion,
+
             String estado,
             String prioridad,
             String severidad,
             String criticidad,
             String impacto,
             String urgencia,
+
             LocalDateTime fechaCreacion,
             LocalDateTime fechaActualizacion,
             LocalDateTime fechaResolucion,
+
             LocalDateTime fechaLimiteRespuesta,
             LocalDateTime fechaPrimeraRespuesta,
             Boolean slaRespuestaCumplido,
+
             LocalDateTime fechaLimiteResolucion,
             Boolean slaResolucionCumplido,
+
             String estadoSlaRespuesta,
             String estadoSlaResolucion) {
 
@@ -92,27 +126,43 @@ public class TicketResponseDTO {
         this.numeroTicket = numeroTicket;
         this.titulo = titulo;
         this.descripcion = descripcion;
+
         this.tipoIncidenciaId = tipoIncidenciaId;
         this.tipoIncidenciaNombre = tipoIncidenciaNombre;
+
         this.clienteId = clienteId;
         this.clienteNombre = clienteNombre;
         this.clienteCorreo = clienteCorreo;
+
         this.agenteId = agenteId;
         this.agenteNombre = agenteNombre;
+
+        this.proyectoId = proyectoId;
+        this.proyectoNombre = proyectoNombre;
+
+        this.companiaId = companiaId;
+        this.companiaNombre = companiaNombre;
+
+        this.tipoAtencion = tipoAtencion;
+
         this.estado = estado;
         this.prioridad = prioridad;
         this.severidad = severidad;
         this.criticidad = criticidad;
         this.impacto = impacto;
         this.urgencia = urgencia;
+
         this.fechaCreacion = fechaCreacion;
         this.fechaActualizacion = fechaActualizacion;
         this.fechaResolucion = fechaResolucion;
+
         this.fechaLimiteRespuesta = fechaLimiteRespuesta;
         this.fechaPrimeraRespuesta = fechaPrimeraRespuesta;
         this.slaRespuestaCumplido = slaRespuestaCumplido;
+
         this.fechaLimiteResolucion = fechaLimiteResolucion;
         this.slaResolucionCumplido = slaResolucionCumplido;
+
         this.estadoSlaRespuesta = estadoSlaRespuesta;
         this.estadoSlaResolucion = estadoSlaResolucion;
     }
@@ -159,6 +209,26 @@ public class TicketResponseDTO {
 
     public String getAgenteNombre() {
         return agenteNombre;
+    }
+
+    public Integer getProyectoId() {
+        return proyectoId;
+    }
+
+    public String getProyectoNombre() {
+        return proyectoNombre;
+    }
+
+    public Integer getCompaniaId() {
+        return companiaId;
+    }
+
+    public String getCompaniaNombre() {
+        return companiaNombre;
+    }
+
+    public String getTipoAtencion() {
+        return tipoAtencion;
     }
 
     public String getEstado() {

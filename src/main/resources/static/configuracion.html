@@ -22,6 +22,7 @@
             <a href="dashboard.html" class="menu-item">Dashboard</a>
             <a href="tickets.html" class="menu-item">Tickets</a>
             <a href="crear-ticket.html" class="menu-item" data-menu="crear-ticket">Crear Ticket</a>
+            <a href="solicitudes-recursos.html" class="menu-item" data-menu="solicitudes-recursos">Solicitudes de Recursos</a>
             <a href="usuarios.html" class="menu-item" data-menu="usuarios">Usuarios</a>
             <a href="reportes.html" class="menu-item" data-menu="reportes">Reportes</a>
             <a href="historial.html" class="menu-item" data-menu="historial">Historial</a>
@@ -33,7 +34,7 @@
         <header class="topbar">
             <div>
                 <h1>Configuración</h1>
-                <p>Administra tu perfil, seguridad y funciones del sistema.</p>
+                <p>Administra tu perfil, la seguridad de tu cuenta y la disponibilidad de los módulos.</p>
             </div>
 
             <div class="topbar-actions">
@@ -69,104 +70,427 @@
                     <p>Cambia tu contraseña de acceso al sistema.</p>
                 </button>
 
-                <button id="opcionFeatureFlags" class="config-option-card purple" type="button" onclick="mostrarSeccionConfig('features')">
+                <button
+                    id="opcionAdministracionSistema"
+                    class="config-option-card purple"
+                    type="button"
+                    onclick="mostrarSeccionConfig('sistema')"
+                >
                     <span>Sistema</span>
-                    <h3>Funciones experimentales</h3>
-                    <p>Activa módulos y selecciona una variante visual.</p>
+                    <h3>Administración del sistema</h3>
+                    <p>Controla la disponibilidad de los módulos principales.</p>
                 </button>
             </div>
         </section>
 
-        <section id="seccionPerfil" class="form-card config-section" style="display: none;">
+        <section id="seccionPerfil" class="form-card config-section">
             <h2 class="config-section-title">Mi perfil</h2>
             <div class="info-box">Esta información pertenece al usuario que inició sesión actualmente.</div>
             <div class="form-grid">
-                <div class="form-group"><label>Nombre</label><input type="text" id="perfilNombre" disabled></div>
-                <div class="form-group"><label>Correo</label><input type="text" id="perfilCorreo" disabled></div>
-                <div class="form-group"><label>Rol</label><input type="text" id="perfilRol" disabled></div>
+                <div class="form-group">
+                    <label for="perfilNombre">Nombre completo</label>
+                    <input type="text" id="perfilNombre" disabled>
+                </div>
+
+                <div class="form-group">
+                    <label for="perfilCorreo">Correo</label>
+                    <input type="text" id="perfilCorreo" disabled>
+                </div>
+
+                <div class="form-group">
+                    <label for="perfilTelefono">Teléfono</label>
+                    <input type="text" id="perfilTelefono" disabled>
+                </div>
+
+                <div class="form-group">
+                    <label for="perfilRol">Rol</label>
+                    <input type="text" id="perfilRol" disabled>
+                </div>
             </div>
         </section>
 
-        <section id="seccionPassword" class="form-card config-section" style="display: none;">
+        <section id="seccionPassword" class="form-card config-section">
             <h2 class="config-section-title">Cambiar contraseña</h2>
-            <div class="info-box">Al cambiar la contraseña, tendrás que iniciar sesión nuevamente.</div>
+
+            <div class="info-box">
+                Por seguridad, debes confirmar tu contraseña actual. Al guardar una nueva contraseña,
+                tendrás que iniciar sesión nuevamente.
+            </div>
+
             <form id="configPasswordForm">
                 <div class="form-grid">
                     <div class="form-group">
+                        <label for="passwordActualConfig">Contraseña actual</label>
+                        <div class="password-wrapper">
+                            <input
+                                type="password"
+                                id="passwordActualConfig"
+                                placeholder="Ingresa tu contraseña actual"
+                                autocomplete="current-password"
+                                required
+                            >
+                            <button
+                                type="button"
+                                class="password-toggle"
+                                onclick="togglePasswordConfig('passwordActualConfig', this)"
+                                aria-label="Mostrar u ocultar contraseña actual"
+                            >👁</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
                         <label for="nuevaPasswordConfig">Nueva contraseña</label>
                         <div class="password-wrapper">
-                            <input type="password" id="nuevaPasswordConfig" placeholder="Ingresa la nueva contraseña" required>
-                            <button type="button" class="password-toggle" onclick="togglePasswordConfig('nuevaPasswordConfig', this)">👁</button>
+                            <input
+                                type="password"
+                                id="nuevaPasswordConfig"
+                                placeholder="Ingresa la nueva contraseña"
+                                autocomplete="new-password"
+                                minlength="6"
+                                required
+                            >
+                            <button
+                                type="button"
+                                class="password-toggle"
+                                onclick="togglePasswordConfig('nuevaPasswordConfig', this)"
+                                aria-label="Mostrar u ocultar nueva contraseña"
+                            >👁</button>
                         </div>
                     </div>
+
                     <div class="form-group">
-                        <label for="confirmarPasswordConfig">Confirmar contraseña</label>
+                        <label for="confirmarPasswordConfig">Confirmar nueva contraseña</label>
                         <div class="password-wrapper">
-                            <input type="password" id="confirmarPasswordConfig" placeholder="Confirma la nueva contraseña" required>
-                            <button type="button" class="password-toggle" onclick="togglePasswordConfig('confirmarPasswordConfig', this)">👁</button>
+                            <input
+                                type="password"
+                                id="confirmarPasswordConfig"
+                                placeholder="Confirma la nueva contraseña"
+                                autocomplete="new-password"
+                                minlength="6"
+                                required
+                            >
+                            <button
+                                type="button"
+                                class="password-toggle"
+                                onclick="togglePasswordConfig('confirmarPasswordConfig', this)"
+                                aria-label="Mostrar u ocultar confirmación de contraseña"
+                            >👁</button>
                         </div>
                     </div>
                 </div>
+
                 <div class="form-actions">
                     <button type="submit" class="primary-btn">Guardar nueva contraseña</button>
-                    <button type="button" class="secondary-btn" onclick="document.getElementById('configPasswordForm').reset()">Limpiar</button>
+                    <button
+                        type="button"
+                        class="secondary-btn"
+                        onclick="document.getElementById('configPasswordForm').reset()"
+                    >
+                        Limpiar
+                    </button>
                 </div>
             </form>
+
+            <div class="info-box">
+                <strong>¿No recuerdas tu contraseña?</strong>
+                Puedes utilizar el proceso de recuperación por correo.
+                <button
+                    type="button"
+                    class="secondary-btn"
+                    id="btnRecuperarPasswordConfig"
+                >
+                    Recuperar contraseña
+                </button>
+            </div>
         </section>
 
-        <section id="seccionFeatures" class="form-card config-section" style="display: none;">
+        <section id="seccionSistema" class="form-card config-section">
             <div class="feature-flags-header">
                 <div>
-                    <h2>Funciones experimentales</h2>
-                    <p>Estos ajustes se guardan globalmente y se aplican a todos los usuarios.</p>
+                    <h2>Administración del sistema</h2>
+                    <p>Controla la disponibilidad global de cada módulo y define qué roles pueden utilizarlo.</p>
                 </div>
-                <span class="feature-status-badge">ADMIN / SUPERVISOR</span>
+                <span class="feature-status-badge">SOLO ADMIN</span>
             </div>
 
-            <div class="info-box">Desactivar una función oculta su opción del menú y bloquea el acceso directo a su página.</div>
+            <div class="info-box">
+                Si un módulo se desactiva globalmente, nadie podrá utilizarlo.
+                Si está activo, puedes decidir si CLIENTE, AGENTE y SUPERVISOR tienen acceso.
+                ADMIN conservará siempre el acceso mientras el módulo esté activo globalmente.
+            </div>
 
-            <form id="featureFlagsForm">
-                <div class="feature-flags-grid">
-                    <label class="feature-flag-card">
-                        <div><strong>Crear Ticket</strong><p>Permite registrar nuevas incidencias.</p></div>
-                        <input type="checkbox" id="flagCrearTicket">
-                        <span class="feature-switch" aria-hidden="true"></span>
-                    </label>
-                    <label class="feature-flag-card">
-                        <div><strong>Reportes</strong><p>Muestra el módulo de reportes administrativos.</p></div>
-                        <input type="checkbox" id="flagReportes">
-                        <span class="feature-switch" aria-hidden="true"></span>
-                    </label>
-                    <label class="feature-flag-card">
-                        <div><strong>Historial</strong><p>Muestra la consulta general de movimientos.</p></div>
-                        <input type="checkbox" id="flagHistorial">
-                        <span class="feature-switch" aria-hidden="true"></span>
-                    </label>
+            <form id="modulosSistemaForm">
+                <div class="modulos-acordeon">
+
+                    <article class="modulo-acordeon-item" data-modulo="crear-ticket">
+                        <button
+                            type="button"
+                            class="modulo-acordeon-header"
+                            aria-expanded="false"
+                            aria-controls="panelCrearTicket"
+                        >
+                            <div>
+                                <strong>Crear Ticket</strong>
+                                <span>Permite registrar nuevas incidencias.</span>
+                            </div>
+
+                            <div class="modulo-acordeon-resumen">
+                                <span class="estado-switch" data-status-for="flagCrearTicket">ACTIVO</span>
+                                <span class="modulo-acordeon-chevron" aria-hidden="true">⌄</span>
+                            </div>
+                        </button>
+
+                        <div id="panelCrearTicket" class="modulo-acordeon-panel">
+                            <div class="modulo-global-linea">
+                                <span>Activo globalmente</span>
+                                <div class="modulo-global-estado">
+                                    <span class="estado-switch" data-status-for="flagCrearTicket">ACTIVO</span>
+                                    <label class="modulo-global-control">
+                                        <input type="checkbox" id="flagCrearTicket">
+                                        <span class="feature-switch" aria-hidden="true"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="permisos-roles-grid">
+                                <label class="feature-flag-card permiso-rol-card">
+                                    <div>
+                                        <strong>CLIENTE</strong>
+                                        <p>Puede crear tickets.</p>
+                                    </div>
+                                    <span class="estado-switch" data-status-for="flagCrearTicketCliente">ACTIVO</span>
+                                    <input type="checkbox" id="flagCrearTicketCliente">
+                                    <span class="feature-switch" aria-hidden="true"></span>
+                                </label>
+
+                                <label class="feature-flag-card permiso-rol-card">
+                                    <div>
+                                        <strong>AGENTE</strong>
+                                        <p>Puede crear tickets.</p>
+                                    </div>
+                                    <span class="estado-switch" data-status-for="flagCrearTicketAgente">ACTIVO</span>
+                                    <input type="checkbox" id="flagCrearTicketAgente">
+                                    <span class="feature-switch" aria-hidden="true"></span>
+                                </label>
+
+                                <label class="feature-flag-card permiso-rol-card">
+                                    <div>
+                                        <strong>SUPERVISOR</strong>
+                                        <p>Puede crear tickets.</p>
+                                    </div>
+                                    <span class="estado-switch" data-status-for="flagCrearTicketSupervisor">ACTIVO</span>
+                                    <input type="checkbox" id="flagCrearTicketSupervisor">
+                                    <span class="feature-switch" aria-hidden="true"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="modulo-acordeon-item" data-modulo="solicitudes-recursos">
+                        <button
+                            type="button"
+                            class="modulo-acordeon-header"
+                            aria-expanded="false"
+                            aria-controls="panelSolicitudesRecursos"
+                        >
+                            <div>
+                                <strong>Solicitudes de Recursos</strong>
+                                <span>Permite consultar y dar seguimiento a recursos que dependen de proveedores externos.</span>
+                            </div>
+
+                            <div class="modulo-acordeon-resumen">
+                                <span class="estado-switch" data-status-for="flagSolicitudesRecursos">ACTIVO</span>
+                                <span class="modulo-acordeon-chevron" aria-hidden="true">⌄</span>
+                            </div>
+                        </button>
+
+                        <div id="panelSolicitudesRecursos" class="modulo-acordeon-panel">
+                            <div class="modulo-global-linea">
+                                <span>Activo globalmente</span>
+                                <div class="modulo-global-estado">
+                                    <span class="estado-switch" data-status-for="flagSolicitudesRecursos">ACTIVO</span>
+                                    <label class="modulo-global-control">
+                                        <input type="checkbox" id="flagSolicitudesRecursos">
+                                        <span class="feature-switch" aria-hidden="true"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="permisos-roles-grid">
+                                <label class="feature-flag-card permiso-rol-card">
+                                    <div>
+                                        <strong>CLIENTE</strong>
+                                        <p>Puede consultar sus solicitudes de recursos.</p>
+                                    </div>
+                                    <span class="estado-switch" data-status-for="flagSolicitudesRecursosCliente">ACTIVO</span>
+                                    <input type="checkbox" id="flagSolicitudesRecursosCliente">
+                                    <span class="feature-switch" aria-hidden="true"></span>
+                                </label>
+
+                                <label class="feature-flag-card permiso-rol-card">
+                                    <div>
+                                        <strong>AGENTE</strong>
+                                        <p>Puede consultar solicitudes de tickets asignados.</p>
+                                    </div>
+                                    <span class="estado-switch" data-status-for="flagSolicitudesRecursosAgente">ACTIVO</span>
+                                    <input type="checkbox" id="flagSolicitudesRecursosAgente">
+                                    <span class="feature-switch" aria-hidden="true"></span>
+                                </label>
+
+                                <label class="feature-flag-card permiso-rol-card">
+                                    <div>
+                                        <strong>SUPERVISOR</strong>
+                                        <p>Puede consultar y administrar solicitudes de sus proyectos.</p>
+                                    </div>
+                                    <span class="estado-switch" data-status-for="flagSolicitudesRecursosSupervisor">ACTIVO</span>
+                                    <input type="checkbox" id="flagSolicitudesRecursosSupervisor">
+                                    <span class="feature-switch" aria-hidden="true"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="modulo-acordeon-item" data-modulo="reportes">
+                        <button
+                            type="button"
+                            class="modulo-acordeon-header"
+                            aria-expanded="false"
+                            aria-controls="panelReportes"
+                        >
+                            <div>
+                                <strong>Reportes</strong>
+                                <span>Permite consultar el módulo de reportes.</span>
+                            </div>
+
+                            <div class="modulo-acordeon-resumen">
+                                <span class="estado-switch" data-status-for="flagReportes">ACTIVO</span>
+                                <span class="modulo-acordeon-chevron" aria-hidden="true">⌄</span>
+                            </div>
+                        </button>
+
+                        <div id="panelReportes" class="modulo-acordeon-panel">
+                            <div class="modulo-global-linea">
+                                <span>Activo globalmente</span>
+                                <div class="modulo-global-estado">
+                                    <span class="estado-switch" data-status-for="flagReportes">ACTIVO</span>
+                                    <label class="modulo-global-control">
+                                        <input type="checkbox" id="flagReportes">
+                                        <span class="feature-switch" aria-hidden="true"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="permisos-roles-grid">
+                                <label class="feature-flag-card permiso-rol-card">
+                                    <div>
+                                        <strong>CLIENTE</strong>
+                                        <p>Puede ver reportes.</p>
+                                    </div>
+                                    <span class="estado-switch" data-status-for="flagReportesCliente">ACTIVO</span>
+                                    <input type="checkbox" id="flagReportesCliente">
+                                    <span class="feature-switch" aria-hidden="true"></span>
+                                </label>
+
+                                <label class="feature-flag-card permiso-rol-card">
+                                    <div>
+                                        <strong>AGENTE</strong>
+                                        <p>Puede ver reportes.</p>
+                                    </div>
+                                    <span class="estado-switch" data-status-for="flagReportesAgente">ACTIVO</span>
+                                    <input type="checkbox" id="flagReportesAgente">
+                                    <span class="feature-switch" aria-hidden="true"></span>
+                                </label>
+
+                                <label class="feature-flag-card permiso-rol-card">
+                                    <div>
+                                        <strong>SUPERVISOR</strong>
+                                        <p>Puede ver reportes.</p>
+                                    </div>
+                                    <span class="estado-switch" data-status-for="flagReportesSupervisor">ACTIVO</span>
+                                    <input type="checkbox" id="flagReportesSupervisor">
+                                    <span class="feature-switch" aria-hidden="true"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="modulo-acordeon-item" data-modulo="historial">
+                        <button
+                            type="button"
+                            class="modulo-acordeon-header"
+                            aria-expanded="false"
+                            aria-controls="panelHistorial"
+                        >
+                            <div>
+                                <strong>Historial</strong>
+                                <span>Permite consultar el historial general de movimientos.</span>
+                            </div>
+
+                            <div class="modulo-acordeon-resumen">
+                                <span class="estado-switch" data-status-for="flagHistorial">ACTIVO</span>
+                                <span class="modulo-acordeon-chevron" aria-hidden="true">⌄</span>
+                            </div>
+                        </button>
+
+                        <div id="panelHistorial" class="modulo-acordeon-panel">
+                            <div class="modulo-global-linea">
+                                <span>Activo globalmente</span>
+                                <div class="modulo-global-estado">
+                                    <span class="estado-switch" data-status-for="flagHistorial">ACTIVO</span>
+                                    <label class="modulo-global-control">
+                                        <input type="checkbox" id="flagHistorial">
+                                        <span class="feature-switch" aria-hidden="true"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="permisos-roles-grid">
+                                <label class="feature-flag-card permiso-rol-card">
+                                    <div>
+                                        <strong>CLIENTE</strong>
+                                        <p>Puede ver historial.</p>
+                                    </div>
+                                    <span class="estado-switch" data-status-for="flagHistorialCliente">ACTIVO</span>
+                                    <input type="checkbox" id="flagHistorialCliente">
+                                    <span class="feature-switch" aria-hidden="true"></span>
+                                </label>
+
+                                <label class="feature-flag-card permiso-rol-card">
+                                    <div>
+                                        <strong>AGENTE</strong>
+                                        <p>Puede ver historial.</p>
+                                    </div>
+                                    <span class="estado-switch" data-status-for="flagHistorialAgente">ACTIVO</span>
+                                    <input type="checkbox" id="flagHistorialAgente">
+                                    <span class="feature-switch" aria-hidden="true"></span>
+                                </label>
+
+                                <label class="feature-flag-card permiso-rol-card">
+                                    <div>
+                                        <strong>SUPERVISOR</strong>
+                                        <p>Puede ver historial.</p>
+                                    </div>
+                                    <span class="estado-switch" data-status-for="flagHistorialSupervisor">ACTIVO</span>
+                                    <input type="checkbox" id="flagHistorialSupervisor">
+                                    <span class="feature-switch" aria-hidden="true"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </article>
+
                 </div>
 
-                <fieldset class="ab-test-panel">
-                    <legend>Prueba visual A/B</legend>
-                    <p>Selecciona la presentación que se aplicará al sistema.</p>
-                    <div class="ab-options">
-                        <label class="ab-option">
-                            <input type="radio" name="varianteVisual" value="A">
-                            <span><strong>Variante A</strong><small>Interfaz actual, compacta y neutra.</small></span>
-                        </label>
-                        <label class="ab-option">
-                            <input type="radio" name="varianteVisual" value="B">
-                            <span><strong>Variante B</strong><small>Tarjetas más suaves y mayor contraste visual.</small></span>
-                        </label>
-                    </div>
-                </fieldset>
-
                 <div class="form-actions feature-actions">
-                    <button type="submit" class="primary-btn">Guardar configuración</button>
-                    <button type="button" class="secondary-btn" id="btnRestablecerFeatures">Restablecer valores</button>
+                    <button type="submit" class="primary-btn">Guardar cambios</button>
+                    <button type="button" class="secondary-btn" id="btnRestablecerModulos">
+                        Restablecer módulos
+                    </button>
                     <button type="button" class="secondary-btn feature-audit-btn" id="btnVerAuditoria">
                         Ver historial de cambios
                     </button>
                 </div>
-                <p id="featureFlagsMensaje" class="feature-save-message" aria-live="polite"></p>
+
+                <p id="modulosSistemaMensaje" class="feature-save-message" aria-live="polite"></p>
             </form>
         </section>
     </main>
@@ -178,7 +502,7 @@
         <div class="modal-header">
             <div>
                 <h2 id="tituloAuditoriaConfiguracion">Historial de cambios</h2>
-                <p>Registro de modificaciones realizadas en las funciones experimentales.</p>
+                <p>Registro de cambios realizados en la disponibilidad de los módulos.</p>
             </div>
             <button type="button" class="modal-close-btn" id="btnCerrarAuditoria" aria-label="Cerrar">×</button>
         </div>

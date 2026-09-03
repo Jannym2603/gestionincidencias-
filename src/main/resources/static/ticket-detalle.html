@@ -20,6 +20,10 @@
 
 <div class="app-container">
 
+    <!-- =========================
+         SIDEBAR
+    ========================== -->
+
     <aside class="sidebar">
 
         <div class="sidebar-logo">
@@ -35,6 +39,7 @@
 
         </div>
 
+
         <nav class="menu">
 
             <a
@@ -44,12 +49,14 @@
                 Dashboard
             </a>
 
+
             <a
                 href="tickets.html"
                 class="menu-item active"
             >
                 Tickets
             </a>
+
 
             <a
                 href="crear-ticket.html"
@@ -59,6 +66,16 @@
                 Crear Ticket
             </a>
 
+
+            <a
+                href="solicitudes-recursos.html"
+                class="menu-item"
+                data-menu="solicitudes-recursos"
+            >
+                Solicitudes de Recursos
+            </a>
+
+
             <a
                 href="usuarios.html"
                 class="menu-item"
@@ -66,6 +83,7 @@
             >
                 Usuarios
             </a>
+
 
             <a
                 href="reportes.html"
@@ -75,6 +93,7 @@
                 Reportes
             </a>
 
+
             <a
                 href="historial.html"
                 class="menu-item"
@@ -82,6 +101,17 @@
             >
                 Historial
             </a>
+
+
+            <!-- NUEVO -->
+            <a
+                href="companias-proyectos.html"
+                class="menu-item"
+                data-menu="companias-proyectos"
+            >
+                Gestión organizacional
+            </a>
+
 
             <a
                 href="configuracion.html"
@@ -95,18 +125,31 @@
 
     </aside>
 
+
+    <!-- =========================
+         CONTENIDO PRINCIPAL
+    ========================== -->
+
     <main class="main-content">
+
+
+        <!-- TOPBAR -->
 
         <header class="topbar">
 
             <div>
-                <h1>Detalle del ticket</h1>
+
+                <h1>
+                    Detalle del ticket
+                </h1>
 
                 <p>
                     Consulta la información, comentarios,
                     historial y archivos del caso.
                 </p>
+
             </div>
+
 
             <div class="topbar-actions">
 
@@ -120,6 +163,7 @@
                     </div>
 
                     <div>
+
                         <strong id="nombreUsuario">
                             Usuario
                         </strong>
@@ -127,9 +171,11 @@
                         <span id="rolUsuario">
                             Rol
                         </span>
+
                     </div>
 
                 </div>
+
 
                 <button
                     class="logout-btn"
@@ -143,25 +189,32 @@
 
         </header>
 
-        <!-- Botón de regreso -->
+
+        <!-- =========================
+             BOTÓN VOLVER
+        ========================== -->
 
         <section class="ticket-back-row">
 
             <button
                 class="ticket-back-button"
                 type="button"
-                onclick="window.location.href='tickets.html'"
+                id="btnVolverTickets"
             >
                 ← Volver a tickets
             </button>
 
         </section>
 
-        <!-- Título del ticket -->
+
+        <!-- =========================
+             TÍTULO DEL TICKET
+        ========================== -->
 
         <section class="ticket-title-section ticket-title-with-history">
 
             <div class="ticket-title-content">
+
                 <h2 id="ticketNumero">
                     Ticket
                 </h2>
@@ -169,7 +222,9 @@
                 <p id="ticketTitulo">
                     Cargando información del ticket...
                 </p>
+
             </div>
+
 
             <button
                 class="ticket-history-link"
@@ -181,66 +236,179 @@
 
         </section>
 
-        <!-- Información compacta -->
+
+        <!-- =========================
+             INFORMACIÓN DEL TICKET
+        ========================== -->
 
         <section class="ticket-summary-grid">
+
+
+            <!-- INFORMACIÓN GENERAL -->
 
             <article class="ticket-compact-card">
 
                 <div class="ticket-card-header">
-                    <h3>Información general</h3>
+
+                    <h3>
+                        Información general
+                    </h3>
+
                 </div>
+
 
                 <div class="ticket-data-grid">
 
                     <div class="ticket-data-item">
-                        <span>Estado</span>
-                        <strong id="ticketEstado">-</strong>
+
+                        <span>
+                            Estado
+                        </span>
+
+                        <strong id="ticketEstado">
+                            -
+                        </strong>
+
                     </div>
 
-                    <div class="ticket-data-item">
-                        <span>Prioridad</span>
-                        <strong id="ticketPrioridad">-</strong>
-                    </div>
 
                     <div class="ticket-data-item">
-                        <span>Tipo</span>
-                        <strong id="ticketTipo">-</strong>
+
+                        <span>
+                            Prioridad
+                        </span>
+
+                        <strong id="ticketPrioridad">
+                            -
+                        </strong>
+
                     </div>
 
+
                     <div class="ticket-data-item">
-                        <span>Fecha de creación</span>
-                        <strong id="ticketFecha">-</strong>
+
+                        <span>
+                            Tipo
+                        </span>
+
+                        <strong id="ticketTipo">
+                            -
+                        </strong>
+
+                    </div>
+
+
+                    <div class="ticket-data-item">
+
+                        <span>
+                            Tipo de atención
+                        </span>
+
+                        <strong id="ticketTipoAtencion">
+                            -
+                        </strong>
+
+                    </div>
+
+
+                    <div class="ticket-data-item">
+
+                        <span>
+                            Fecha de creación
+                        </span>
+
+                        <strong id="ticketFecha">
+                            -
+                        </strong>
+
+                    </div>
+
+
+                    <!-- NUEVO -->
+
+                    <div class="ticket-data-item">
+
+                        <span>
+                            Compañía
+                        </span>
+
+                        <strong id="ticketCompania">
+                            -
+                        </strong>
+
+                    </div>
+
+
+                    <!-- NUEVO -->
+
+                    <div class="ticket-data-item">
+
+                        <span>
+                            Proyecto
+                        </span>
+
+                        <strong id="ticketProyecto">
+                            -
+                        </strong>
+
                     </div>
 
                 </div>
 
             </article>
 
+
+            <!-- PERSONAS RELACIONADAS -->
+
             <article class="ticket-compact-card">
 
                 <div class="ticket-card-header">
-                    <h3>Personas relacionadas</h3>
+
+                    <h3>
+                        Personas relacionadas
+                    </h3>
+
                 </div>
+
 
                 <div class="ticket-data-grid ticket-people-grid">
 
                     <div class="ticket-data-item">
-                        <span>Cliente</span>
-                        <strong id="ticketCliente">-</strong>
+
+                        <span>
+                            Cliente
+                        </span>
+
+                        <strong id="ticketCliente">
+                            -
+                        </strong>
+
                     </div>
+
 
                     <div class="ticket-data-item">
-                        <span>Correo</span>
-                        <strong id="ticketCorreo">-</strong>
+
+                        <span>
+                            Correo
+                        </span>
+
+                        <strong id="ticketCorreo">
+                            -
+                        </strong>
+
                     </div>
 
+
                     <div class="ticket-data-item ticket-data-full">
-                        <span>Agente asignado</span>
+
+                        <span>
+                            Agente asignado
+                        </span>
 
                         <strong id="ticketAgente">
                             Sin asignar
                         </strong>
+
                     </div>
 
                 </div>
@@ -249,21 +417,277 @@
 
         </section>
 
-        <!-- Descripción -->
+
+
+        <!-- =========================
+             SLA DEL TICKET
+        ========================== -->
+
+        <section class="ticket-sla-section" id="seccionSlaTicket">
+
+            <div class="ticket-sla-header">
+
+                <div>
+
+                    <span class="ticket-sla-eyebrow">
+                        Acuerdo de Nivel de Servicio
+                    </span>
+
+                    <h2>
+                        SLA del ticket
+                    </h2>
+
+                    <p>
+                        Control del tiempo máximo de primera respuesta
+                        y resolución según la prioridad de la incidencia.
+                    </p>
+
+                </div>
+
+
+                <div class="ticket-sla-priority-box">
+
+                    <span>
+                        Regla aplicada
+                    </span>
+
+                    <strong id="slaReglaPrioridad">
+                        Calculando...
+                    </strong>
+
+                    <small id="slaReglaTiempos">
+                        -
+                    </small>
+
+                </div>
+
+            </div>
+
+
+            <div class="ticket-sla-grid">
+
+                <!-- PRIMERA RESPUESTA -->
+
+                <article
+                    class="ticket-sla-card sla-card-neutral"
+                    id="slaRespuestaCard"
+                >
+
+                    <div class="ticket-sla-card-top">
+
+                        <div>
+
+                            <span class="ticket-sla-label">
+                                Primera respuesta
+                            </span>
+
+                            <h3 id="slaRespuestaEstadoTexto">
+                                Calculando...
+                            </h3>
+
+                        </div>
+
+
+                        <span
+                            class="ticket-sla-status sla-status-neutral"
+                            id="slaRespuestaBadge"
+                        >
+                            -
+                        </span>
+
+                    </div>
+
+
+                    <div
+                        class="ticket-sla-progress"
+                        id="slaRespuestaProgreso"
+                        role="progressbar"
+                        aria-label="SLA de primera respuesta"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                        aria-valuenow="0"
+                    >
+                        <span
+                            id="slaRespuestaBarra"
+                            class="sla-progress-neutral"
+                            style="width:0%;"
+                        ></span>
+                    </div>
+
+
+                    <div class="ticket-sla-time-row">
+
+                        <strong id="slaRespuestaTiempo">
+                            -
+                        </strong>
+
+                        <span id="slaRespuestaPorcentaje">
+                            0% consumido
+                        </span>
+
+                    </div>
+
+
+                    <div class="ticket-sla-data-grid">
+
+                        <div>
+
+                            <span>
+                                Fecha límite
+                            </span>
+
+                            <strong id="slaRespuestaLimite">
+                                -
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                Primera respuesta
+                            </span>
+
+                            <strong id="slaPrimeraRespuestaFecha">
+                                Pendiente
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </article>
+
+
+                <!-- RESOLUCIÓN -->
+
+                <article
+                    class="ticket-sla-card sla-card-neutral"
+                    id="slaResolucionCard"
+                >
+
+                    <div class="ticket-sla-card-top">
+
+                        <div>
+
+                            <span class="ticket-sla-label">
+                                Resolución
+                            </span>
+
+                            <h3 id="slaResolucionEstadoTexto">
+                                Calculando...
+                            </h3>
+
+                        </div>
+
+
+                        <span
+                            class="ticket-sla-status sla-status-neutral"
+                            id="slaResolucionBadge"
+                        >
+                            -
+                        </span>
+
+                    </div>
+
+
+                    <div
+                        class="ticket-sla-progress"
+                        id="slaResolucionProgreso"
+                        role="progressbar"
+                        aria-label="SLA de resolución"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                        aria-valuenow="0"
+                    >
+                        <span
+                            id="slaResolucionBarra"
+                            class="sla-progress-neutral"
+                            style="width:0%;"
+                        ></span>
+                    </div>
+
+
+                    <div class="ticket-sla-time-row">
+
+                        <strong id="slaResolucionTiempo">
+                            -
+                        </strong>
+
+                        <span id="slaResolucionPorcentaje">
+                            0% consumido
+                        </span>
+
+                    </div>
+
+
+                    <div class="ticket-sla-data-grid">
+
+                        <div>
+
+                            <span>
+                                Fecha límite
+                            </span>
+
+                            <strong id="slaResolucionLimite">
+                                -
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                Fecha de resolución
+                            </span>
+
+                            <strong id="slaResolucionFecha">
+                                Pendiente
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </article>
+
+            </div>
+
+
+            <div
+                class="ticket-sla-message"
+                id="slaMensajeGeneral"
+            >
+                Evaluando cumplimiento del SLA...
+            </div>
+
+        </section>
+
+
+        <!-- =========================
+             DESCRIPCIÓN
+        ========================== -->
 
         <section class="table-section ticket-section-compact">
 
             <div class="section-header ticket-section-header">
 
                 <div>
-                    <h2>Descripción</h2>
+
+                    <h2>
+                        Descripción
+                    </h2>
 
                     <p>
                         Detalle reportado en la incidencia.
                     </p>
+
                 </div>
 
             </div>
+
 
             <p
                 id="ticketDescripcion"
@@ -274,25 +698,129 @@
 
         </section>
 
-        <!-- Acciones -->
 
-        <section class="table-section ticket-section-compact">
+        <!-- =========================
+             SOLICITUD DE RECURSO EXTERNO
+        ========================== -->
+
+        <section
+            class="table-section ticket-section-compact"
+            id="seccionSolicitudRecursoTicket"
+            data-feature-action="solicitudes-recursos"
+            hidden
+        >
 
             <div class="section-header ticket-section-header">
 
                 <div>
-                    <h2>Acciones del ticket</h2>
 
-                    <p>
-                        Opciones disponibles según tu rol.
+                    <h2>
+                        Solicitud de recurso externo
+                    </h2>
+
+                    <p id="descripcionSolicitudRecursoTicket">
+                        Seguimiento del recurso solicitado y de su dependencia con el proveedor.
                     </p>
+
+                </div>
+
+                <button
+                    class="secondary-btn"
+                    id="btnAdministrarSolicitudRecurso"
+                    type="button"
+                >
+                    Administrar solicitud
+                </button>
+
+            </div>
+
+
+            <div class="ticket-data-grid">
+
+                <div class="ticket-data-item">
+                    <span>Categoría</span>
+                    <strong id="recursoCategoria">-</strong>
+                </div>
+
+                <div class="ticket-data-item">
+                    <span>Recurso solicitado</span>
+                    <strong id="recursoNombre">-</strong>
+                </div>
+
+                <div class="ticket-data-item">
+                    <span>Cantidad</span>
+                    <strong id="recursoCantidad">-</strong>
+                </div>
+
+                <div class="ticket-data-item">
+                    <span>Proveedor</span>
+                    <strong id="recursoProveedor">Pendiente</strong>
+                </div>
+
+                <div class="ticket-data-item">
+                    <span>Estado del recurso</span>
+                    <strong id="recursoEstado">NUEVO</strong>
+                </div>
+
+                <div class="ticket-data-item">
+                    <span>Solicitud al proveedor</span>
+                    <strong id="recursoFechaSolicitudProveedor">Pendiente</strong>
+                </div>
+
+                <div class="ticket-data-item">
+                    <span>Fecha estimada de entrega</span>
+                    <strong id="recursoFechaEstimadaEntrega">Pendiente</strong>
+                </div>
+
+                <div class="ticket-data-item">
+                    <span>Fecha de recepción</span>
+                    <strong id="recursoFechaRecepcion">Pendiente</strong>
+                </div>
+
+                <div class="ticket-data-item">
+                    <span>Entrega al cliente</span>
+                    <strong id="recursoFechaEntregaCliente">Pendiente</strong>
+                </div>
+
+                <div class="ticket-data-item ticket-data-full">
+                    <span>Observaciones</span>
+                    <strong id="recursoObservaciones">Sin observaciones</strong>
                 </div>
 
             </div>
 
+        </section>
+
+
+        <!-- =========================
+             ACCIONES DEL TICKET
+        ========================== -->
+
+        <section class="table-section ticket-section-compact" id="seccionAccionesTicket">
+
+            <div class="section-header ticket-section-header">
+
+                <div>
+
+                    <h2>
+                        Acciones del ticket
+                    </h2>
+
+                    <p>
+                        Opciones disponibles según tu rol.
+                    </p>
+
+                </div>
+
+            </div>
+
+
             <div class="ticket-actions-grid">
 
-                <!-- Supervisor y administrador -->
+
+                <!-- =========================
+                     SUPERVISOR / ADMIN
+                ========================== -->
 
                 <div
                     id="accionesSupervisor"
@@ -301,6 +829,9 @@
                 >
 
                     <div class="ticket-action-columns">
+
+
+                        <!-- ASIGNACIÓN -->
 
                         <div class="ticket-action-column">
 
@@ -320,6 +851,7 @@
 
                             </div>
 
+
                             <button
                                 class="primary-btn"
                                 type="button"
@@ -329,6 +861,9 @@
                             </button>
 
                         </div>
+
+
+                        <!-- COMPARTIR -->
 
                         <div class="ticket-action-column">
 
@@ -345,6 +880,7 @@
 
                             </div>
 
+
                             <button
                                 id="btnAbrirCompartirTicket"
                                 class="secondary-btn"
@@ -360,7 +896,10 @@
 
                 </div>
 
-                <!-- Agente -->
+
+                <!-- =========================
+                     AGENTE
+                ========================== -->
 
                 <div
                     id="accionesAgente"
@@ -369,6 +908,9 @@
                 >
 
                     <div class="ticket-action-columns">
+
+
+                        <!-- CAMBIO DE ESTADO -->
 
                         <div class="ticket-action-column">
 
@@ -400,6 +942,7 @@
 
                             </div>
 
+
                             <div class="form-group">
 
                                 <label for="notaResolucion">
@@ -413,6 +956,7 @@
 
                             </div>
 
+
                             <button
                                 class="primary-btn"
                                 type="button"
@@ -422,6 +966,9 @@
                             </button>
 
                         </div>
+
+
+                        <!-- PRIORIDAD -->
 
                         <div class="ticket-action-column">
 
@@ -453,6 +1000,7 @@
 
                             </div>
 
+
                             <div class="form-group">
 
                                 <label for="justificacionPrioridad">
@@ -465,6 +1013,7 @@
                                 ></textarea>
 
                             </div>
+
 
                             <button
                                 class="secondary-btn"
@@ -482,6 +1031,7 @@
 
             </div>
 
+
             <p
                 id="mensajeAcciones"
                 class="info-box ticket-actions-message"
@@ -491,7 +1041,10 @@
 
         </section>
 
-        <!-- Enlaces compartidos -->
+
+        <!-- =========================
+             ENLACES COMPARTIDOS
+        ========================== -->
 
         <section
             id="seccionEnlacesCompartidos"
@@ -502,13 +1055,18 @@
             <div class="section-header ticket-section-header">
 
                 <div>
-                    <h2>Enlaces compartidos</h2>
+
+                    <h2>
+                        Enlaces compartidos
+                    </h2>
 
                     <p>
                         Administra los accesos externos generados
                         para este ticket.
                     </p>
+
                 </div>
+
 
                 <button
                     class="primary-btn"
@@ -520,30 +1078,53 @@
 
             </div>
 
+
             <div class="table-wrapper">
 
                 <table>
 
                     <thead>
 
-                    <tr>
-                        <th>Destinatario</th>
-                        <th>Permisos</th>
-                        <th>Creación</th>
-                        <th>Vencimiento</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                    </tr>
+                        <tr>
+
+                            <th>
+                                Destinatario
+                            </th>
+
+                            <th>
+                                Permisos
+                            </th>
+
+                            <th>
+                                Creación
+                            </th>
+
+                            <th>
+                                Vencimiento
+                            </th>
+
+                            <th>
+                                Estado
+                            </th>
+
+                            <th>
+                                Acciones
+                            </th>
+
+                        </tr>
 
                     </thead>
 
+
                     <tbody id="enlacesCompartidosBody">
 
-                    <tr>
-                        <td colspan="6">
-                            Cargando enlaces compartidos...
-                        </td>
-                    </tr>
+                        <tr>
+
+                            <td colspan="6">
+                                Cargando enlaces compartidos...
+                            </td>
+
+                        </tr>
 
                     </tbody>
 
@@ -553,19 +1134,27 @@
 
         </section>
 
-        <!-- Comentarios -->
+
+        <!-- =========================
+             COMENTARIOS
+        ========================== -->
 
         <section class="table-section ticket-section-compact">
 
             <div class="section-header ticket-section-header">
 
                 <div>
-                    <h2>Comentarios</h2>
+
+                    <h2>
+                        Comentarios
+                    </h2>
 
                     <p>
                         Seguimiento y comunicación asociada al ticket.
                     </p>
+
                 </div>
+
 
                 <button
                     class="primary-btn"
@@ -577,30 +1166,41 @@
 
             </div>
 
+
             <div
                 id="listaComentarios"
                 class="ticket-comments-list"
             >
-                <p>Cargando comentarios...</p>
+                <p>
+                    Cargando comentarios...
+                </p>
             </div>
 
         </section>
 
-        <!-- Adjuntos -->
+
+        <!-- =========================
+             ADJUNTOS
+        ========================== -->
 
         <section class="table-section ticket-section-compact">
 
             <div class="section-header ticket-section-header">
 
                 <div>
-                    <h2>Archivos adjuntos</h2>
+
+                    <h2>
+                        Archivos adjuntos
+                    </h2>
 
                     <p>
                         Consulta, descarga o agrega archivos relacionados.
                     </p>
+
                 </div>
 
             </div>
+
 
             <div class="ticket-upload-row">
 
@@ -623,6 +1223,7 @@
 
                 </div>
 
+
                 <button
                     type="button"
                     class="primary-btn ticket-upload-btn"
@@ -633,29 +1234,49 @@
 
             </div>
 
+
             <div class="table-wrapper ticket-attachments-table">
 
                 <table>
 
                     <thead>
 
-                    <tr>
-                        <th>Archivo</th>
-                        <th>Tipo</th>
-                        <th>Tamaño</th>
-                        <th>Fecha</th>
-                        <th>Acción</th>
-                    </tr>
+                        <tr>
+
+                            <th>
+                                Archivo
+                            </th>
+
+                            <th>
+                                Tipo
+                            </th>
+
+                            <th>
+                                Tamaño
+                            </th>
+
+                            <th>
+                                Fecha
+                            </th>
+
+                            <th>
+                                Acción
+                            </th>
+
+                        </tr>
 
                     </thead>
 
+
                     <tbody id="adjuntosBody">
 
-                    <tr>
-                        <td colspan="5">
-                            Cargando adjuntos...
-                        </td>
-                    </tr>
+                        <tr>
+
+                            <td colspan="5">
+                                Cargando adjuntos...
+                            </td>
+
+                        </tr>
 
                     </tbody>
 
@@ -669,7 +1290,10 @@
 
 </div>
 
-<!-- Modal de historial del ticket -->
+
+<!-- =====================================================
+     MODAL HISTORIAL
+===================================================== -->
 
 <div
     class="modal-overlay"
@@ -687,6 +1311,7 @@
         <div class="modal-header">
 
             <div>
+
                 <h2 id="modalHistorialTitulo">
                     Historial del ticket
                 </h2>
@@ -694,7 +1319,9 @@
                 <p>
                     Registro de cambios y acciones realizadas sobre el caso.
                 </p>
+
             </div>
+
 
             <button
                 class="modal-close-btn"
@@ -707,20 +1334,25 @@
 
         </div>
 
+
         <div class="modal-body modal-historial-body">
 
             <div
                 id="listaHistorial"
                 class="ticket-history-list"
             >
+
                 <p class="empty-message">
                     Abre el historial para cargar los registros.
                 </p>
+
             </div>
 
         </div>
 
+
         <div class="modal-actions">
+
             <button
                 class="secondary-btn"
                 type="button"
@@ -728,13 +1360,17 @@
             >
                 Cerrar
             </button>
+
         </div>
 
     </div>
 
 </div>
 
-<!-- Modal para agregar comentario -->
+
+<!-- =====================================================
+     MODAL COMENTARIO
+===================================================== -->
 
 <div
     class="modal-overlay"
@@ -763,6 +1399,7 @@
 
             </div>
 
+
             <button
                 class="modal-close-btn"
                 type="button"
@@ -774,6 +1411,7 @@
 
         </div>
 
+
         <div class="modal-body">
 
             <div class="form-group">
@@ -781,6 +1419,7 @@
                 <label for="tipoComentario">
                     Tipo de comentario
                 </label>
+
 
                 <select id="tipoComentario">
 
@@ -796,11 +1435,13 @@
 
             </div>
 
+
             <div class="form-group">
 
                 <label for="contenidoComentario">
                     Comentario
                 </label>
+
 
                 <textarea
                     id="contenidoComentario"
@@ -811,6 +1452,7 @@
 
         </div>
 
+
         <div class="modal-actions">
 
             <button
@@ -820,6 +1462,7 @@
             >
                 Cancelar
             </button>
+
 
             <button
                 class="primary-btn"
@@ -835,7 +1478,10 @@
 
 </div>
 
-<!-- Modal para compartir ticket -->
+
+<!-- =====================================================
+     MODAL COMPARTIR TICKET
+===================================================== -->
 
 <div
     class="modal-overlay"
@@ -859,10 +1505,11 @@
                 </h2>
 
                 <p>
-                    Genera un enlace privado con permisos específicos.
+                    Genera un enlace privado de solo lectura.
                 </p>
 
             </div>
+
 
             <button
                 class="modal-close-btn"
@@ -875,13 +1522,18 @@
 
         </div>
 
+
         <div class="modal-body">
+
+
+            <!-- CORREO -->
 
             <div class="form-group">
 
                 <label for="correoDestinatarioCompartido">
                     Correo del destinatario
                 </label>
+
 
                 <input
                     type="email"
@@ -891,11 +1543,15 @@
                     autocomplete="email"
                 >
 
+
                 <small class="form-help-text">
                     El enlace será enviado a este correo.
                 </small>
 
             </div>
+
+
+            <!-- FECHA -->
 
             <div class="form-group">
 
@@ -903,117 +1559,40 @@
                     Fecha y hora de vencimiento
                 </label>
 
+
                 <input
                     type="datetime-local"
                     id="fechaExpiracionCompartida"
                 >
 
+
                 <small class="form-help-text">
-                    Puedes dejarla vacía para crear un enlace sin vencimiento.
+                    Si la dejas vacía, el enlace vencerá automáticamente en 7 días. La vigencia máxima es de 30 días.
                 </small>
 
             </div>
 
-            <fieldset class="shared-permissions-fieldset">
 
-                <legend>
-                    Permisos autorizados
-                </legend>
+            <!-- ALCANCE DEL ENLACE -->
 
-                <label class="shared-permission-option">
+            <div class="info-box">
+                <strong>Acceso externo de solo lectura.</strong>
+                El destinatario podrá consultar la información general
+                del ticket, pero no podrá comentar, subir archivos,
+                descargar adjuntos ni cambiar el estado.
+            </div>
 
-                    <input
-                        type="checkbox"
-                        id="permisoVerTicket"
-                        checked
-                        disabled
-                    >
 
-                    <span>
-                        <strong>Ver ticket</strong>
-
-                        <small>
-                            Permite consultar la información general.
-                        </small>
-                    </span>
-
-                </label>
-
-                <label class="shared-permission-option">
-
-                    <input
-                        type="checkbox"
-                        id="permisoComentarTicket"
-                    >
-
-                    <span>
-                        <strong>Agregar comentarios</strong>
-
-                        <small>
-                            Permite escribir comentarios públicos.
-                        </small>
-                    </span>
-
-                </label>
-
-                <label class="shared-permission-option">
-
-                    <input
-                        type="checkbox"
-                        id="permisoVerAdjuntosTicket"
-                    >
-
-                    <span>
-                        <strong>Ver adjuntos</strong>
-
-                        <small>
-                            Permite consultar y descargar archivos.
-                        </small>
-                    </span>
-
-                </label>
-
-                <label class="shared-permission-option">
-
-                    <input
-                        type="checkbox"
-                        id="permisoSubirAdjuntosTicket"
-                    >
-
-                    <span>
-                        <strong>Subir adjuntos</strong>
-
-                        <small>
-                            Permite agregar nuevos archivos.
-                        </small>
-                    </span>
-
-                </label>
-
-                <label class="shared-permission-option">
-
-                    <input
-                        type="checkbox"
-                        id="permisoCambiarEstadoTicket"
-                    >
-
-                    <span>
-                        <strong>Cambiar estado</strong>
-
-                        <small>
-                            Permite actualizar el estado del ticket.
-                        </small>
-                    </span>
-
-                </label>
-
-            </fieldset>
+            <!-- MENSAJE -->
 
             <p
                 id="mensajeCompartirTicket"
                 class="info-box"
                 hidden
             ></p>
+
+
+            <!-- RESULTADO -->
 
             <div
                 id="resultadoEnlaceCompartido"
@@ -1027,6 +1606,7 @@
                         Enlace generado
                     </label>
 
+
                     <div class="shared-link-copy-row">
 
                         <input
@@ -1034,6 +1614,7 @@
                             id="enlaceCompartidoGenerado"
                             readonly
                         >
+
 
                         <button
                             class="secondary-btn"
@@ -1047,13 +1628,15 @@
 
                 </div>
 
+
                 <small class="form-help-text">
-                    El enlace también fue enviado al correo indicado.
+                    Puedes copiar este enlace. El sistema también intentará enviarlo al correo indicado.
                 </small>
 
             </div>
 
         </div>
+
 
         <div class="modal-actions">
 
@@ -1065,13 +1648,14 @@
                 Cancelar
             </button>
 
+
             <button
                 class="primary-btn"
                 id="btnGenerarEnlaceCompartido"
                 type="button"
                 onclick="generarEnlaceCompartido()"
             >
-                Generar y enviar enlace
+                Generar enlace
             </button>
 
         </div>
@@ -1080,8 +1664,13 @@
 
 </div>
 
+
+<!-- =========================
+     JAVASCRIPT
+========================== -->
+
 <script src="app.js"></script>
-<script src="ticket-detalle.js"></script>
+<script src="ticket-detalle.js?v=20260817-1155"></script>
 
 </body>
 

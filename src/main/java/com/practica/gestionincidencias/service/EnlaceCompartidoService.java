@@ -23,24 +23,30 @@ import com.practica.gestionincidencias.repository.UsuarioRepository;
 @Service
 public class EnlaceCompartidoService {
 
+    private static final int DIAS_EXPIRACION_PREDETERMINADA = 7;
+    private static final int DIAS_EXPIRACION_MAXIMA = 30;
+
     private final EnlaceCompartidoRepository enlaceRepository;
     private final TicketRepository ticketRepository;
     private final UsuarioRepository usuarioRepository;
     private final NotificacionService notificacionService;
     private final AppProperties appProperties;
+    private final AccesoProyectoService accesoProyectoService;
 
     public EnlaceCompartidoService(
             EnlaceCompartidoRepository enlaceRepository,
             TicketRepository ticketRepository,
             UsuarioRepository usuarioRepository,
             NotificacionService notificacionService,
-            AppProperties appProperties) {
+            AppProperties appProperties,
+            AccesoProyectoService accesoProyectoService) {
 
         this.enlaceRepository = enlaceRepository;
         this.ticketRepository = ticketRepository;
         this.usuarioRepository = usuarioRepository;
         this.notificacionService = notificacionService;
         this.appProperties = appProperties;
+        this.accesoProyectoService = accesoProyectoService;
     }
 
     @Transactional
@@ -49,85 +55,63 @@ public class EnlaceCompartidoService {
             Integer usuarioId,
             CrearEnlaceCompartidoRequestDTO request) {
 
-        Ticket ticket = ticketRepository.findById(ticketId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "No se encontró el ticket"
-                ));
+        Ticket ticket = obtenerTicket(ticketId);
+        Usuario usuario = obtenerUsuario(usuarioId);
 
-        Usuario usuario = usuarioRepository.findById(usuarioId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "No se encontró el usuario autenticado"
-                ));
+        validarPermisoParaCompartir(
+                ticket,
+                usuario
+        );
 
-        validarPermisoParaCompartir(ticket, usuario);
+        LocalDateTime ahora =
+                LocalDateTime.now();
 
-        LocalDateTime ahora = LocalDateTime.now();
+        LocalDateTime fechaExpiracion =
+                resolverFechaExpiracion(
+                        request.getFechaExpiracion(),
+                        ahora
+                );
 
-        if (request.getFechaExpiracion() != null
-                && !request.getFechaExpiracion().isAfter(ahora)) {
-
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "La fecha de expiración debe ser posterior a la fecha actual"
-            );
-        }
-
-        if (request.getCorreoDestinatario() == null
-                || request.getCorreoDestinatario().isBlank()) {
-
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "El correo del destinatario es obligatorio"
-            );
-        }
-
-        String token = generarTokenSeguro();
-
-        EnlaceCompartido enlace = EnlaceCompartido.builder()
-                .ticket(ticket)
-                .creadoPor(usuario)
-                .correoDestinatario(
-                        request.getCorreoDestinatario()
+        String correoDestinatario =
+                request.getCorreoDestinatario() == null
+                        ? ""
+                        : request.getCorreoDestinatario()
                                 .trim()
-                                .toLowerCase()
-                )
-                .token(token)
-                .puedeVer(
-                        valorBooleano(
-                                request.getPuedeVer(),
-                                true
+                                .toLowerCase();
+
+        if (correoDestinatario.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "El correo del destinatario es obligatorio."
+            );
+        }
+
+        /*
+         * Por seguridad los enlaces externos quedan en modo
+         * SOLO LECTURA.
+         *
+         * No confiamos en los booleanos que pudiera enviar
+         * manualmente el navegador.
+         */
+        EnlaceCompartido enlace =
+                EnlaceCompartido.builder()
+                        .ticket(ticket)
+                        .creadoPor(usuario)
+                        .correoDestinatario(
+                                correoDestinatario
                         )
-                )
-                .puedeComentar(
-                        valorBooleano(
-                                request.getPuedeComentar(),
-                                false
+                        .token(generarTokenSeguro())
+                        .puedeVer(true)
+                        .puedeComentar(false)
+                        .puedeVerAdjuntos(false)
+                        .puedeSubirAdjuntos(false)
+                        .puedeCambiarEstado(false)
+                        .fechaCreacion(ahora)
+                        .fechaExpiracion(
+                                fechaExpiracion
                         )
-                )
-                .puedeVerAdjuntos(
-                        valorBooleano(
-                                request.getPuedeVerAdjuntos(),
-                                false
-                        )
-                )
-                .puedeSubirAdjuntos(
-                        valorBooleano(
-                                request.getPuedeSubirAdjuntos(),
-                                false
-                        )
-                )
-                .puedeCambiarEstado(
-                        valorBooleano(
-                                request.getPuedeCambiarEstado(),
-                                false
-                        )
-                )
-                .fechaCreacion(ahora)
-                .fechaExpiracion(request.getFechaExpiracion())
-                .activo(true)
-                .build();
+                        .activo(true)
+                        .build();
 
         EnlaceCompartido enlaceGuardado =
                 enlaceRepository.save(enlace);
@@ -137,12 +121,19 @@ public class EnlaceCompartidoService {
                         enlaceGuardado.getToken()
                 );
 
+        /*
+         * NotificacionService ya maneja internamente
+         * los errores de correo sin romper la creación
+         * del enlace.
+         */
         notificacionService.notificarEnlaceCompartido(
                 enlaceGuardado,
                 urlCompartida
         );
 
-        return convertirAResponse(enlaceGuardado);
+        return convertirAResponse(
+                enlaceGuardado
+        );
     }
 
     @Transactional(readOnly = true)
@@ -150,22 +141,18 @@ public class EnlaceCompartidoService {
             Integer ticketId,
             Integer usuarioId) {
 
-        Ticket ticket = ticketRepository.findById(ticketId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "No se encontró el ticket"
-                ));
+        Ticket ticket = obtenerTicket(ticketId);
+        Usuario usuario = obtenerUsuario(usuarioId);
 
-        Usuario usuario = usuarioRepository.findById(usuarioId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "No se encontró el usuario autenticado"
-                ));
-
-        validarPermisoParaCompartir(ticket, usuario);
+        validarPermisoParaCompartir(
+                ticket,
+                usuario
+        );
 
         return enlaceRepository
-                .findByTicketIdOrderByFechaCreacionDesc(ticketId)
+                .findByTicketIdOrderByFechaCreacionDesc(
+                        ticketId
+                )
                 .stream()
                 .map(this::convertirAResponse)
                 .toList();
@@ -176,73 +163,126 @@ public class EnlaceCompartidoService {
             Long enlaceId,
             Integer usuarioId) {
 
-        EnlaceCompartido enlace = enlaceRepository.findById(enlaceId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "No se encontró el enlace compartido"
-                ));
+        EnlaceCompartido enlace =
+                enlaceRepository
+                        .findById(enlaceId)
+                        .orElseThrow(() ->
+                                new ResponseStatusException(
+                                        HttpStatus.NOT_FOUND,
+                                        "No se encontró el enlace compartido."
+                                )
+                        );
 
-        Usuario usuario = usuarioRepository.findById(usuarioId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "No se encontró el usuario autenticado"
-                ));
+        Usuario usuario =
+                obtenerUsuario(usuarioId);
 
         validarPermisoParaCompartir(
                 enlace.getTicket(),
                 usuario
         );
 
+        if (!Boolean.TRUE.equals(
+                enlace.getActivo()
+        )) {
+            return convertirAResponse(
+                    enlace
+            );
+        }
+
         enlace.setActivo(false);
 
         EnlaceCompartido actualizado =
                 enlaceRepository.save(enlace);
 
-        return convertirAResponse(actualizado);
+        return convertirAResponse(
+                actualizado
+        );
     }
 
     @Transactional(readOnly = true)
     public EnlaceCompartido obtenerEnlaceValido(
             String token) {
 
-        if (token == null || token.isBlank()) {
+        if (token == null
+                || token.isBlank()) {
+
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "El token del enlace es obligatorio"
+                    "El token del enlace es obligatorio."
             );
         }
 
         EnlaceCompartido enlace =
-                enlaceRepository.findByToken(token.trim())
+                enlaceRepository
+                        .findByToken(
+                                token.trim()
+                        )
                         .orElseThrow(() ->
                                 new ResponseStatusException(
                                         HttpStatus.NOT_FOUND,
-                                        "El enlace no existe"
+                                        "El enlace no existe."
                                 )
                         );
 
-        if (!Boolean.TRUE.equals(enlace.getActivo())) {
+        if (!Boolean.TRUE.equals(
+                enlace.getActivo()
+        )) {
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN,
-                    "El enlace fue desactivado"
+                    "El enlace fue desactivado."
             );
         }
 
-        if (enlace.getFechaExpiracion() != null
-                && LocalDateTime.now().isAfter(
-                        enlace.getFechaExpiracion()
-                )) {
+        LocalDateTime fechaExpiracion =
+                enlace.getFechaExpiracion();
 
+        if (
+                fechaExpiracion != null
+                        &&
+                !LocalDateTime.now()
+                        .isBefore(
+                                fechaExpiracion
+                        )
+        ) {
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN,
-                    "El enlace ha expirado"
+                    "El enlace ha expirado."
             );
         }
 
-        if (!Boolean.TRUE.equals(enlace.getPuedeVer())) {
+        if (!Boolean.TRUE.equals(
+                enlace.getPuedeVer()
+        )) {
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN,
-                    "El enlace no permite ver el ticket"
+                    "El enlace no permite ver el ticket."
+            );
+        }
+
+        if (
+                enlace.getTicket() == null
+                        ||
+                !Boolean.TRUE.equals(
+                        enlace.getTicket()
+                                .getProyecto()
+                                .getEstado()
+                )
+                        ||
+                enlace.getTicket()
+                                .getProyecto()
+                                .getCompania()
+                        == null
+                        ||
+                !Boolean.TRUE.equals(
+                        enlace.getTicket()
+                                .getProyecto()
+                                .getCompania()
+                                .getEstado()
+                )
+        ) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "El proyecto del ticket no está disponible."
             );
         }
 
@@ -256,7 +296,8 @@ public class EnlaceCompartidoService {
         EnlaceCompartido enlace =
                 obtenerEnlaceValido(token);
 
-        Ticket ticket = enlace.getTicket();
+        Ticket ticket =
+                enlace.getTicket();
 
         String nombreCliente =
                 obtenerNombreCompleto(
@@ -272,37 +313,48 @@ public class EnlaceCompartidoService {
 
         String categoria =
                 ticket.getTipoIncidencia() != null
-                        ? ticket.getTipoIncidencia().getNombre()
+                        ? ticket.getTipoIncidencia()
+                                .getNombre()
                         : "Sin categoría";
 
         return TicketCompartidoResponseDTO.builder()
                 .ticketId(ticket.getId())
-                .numeroTicket(ticket.getNumeroTicket())
+                .numeroTicket(
+                        ticket.getNumeroTicket()
+                )
                 .titulo(ticket.getTitulo())
-                .descripcion(ticket.getDescripcion())
+                .descripcion(
+                        ticket.getDescripcion()
+                )
                 .estado(ticket.getEstado())
-                .prioridad(ticket.getPrioridad())
+                .prioridad(
+                        ticket.getPrioridad()
+                )
                 .categoria(categoria)
                 .nombreCliente(nombreCliente)
                 .nombreAgente(nombreAgente)
-                .puedeVer(enlace.getPuedeVer())
-                .puedeComentar(enlace.getPuedeComentar())
-                .puedeVerAdjuntos(
-                        enlace.getPuedeVerAdjuntos()
+                .puedeVer(true)
+                .puedeComentar(false)
+                .puedeVerAdjuntos(false)
+                .puedeSubirAdjuntos(false)
+                .puedeCambiarEstado(false)
+                .fechaCreacion(
+                        ticket.getFechaCreacion()
                 )
-                .puedeSubirAdjuntos(
-                        enlace.getPuedeSubirAdjuntos()
-                )
-                .puedeCambiarEstado(
-                        enlace.getPuedeCambiarEstado()
-                )
-                .fechaCreacion(ticket.getFechaCreacion())
                 .fechaExpiracion(
                         enlace.getFechaExpiracion()
                 )
                 .build();
     }
 
+    /*
+     * Defensa en profundidad:
+     * no basta con que el endpoint tenga @PreAuthorize.
+     *
+     * ADMIN puede compartir cualquier ticket.
+     * SUPERVISOR únicamente tickets pertenecientes
+     * a proyectos a los que tiene acceso.
+     */
     private void validarPermisoParaCompartir(
             Ticket ticket,
             Usuario usuario) {
@@ -310,19 +362,102 @@ public class EnlaceCompartidoService {
         if (ticket == null) {
             throw new ResponseStatusException(
                     HttpStatus.NOT_FOUND,
-                    "No se encontró el ticket"
+                    "No se encontró el ticket."
             );
         }
 
         if (usuario == null) {
             throw new ResponseStatusException(
                     HttpStatus.UNAUTHORIZED,
-                    "No se encontró el usuario autenticado"
+                    "No se encontró el usuario autenticado."
             );
         }
+
+        String rol =
+                accesoProyectoService
+                        .obtenerRol(usuario);
+
+        if (
+                !"ADMIN".equals(rol)
+                        &&
+                !"SUPERVISOR".equals(rol)
+        ) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Tu rol no puede compartir tickets."
+            );
+        }
+
+        accesoProyectoService
+                .validarAccesoTicket(
+                        usuario,
+                        rol,
+                        ticket
+                );
+    }
+
+    private Ticket obtenerTicket(
+            Integer ticketId) {
+
+        return ticketRepository
+                .findById(ticketId)
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "No se encontró el ticket."
+                        )
+                );
+    }
+
+    private Usuario obtenerUsuario(
+            Integer usuarioId) {
+
+        return usuarioRepository
+                .findById(usuarioId)
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "No se encontró el usuario autenticado."
+                        )
+                );
+    }
+
+    private LocalDateTime resolverFechaExpiracion(
+            LocalDateTime solicitada,
+            LocalDateTime ahora) {
+
+        LocalDateTime limiteMaximo =
+                ahora.plusDays(
+                        DIAS_EXPIRACION_MAXIMA
+                );
+
+        if (solicitada == null) {
+            return ahora.plusDays(
+                    DIAS_EXPIRACION_PREDETERMINADA
+            );
+        }
+
+        if (!solicitada.isAfter(ahora)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "La fecha de expiración debe ser posterior a la fecha actual."
+            );
+        }
+
+        if (solicitada.isAfter(
+                limiteMaximo
+        )) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "El enlace no puede tener una vigencia mayor a 30 días."
+            );
+        }
+
+        return solicitada;
     }
 
     private String generarTokenSeguro() {
+
         return UUID.randomUUID()
                 + "-"
                 + UUID.randomUUID();
@@ -331,35 +466,34 @@ public class EnlaceCompartidoService {
     private String construirUrlCompartida(
             String token) {
 
-        String frontendUrl = appProperties.getUrl();
+        String frontendUrl =
+                appProperties.getUrl();
 
-        if (frontendUrl == null
-                || frontendUrl.isBlank()) {
-
-            frontendUrl = "http://localhost:8081";
+        if (
+                frontendUrl == null
+                        ||
+                frontendUrl.isBlank()
+        ) {
+            frontendUrl =
+                    "http://localhost:8081";
         }
 
-        String urlBase = frontendUrl.trim();
+        String urlBase =
+                frontendUrl.trim();
 
-        while (urlBase.endsWith("/")) {
-            urlBase = urlBase.substring(
-                    0,
-                    urlBase.length() - 1
-            );
+        while (
+                urlBase.endsWith("/")
+        ) {
+            urlBase =
+                    urlBase.substring(
+                            0,
+                            urlBase.length() - 1
+                    );
         }
 
         return urlBase
                 + "/ticket-compartido.html?token="
                 + token;
-    }
-
-    private boolean valorBooleano(
-            Boolean valor,
-            boolean valorPredeterminado) {
-
-        return valor != null
-                ? valor
-                : valorPredeterminado;
     }
 
     private String obtenerNombreCompleto(
@@ -371,16 +505,19 @@ public class EnlaceCompartidoService {
 
         String nombre =
                 usuario.getNombre() != null
-                        ? usuario.getNombre().trim()
+                        ? usuario.getNombre()
+                                .trim()
                         : "";
 
         String apellido =
                 usuario.getApellido() != null
-                        ? usuario.getApellido().trim()
+                        ? usuario.getApellido()
+                                .trim()
                         : "";
 
         String nombreCompleto =
-                (nombre + " " + apellido).trim();
+                (nombre + " " + apellido)
+                        .trim();
 
         return nombreCompleto.isBlank()
                 ? "Sin información"
@@ -393,7 +530,8 @@ public class EnlaceCompartidoService {
         return EnlaceCompartidoResponseDTO.builder()
                 .id(enlace.getId())
                 .ticketId(
-                        enlace.getTicket().getId()
+                        enlace.getTicket()
+                                .getId()
                 )
                 .numeroTicket(
                         enlace.getTicket()
@@ -408,26 +546,20 @@ public class EnlaceCompartidoService {
                                 enlace.getToken()
                         )
                 )
-                .puedeVer(enlace.getPuedeVer())
-                .puedeComentar(
-                        enlace.getPuedeComentar()
-                )
-                .puedeVerAdjuntos(
-                        enlace.getPuedeVerAdjuntos()
-                )
-                .puedeSubirAdjuntos(
-                        enlace.getPuedeSubirAdjuntos()
-                )
-                .puedeCambiarEstado(
-                        enlace.getPuedeCambiarEstado()
-                )
+                .puedeVer(true)
+                .puedeComentar(false)
+                .puedeVerAdjuntos(false)
+                .puedeSubirAdjuntos(false)
+                .puedeCambiarEstado(false)
                 .fechaCreacion(
                         enlace.getFechaCreacion()
                 )
                 .fechaExpiracion(
                         enlace.getFechaExpiracion()
                 )
-                .activo(enlace.getActivo())
+                .activo(
+                        enlace.getActivo()
+                )
                 .build();
     }
 }
