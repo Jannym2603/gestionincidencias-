@@ -10,7 +10,6 @@
 
 <div class="app-container">
 
-    <!-- SIDEBAR -->
     <aside class="sidebar">
         <div class="sidebar-logo">
             <div class="logo-icon">GI</div>
@@ -24,135 +23,242 @@
             <a href="dashboard.html" class="menu-item">Dashboard</a>
             <a href="tickets.html" class="menu-item">Tickets</a>
             <a href="crear-ticket.html" class="menu-item" data-menu="crear-ticket">Crear Ticket</a>
+            <a href="solicitudes-recursos.html" class="menu-item" data-menu="solicitudes-recursos">Solicitudes de Recursos</a>
             <a href="usuarios.html" class="menu-item" data-menu="usuarios">Usuarios</a>
             <a href="reportes.html" class="menu-item active" data-menu="reportes">Reportes</a>
             <a href="historial.html" class="menu-item" data-menu="historial">Historial</a>
+            <a href="companias-proyectos.html" class="menu-item" data-menu="companias-proyectos">Gestión organizacional</a>
             <a href="configuracion.html" class="menu-item" data-menu="configuracion">Configuración</a>
         </nav>
     </aside>
 
-    <!-- MAIN -->
     <main class="main-content">
 
-        <!-- HEADER -->
         <header class="topbar">
             <div>
                 <h1>Reportes</h1>
-                <p>Indicadores generales del sistema de gestión de incidencias.</p>
+                <p id="descripcionReportes">Indicadores operativos y seguimiento de recursos externos.</p>
             </div>
 
             <div class="topbar-actions">
                 <div class="user-box">
-                    <div class="avatar" id="avatarUsuario">JR</div>
+                    <div class="avatar" id="avatarUsuario">US</div>
                     <div>
-                        <strong id="nombreUsuario">Janeth Ramos</strong>
-                        <span id="rolUsuario">ADMIN</span>
+                        <strong id="nombreUsuario">Usuario</strong>
+                        <span id="rolUsuario">Rol</span>
                     </div>
                 </div>
 
-                <button class="logout-btn" id="btnLogout">Cerrar sesión</button>
+                <button class="logout-btn" id="btnLogout" type="button">Cerrar sesión</button>
             </div>
         </header>
 
-        <!-- ACTION BAR -->
         <section class="action-bar">
             <div>
                 <h2>Panel de reportes</h2>
-                <p>Consulta métricas por estado, prioridad y tipo de incidencia.</p>
+                <p>Las métricas operativas se calculan por separado de las solicitudes que dependen de proveedores externos.</p>
             </div>
 
-            <button class="secondary-btn" onclick="window.location.href='dashboard.html'">
+            <button class="secondary-btn" type="button" onclick="window.location.href='dashboard.html'">
                 Volver al dashboard
             </button>
         </section>
 
-        <!-- RESUMEN -->
-        <section class="metrics-grid">
-            <div class="metric-card">
-                <span>Total tickets</span>
-                <h3 id="totalTickets">0</h3>
-                <p>Tickets registrados</p>
+        <section class="form-card report-filter-card">
+            <div class="section-header">
+                <div>
+                    <h2>Filtrar reporte</h2>
+                    <p>Selecciona una compañía o un proyecto. El mismo alcance se aplicará a Operaciones y Recursos Externos.</p>
+                </div>
+
+                <button class="secondary-btn" id="btnLimpiarFiltrosReporte" type="button">
+                    Limpiar filtros
+                </button>
             </div>
 
-            <div class="metric-card blue">
-                <span>Nuevos</span>
-                <h3 id="ticketsNuevos">0</h3>
-                <p>Pendientes</p>
+            <div class="form-grid report-filter-grid">
+                <div class="form-group">
+                    <label for="filtroCompaniaReporte">Compañía</label>
+                    <select id="filtroCompaniaReporte">
+                        <option value="">Todas las compañías</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="filtroProyectoReporte">Proyecto</label>
+                    <select id="filtroProyectoReporte">
+                        <option value="">Todos los proyectos</option>
+                    </select>
+                </div>
             </div>
 
-            <div class="metric-card purple">
-                <span>Asignados</span>
-                <h3 id="ticketsAsignados">0</h3>
-                <p>Con agente</p>
-            </div>
-
-            <div class="metric-card orange">
-                <span>En progreso</span>
-                <h3 id="ticketsEnProgreso">0</h3>
-                <p>En atención</p>
-            </div>
-
-            <div class="metric-card green">
-                <span>Resueltos</span>
-                <h3 id="ticketsResueltos">0</h3>
-                <p>Solucionados</p>
-            </div>
-
-            <div class="metric-card gray">
-                <span>Cerrados</span>
-                <h3 id="ticketsCerrados">0</h3>
-                <p>Finalizados</p>
-            </div>
-
-            <div class="metric-card">
-                <span>Usuarios</span>
-                <h3 id="totalUsuarios">0</h3>
-                <p>Registrados</p>
-            </div>
-
-            <div class="metric-card">
-                <span>Comentarios</span>
-                <h3 id="totalComentarios">0</h3>
-                <p>Seguimientos</p>
+            <div class="report-filter-context">
+                <span>Mostrando:</span>
+                <strong id="alcanceReporteSeleccionado">Resumen general</strong>
             </div>
         </section>
 
-        <!-- REPORTES DETALLADOS -->
+        <section class="table-section">
+            <div class="section-header">
+                <div>
+                    <h2>Operaciones</h2>
+                    <p>Solo incluye tickets de atención OPERATIVA. Los tiempos del proveedor no afectan estos indicadores.</p>
+                </div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <span>Tickets operativos</span>
+                    <h3 id="totalOperativos">0</h3>
+                    <p>Total incluido</p>
+                </div>
+
+                <div class="metric-card blue">
+                    <span>Nuevos</span>
+                    <h3 id="ticketsNuevos">0</h3>
+                    <p>Pendientes</p>
+                </div>
+
+                <div class="metric-card purple">
+                    <span>Asignados</span>
+                    <h3 id="ticketsAsignados">0</h3>
+                    <p>Con agente</p>
+                </div>
+
+                <div class="metric-card orange">
+                    <span>En progreso</span>
+                    <h3 id="ticketsEnProgreso">0</h3>
+                    <p>En atención</p>
+                </div>
+
+                <div class="metric-card green">
+                    <span>Resueltos</span>
+                    <h3 id="ticketsResueltos">0</h3>
+                    <p>Solucionados</p>
+                </div>
+
+                <div class="metric-card gray">
+                    <span>Cerrados</span>
+                    <h3 id="ticketsCerrados">0</h3>
+                    <p>Finalizados</p>
+                </div>
+            </div>
+        </section>
+
         <section class="reports-grid">
             <div class="report-card">
-                <h3>Tickets por estado</h3>
-                <p style="color: #64748b; margin-bottom: 14px;">Distribución actual de incidencias según su estado.</p>
+                <h3>Operativos por estado</h3>
+                <p class="report-card-description">Distribución de tickets operativos según su estado.</p>
                 <div id="reporteEstado" class="report-list">
                     <p>Cargando datos...</p>
                 </div>
             </div>
 
             <div class="report-card">
-                <h3>Tickets por prioridad</h3>
-                <p style="color: #64748b; margin-bottom: 14px;">Cantidad de tickets agrupados por nivel de prioridad.</p>
+                <h3>Operativos por prioridad</h3>
+                <p class="report-card-description">Cantidad de tickets operativos por prioridad.</p>
                 <div id="reportePrioridad" class="report-list">
                     <p>Cargando datos...</p>
                 </div>
             </div>
 
             <div class="report-card">
-                <h3>Tickets por tipo</h3>
-                <p style="color: #64748b; margin-bottom: 14px;">Categorías más frecuentes de incidencias reportadas.</p>
+                <h3>Operativos por tipo</h3>
+                <p class="report-card-description">Tipos de incidencia dentro del trabajo operativo.</p>
                 <div id="reporteTipo" class="report-list">
                     <p>Cargando datos...</p>
                 </div>
             </div>
         </section>
 
-        <!-- TABLA RESUMEN -->
         <section class="table-section">
             <div class="section-header">
                 <div>
-                    <h2>Resumen consolidado</h2>
-                    <p>Vista general de los principales indicadores del sistema.</p>
+                    <h2>Recursos externos</h2>
+                    <p>Seguimiento independiente de piezas, cámaras, alarmas, equipos y otros recursos solicitados a proveedores.</p>
+                </div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <span>Solicitudes</span>
+                    <h3 id="totalSolicitudesRecursos">0</h3>
+                    <p>Total de recursos</p>
                 </div>
 
-                <button class="secondary-btn" onclick="window.print()">
+                <div class="metric-card orange">
+                    <span>Esperando proveedor</span>
+                    <h3 id="recursosEsperandoProveedor">0</h3>
+                    <p>Dependencia externa</p>
+                </div>
+
+                <div class="metric-card blue">
+                    <span>Recibidos</span>
+                    <h3 id="recursosRecibidos">0</h3>
+                    <p>Ya disponibles</p>
+                </div>
+
+                <div class="metric-card green">
+                    <span>Entregados</span>
+                    <h3 id="recursosEntregados">0</h3>
+                    <p>Entregados al cliente</p>
+                </div>
+
+                <div class="metric-card">
+                    <span>Retrasados</span>
+                    <h3 id="recursosRetrasados">0</h3>
+                    <p>Fecha estimada vencida</p>
+                </div>
+
+                <div class="metric-card purple">
+                    <span>Promedio proveedor</span>
+                    <h3 id="promedioDiasProveedor">0</h3>
+                    <p>Días hasta recepción</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="reports-grid">
+            <div class="report-card">
+                <h3>Recursos por estado</h3>
+                <p class="report-card-description">Estado actual del flujo de solicitudes externas.</p>
+                <div id="reporteEstadosRecursos" class="report-list">
+                    <p>Cargando datos...</p>
+                </div>
+            </div>
+
+            <div class="report-card">
+                <h3>Seguimiento de entregas</h3>
+                <p class="report-card-description">Indicadores de fechas estimadas de proveedor.</p>
+                <div id="reporteEntregasRecursos" class="report-list">
+                    <p>Cargando datos...</p>
+                </div>
+            </div>
+
+            <div class="report-card">
+                <h3>Interpretación</h3>
+                <p class="report-card-description">Los recursos externos se reportan aparte del desempeño operativo.</p>
+                <div class="report-list">
+                    <div class="report-item">
+                        <span>SLA operativo</span>
+                        <strong>No incluye espera de proveedor</strong>
+                    </div>
+                    <div class="report-item">
+                        <span>Tiempo de proveedor</span>
+                        <strong>Métrica independiente</strong>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="table-section">
+            <div class="section-header">
+                <div>
+                    <h2 id="tituloResumenReporte">Resumen del reporte</h2>
+                    <p id="descripcionResumenReporte">Comparación entre trabajo operativo y recursos externos.</p>
+                </div>
+
+                <button class="secondary-btn" type="button" onclick="window.print()">
                     Imprimir reporte
                 </button>
             </div>
@@ -161,6 +267,7 @@
                 <table>
                     <thead>
                         <tr>
+                            <th>Área</th>
                             <th>Indicador</th>
                             <th>Valor</th>
                             <th>Descripción</th>
@@ -168,7 +275,7 @@
                     </thead>
                     <tbody id="tablaResumen">
                         <tr>
-                            <td colspan="3">Cargando resumen...</td>
+                            <td colspan="4">Cargando resumen...</td>
                         </tr>
                     </tbody>
                 </table>

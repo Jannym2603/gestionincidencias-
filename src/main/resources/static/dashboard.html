@@ -23,6 +23,7 @@
                 <a href="dashboard.html" class="menu-item active">Dashboard</a>
                 <a href="tickets.html" class="menu-item">Tickets</a>
                 <a href="crear-ticket.html" class="menu-item" data-menu="crear-ticket">Crear Ticket</a>
+                <a href="solicitudes-recursos.html" class="menu-item" data-menu="solicitudes-recursos">Solicitudes de Recursos</a>
                 <a href="usuarios.html" class="menu-item" data-menu="usuarios">Usuarios</a>
                 <a href="reportes.html" class="menu-item" data-menu="reportes">Reportes</a>
                 <a href="historial.html" class="menu-item" data-menu="historial">Historial</a>
@@ -35,17 +36,17 @@
             <header class="topbar">
                 <div>
                     <h1>Dashboard</h1>
-                    <p>Resumen general del sistema de gestión de incidencias</p>
+                    <p>Resumen de Operaciones y recursos que dependen de proveedores externos.</p>
                 </div>
 
                 <div class="topbar-actions">
                     <input type="text" placeholder="Buscar ticket..." class="search-input" id="buscarTicket">
 
                     <div class="user-box">
-                        <div class="avatar" id="avatarUsuario">JR</div>
+                        <div class="avatar" id="avatarUsuario">US</div>
                         <div>
-                            <strong id="nombreUsuario">Janeth Ramos</strong>
-                            <span id="rolUsuario">ADMIN</span>
+                            <strong id="nombreUsuario">Usuario</strong>
+                            <span id="rolUsuario">Rol</span>
                         </div>
                     </div>
 
@@ -56,46 +57,184 @@
             <section class="action-bar">
                 <div>
                     <h2>Panel principal</h2>
-                    <p>Consulta métricas, tickets recientes y estado general del soporte.</p>
+                    <p>Consulta rápidamente el trabajo operativo y las solicitudes que dependen de terceros.</p>
                 </div>
 
-                <button class="primary-btn" onclick="window.location.href='crear-ticket.html'">
+                <button
+                    class="primary-btn"
+                    data-feature-action="crear-ticket"
+                    onclick="window.location.href='crear-ticket.html'">
                     Crear nuevo ticket
                 </button>
             </section>
 
-            <section class="metrics-grid">
-                <div class="metric-card"><span>Total tickets</span><h3 id="totalTickets">0</h3><p>Registrados</p></div>
-                <div class="metric-card blue"><span>Nuevos</span><h3 id="ticketsNuevos">0</h3><p>Pendientes de atención</p></div>
-                <div class="metric-card purple"><span>Asignados</span><h3 id="ticketsAsignados">0</h3><p>Con agente asignado</p></div>
-                <div class="metric-card orange"><span>En progreso</span><h3 id="ticketsEnProgreso">0</h3><p>En proceso</p></div>
-                <div class="metric-card green"><span>Resueltos</span><h3 id="ticketsResueltos">0</h3><p>Solucionados</p></div>
-                <div class="metric-card gray"><span>Cerrados</span><h3 id="ticketsCerrados">0</h3><p>Finalizados</p></div>
-                <div class="metric-card"><span>Usuarios</span><h3 id="totalUsuarios">0</h3><p>Registrados</p></div>
-                <div class="metric-card"><span>Comentarios</span><h3 id="totalComentarios">0</h3><p>Seguimientos</p></div>
+            <section class="table-section">
+                <div class="section-header">
+                    <div>
+                        <h2>Operaciones</h2>
+                        <p>Solo incluye tickets de atención operativa. Los tiempos de proveedor no afectan estos indicadores.</p>
+                    </div>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <span>Tickets operativos</span>
+                        <h3 id="totalOperativos">0</h3>
+                        <p>Registrados</p>
+                    </div>
+
+                    <div class="metric-card blue">
+                        <span>Nuevos</span>
+                        <h3 id="ticketsNuevos">0</h3>
+                        <p>Pendientes de atención</p>
+                    </div>
+
+                    <div class="metric-card purple">
+                        <span>Asignados</span>
+                        <h3 id="ticketsAsignados">0</h3>
+                        <p>Con agente asignado</p>
+                    </div>
+
+                    <div class="metric-card orange">
+                        <span>En progreso</span>
+                        <h3 id="ticketsEnProgreso">0</h3>
+                        <p>En proceso</p>
+                    </div>
+
+                    <div class="metric-card green">
+                        <span>Resueltos</span>
+                        <h3 id="ticketsResueltos">0</h3>
+                        <p>Solucionados</p>
+                    </div>
+
+                    <div class="metric-card gray">
+                        <span>Cerrados</span>
+                        <h3 id="ticketsCerrados">0</h3>
+                        <p>Finalizados</p>
+                    </div>
+                </div>
             </section>
 
             <section class="reports-grid">
-                <div class="report-card"><h3>Tickets por estado</h3><div id="estadoReporte" class="report-list"><p>Cargando datos...</p></div></div>
-                <div class="report-card"><h3>Tickets por prioridad</h3><div id="prioridadReporte" class="report-list"><p>Cargando datos...</p></div></div>
-                <div class="report-card"><h3>Tickets por tipo</h3><div id="tipoReporte" class="report-list"><p>Cargando datos...</p></div></div>
+                <div class="report-card">
+                    <h3>Operativos por estado</h3>
+                    <div id="estadoReporte" class="report-list">
+                        <p>Cargando datos...</p>
+                    </div>
+                </div>
+
+                <div class="report-card">
+                    <h3>Operativos por prioridad</h3>
+                    <div id="prioridadReporte" class="report-list">
+                        <p>Cargando datos...</p>
+                    </div>
+                </div>
+
+                <div class="report-card">
+                    <h3>Operativos por tipo</h3>
+                    <div id="tipoReporte" class="report-list">
+                        <p>Cargando datos...</p>
+                    </div>
+                </div>
+            </section>
+
+            <section
+                class="table-section"
+                id="seccionRecursosDashboard"
+                data-feature-action="solicitudes-recursos">
+
+                <div class="section-header">
+                    <div>
+                        <h2>Recursos externos</h2>
+                        <p>Seguimiento de solicitudes cuyo avance depende de proveedores.</p>
+                    </div>
+
+                    <button
+                        class="secondary-btn"
+                        type="button"
+                        onclick="window.location.href='solicitudes-recursos.html'">
+                        Ver solicitudes
+                    </button>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-card orange">
+                        <span>Esperando proveedor</span>
+                        <h3 id="recursosEsperandoProveedor">0</h3>
+                        <p>Dependencia externa</p>
+                    </div>
+
+                    <div class="metric-card blue">
+                        <span>Próximas entregas</span>
+                        <h3 id="recursosProximasEntregas">0</h3>
+                        <p>En los próximos 7 días</p>
+                    </div>
+
+                    <div class="metric-card">
+                        <span>Retrasadas</span>
+                        <h3 id="recursosRetrasados">0</h3>
+                        <p>Fecha estimada vencida</p>
+                    </div>
+
+                    <div class="metric-card green">
+                        <span>Entregadas</span>
+                        <h3 id="recursosEntregados">0</h3>
+                        <p>Entregadas al cliente</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="metrics-grid">
+                <div class="metric-card">
+                    <span>Usuarios</span>
+                    <h3 id="totalUsuarios">0</h3>
+                    <p>Relacionados</p>
+                </div>
+
+                <div class="metric-card">
+                    <span>Comentarios</span>
+                    <h3 id="totalComentarios">0</h3>
+                    <p>Seguimientos</p>
+                </div>
             </section>
 
             <section class="table-section">
                 <div class="section-header">
                     <div>
                         <h2>Tickets recientes</h2>
-                        <p>Últimas incidencias registradas en el sistema</p>
+                        <p>Últimas incidencias registradas dentro de tu alcance.</p>
                     </div>
-                    <button class="secondary-btn" onclick="window.location.href='tickets.html'">Ver todos</button>
+
+                    <button
+                        class="secondary-btn"
+                        onclick="window.location.href='tickets.html'">
+                        Ver todos
+                    </button>
                 </div>
 
                 <div class="table-wrapper">
                     <table>
                         <thead>
-                            <tr><th>Número</th><th>Título</th><th>Tipo</th><th>Cliente</th><th>Estado</th><th>Prioridad</th><th>Fecha creación</th><th>Acción</th></tr>
+                            <tr>
+                                <th>Número</th>
+                                <th>Título</th>
+                                <th>Atención</th>
+                                <th>Tipo</th>
+                                <th>Cliente</th>
+                                <th>Estado</th>
+                                <th>Prioridad</th>
+                                <th>Fecha creación</th>
+                                <th>Acción</th>
+                            </tr>
                         </thead>
-                        <tbody id="ticketsTableBody"><tr><td colspan="8">Cargando tickets...</td></tr></tbody>
+
+                        <tbody id="ticketsTableBody">
+                            <tr>
+                                <td colspan="9">
+                                    Cargando tickets...
+                                </td>
+                            </tr>
+                        </tbody>
                     </table>
                 </div>
             </section>

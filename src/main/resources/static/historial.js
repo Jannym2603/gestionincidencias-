@@ -1,129 +1,113 @@
 let historialOriginal = [];
-let ticketsDisponibles = [];
-let historialVisible = [];
+let ticketsHistorial = [];
+let historialEnriquecido = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
     inicializarLayout();
 
-    await cargarTicketsParaFiltro();
-    await cargarHistorial();
+    const usuario = obtenerSesion();
 
-    const filtroTicket =
-        document.getElementById("filtroTicket");
-
-    const filtroAccion =
-        document.getElementById("filtroAccion");
-
-    if (filtroTicket) {
-        filtroTicket.addEventListener(
-            "change",
-            aplicarFiltrosHistorial
-        );
+    if (!usuario) {
+        window.location.href = "login.html";
+        return;
     }
 
-    if (filtroAccion) {
-        filtroAccion.addEventListener(
-            "change",
-            aplicarFiltrosHistorial
-        );
-    }
+    configurarDescripcionHistorial(usuario);
+    configurarFiltrosHistorial();
+
+    await cargarDatosHistorial();
 });
 
-/* =====================================================
-   CARGAR TICKETS
-===================================================== */
+async function cargarDatosHistorial() {
+    const tbody = document.getElementById("historialBody");
 
-async function cargarTicketsParaFiltro() {
     try {
-        const usuario = obtenerSesion();
+        /*
+         * Primero cargamos /api/tickets.
+         * Ese endpoint ya devuelve solamente los tickets que el
+         * usuario autenticado puede consultar según su rol.
+         */
+        const ticketsResponse =
+            await fetch(`${API_BASE}/tickets`);
 
-        if (!usuario) {
-            window.location.href = "login.html";
-            return;
-        }
-
-        const response = await fetch(
-            `${API_BASE}/tickets`
-        );
-
-        if (!response.ok) {
+        if (!ticketsResponse.ok) {
             throw new Error(
-                "No se pudieron cargar los tickets."
+                await obtenerMensajeErrorHistorial(ticketsResponse)
+                || "No se pudieron cargar los tickets disponibles."
             );
         }
 
-        const tickets = await response.json();
+        ticketsHistorial =
+            await ticketsResponse.json();
 
-        /*
-         * Guardamos temporalmente todos los tickets.
-         * Después de cargar el historial, mostraremos
-         * solamente los tickets donde el usuario realizó acciones.
-         */
-        ticketsDisponibles = tickets;
-
-        configurarTextoHistorial(usuario);
-
-    } catch (error) {
-        console.error(
-            "Error cargando tickets para filtro:",
-            error
-        );
-    }
-}
-
-/* =====================================================
-   CARGAR HISTORIAL
-===================================================== */
-
-async function cargarHistorial() {
-    try {
-        const usuario = obtenerSesion();
-
-        if (!usuario) {
-            window.location.href = "login.html";
-            return;
+        if (!Array.isArray(ticketsHistorial)) {
+            ticketsHistorial = [];
         }
 
-        const response = await fetch(
-            `${API_BASE}/historial-tickets`
-        );
+        /*
+         * En lugar de depender del endpoint global
+         * /api/historial-tickets, consultamos el historial de cada
+         * ticket permitido. Este mismo endpoint ya es utilizado en
+         * el detalle del ticket y permite respetar el alcance por rol.
+         */
+        const respuestasHistorial =
+            await Promise.all(
+                ticketsHistorial.map(
+                    async ticket => {
+                        try {
+                            const response =
+                                await fetch(
+                                    `${API_BASE}/historial-tickets/ticket/${ticket.id}`
+                                );
 
-        if (!response.ok) {
-            throw new Error(
-                "No se pudo cargar el historial."
+                            if (!response.ok) {
+                                console.warn(
+                                    `No se pudo cargar el historial del ticket ${ticket.numeroTicket || ticket.id}.`
+                                );
+
+                                return [];
+                            }
+
+                            const data =
+                                await response.json();
+
+                            return Array.isArray(data)
+                                ? data
+                                : [];
+
+                        } catch (error) {
+                            console.warn(
+                                `Error cargando historial del ticket ${ticket.numeroTicket || ticket.id}:`,
+                                error
+                            );
+
+                            return [];
+                        }
+                    }
+                )
             );
-        }
 
-        const historial = await response.json();
+        historialOriginal =
+            respuestasHistorial.flat();
 
-        /*
-         * Solo mostramos los eventos realizados
-         * por el usuario que inició sesión.
-         */
-        historialOriginal = historial.filter(
-            item =>
-                Number(item.usuarioId) ===
-                Number(usuario.id)
-        );
+        historialEnriquecido =
+            enriquecerHistorial(
+                historialOriginal,
+                ticketsHistorial
+            );
 
-        historialVisible = [...historialOriginal];
-
+        cargarFiltroCompanias();
+        actualizarFiltroProyectos();
         actualizarFiltroTickets();
-        pintarHistorial(historialVisible);
+        aplicarFiltrosHistorial();
 
     } catch (error) {
-        console.error(
-            "Error cargando historial:",
-            error
-        );
-
-        const tbody =
-            document.getElementById("historialBody");
+        console.error("Error cargando historial:", error);
 
         if (tbody) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="7">
+                    <td colspan="9">
                         No se pudo cargar el historial.
                     </td>
                 </tr>
@@ -132,233 +116,401 @@ async function cargarHistorial() {
     }
 }
 
-/* =====================================================
-   FILTRO DE TICKETS
-===================================================== */
+function enriquecerHistorial(historial, tickets) {
+    const ticketsPorId = new Map();
 
-function actualizarFiltroTickets() {
-    const select =
-        document.getElementById("filtroTicket");
+    tickets.forEach(ticket => {
+        ticketsPorId.set(Number(ticket.id), ticket);
+    });
 
-    if (!select) {
-        return;
+    return historial
+        .map(item => {
+            const ticket = ticketsPorId.get(Number(item.ticketId));
+
+            if (!ticket) return null;
+
+            return {
+                ...item,
+                companiaId: Number(ticket.companiaId || 0),
+                companiaNombre: ticket.companiaNombre || "Sin compañía",
+                proyectoId: Number(ticket.proyectoId || 0),
+                proyectoNombre: ticket.proyectoNombre || "Sin proyecto"
+            };
+        })
+        .filter(Boolean);
+}
+
+function configurarDescripcionHistorial(usuario) {
+    const descripcion = document.getElementById("descripcionHistorial");
+
+    if (!descripcion) return;
+
+    const rol = String(usuario?.rol || "").trim().toUpperCase();
+
+    if (rol === "ADMIN") {
+        descripcion.textContent =
+            "Consulta las acciones registradas en todos los tickets del sistema.";
+    } else if (rol === "SUPERVISOR") {
+        descripcion.textContent =
+            "Consulta el historial de los tickets pertenecientes a los proyectos que supervisas.";
+    } else if (rol === "AGENTE") {
+        descripcion.textContent =
+            "Consulta el historial de los tickets que tienes asignados.";
+    } else if (rol === "CLIENTE") {
+        descripcion.textContent =
+            "Consulta el historial disponible de tus propios tickets.";
     }
+}
 
-    select.innerHTML = `
-        <option value="">
-            Todos mis tickets
-        </option>
-    `;
+function configurarFiltrosHistorial() {
+    const filtroCompania = document.getElementById("filtroCompania");
+    const filtroProyecto = document.getElementById("filtroProyecto");
+    const filtroTicket = document.getElementById("filtroTicket");
+    const filtroAccion = document.getElementById("filtroAccion");
+    const btnLimpiar = document.getElementById("btnLimpiarFiltrosHistorial");
 
-    /*
-     * Obtenemos los IDs de tickets donde el usuario
-     * realizó al menos una acción.
-     */
-    const idsTicketsHistorial = [
-        ...new Set(
-            historialOriginal.map(
-                item => Number(item.ticketId)
-            )
-        )
-    ];
+    filtroCompania?.addEventListener("change", () => {
+        actualizarFiltroProyectos();
 
-    const ticketsDelUsuario =
-        ticketsDisponibles.filter(
-            ticket =>
-                idsTicketsHistorial.includes(
-                    Number(ticket.id)
-                )
-        );
+        if (filtroProyecto) filtroProyecto.value = "";
 
-    ticketsDelUsuario.forEach(ticket => {
-        const option =
-            document.createElement("option");
+        actualizarFiltroTickets();
+        aplicarFiltrosHistorial();
+    });
 
-        option.value = ticket.id;
+    filtroProyecto?.addEventListener("change", () => {
+        actualizarFiltroTickets();
 
-        option.textContent =
-            `${ticket.numeroTicket} - ${ticket.titulo}`;
+        if (filtroTicket) filtroTicket.value = "";
 
-        select.appendChild(option);
+        aplicarFiltrosHistorial();
+    });
+
+    filtroTicket?.addEventListener("change", aplicarFiltrosHistorial);
+    filtroAccion?.addEventListener("change", aplicarFiltrosHistorial);
+
+    btnLimpiar?.addEventListener("click", () => {
+        if (filtroCompania) filtroCompania.value = "";
+
+        actualizarFiltroProyectos();
+
+        if (filtroProyecto) filtroProyecto.value = "";
+
+        actualizarFiltroTickets();
+
+        if (filtroTicket) filtroTicket.value = "";
+        if (filtroAccion) filtroAccion.value = "";
+
+        aplicarFiltrosHistorial();
     });
 }
 
-/* =====================================================
-   APLICAR FILTROS
-===================================================== */
+function cargarFiltroCompanias() {
+    const select = document.getElementById("filtroCompania");
 
-function aplicarFiltrosHistorial() {
-    const ticketId =
-        document.getElementById("filtroTicket")
-            ?.value || "";
+    if (!select) return;
 
-    const accion =
-        document.getElementById("filtroAccion")
-            ?.value || "";
+    const companias = new Map();
 
-    let historialFiltrado = [
-        ...historialOriginal
-    ];
+    historialEnriquecido.forEach(item => {
+        if (item.companiaId && !companias.has(item.companiaId)) {
+            companias.set(item.companiaId, item.companiaNombre);
+        }
+    });
 
-    if (ticketId) {
-        historialFiltrado =
-            historialFiltrado.filter(
-                item =>
-                    Number(item.ticketId) ===
-                    Number(ticketId)
-            );
-    }
+    select.innerHTML =
+        `<option value="">Todas las compañías</option>`;
 
-    if (accion) {
-        historialFiltrado =
-            historialFiltrado.filter(
-                item => item.accion === accion
-            );
-    }
-
-    historialVisible = historialFiltrado;
-
-    pintarHistorial(historialVisible);
+    Array.from(companias.entries())
+        .sort((a, b) =>
+            String(a[1]).localeCompare(
+                String(b[1]),
+                "es",
+                { sensitivity: "base" }
+            )
+        )
+        .forEach(([id, nombre]) => {
+            const option = document.createElement("option");
+            option.value = String(id);
+            option.textContent = nombre;
+            select.appendChild(option);
+        });
 }
 
-/* =====================================================
-   PINTAR HISTORIAL
-===================================================== */
+function actualizarFiltroProyectos() {
+    const selectCompania = document.getElementById("filtroCompania");
+    const selectProyecto = document.getElementById("filtroProyecto");
+
+    if (!selectProyecto) return;
+
+    const companiaId = Number(selectCompania?.value || 0);
+    const proyectos = new Map();
+
+    historialEnriquecido
+        .filter(item =>
+            !companiaId
+            || Number(item.companiaId) === companiaId
+        )
+        .forEach(item => {
+            if (item.proyectoId && !proyectos.has(item.proyectoId)) {
+                proyectos.set(item.proyectoId, item.proyectoNombre);
+            }
+        });
+
+    selectProyecto.innerHTML =
+        `<option value="">Todos los proyectos</option>`;
+
+    Array.from(proyectos.entries())
+        .sort((a, b) =>
+            String(a[1]).localeCompare(
+                String(b[1]),
+                "es",
+                { sensitivity: "base" }
+            )
+        )
+        .forEach(([id, nombre]) => {
+            const option = document.createElement("option");
+            option.value = String(id);
+            option.textContent = nombre;
+            selectProyecto.appendChild(option);
+        });
+}
+
+function actualizarFiltroTickets() {
+    const selectCompania = document.getElementById("filtroCompania");
+    const selectProyecto = document.getElementById("filtroProyecto");
+    const selectTicket = document.getElementById("filtroTicket");
+
+    if (!selectTicket) return;
+
+    const companiaId = Number(selectCompania?.value || 0);
+    const proyectoId = Number(selectProyecto?.value || 0);
+    const tickets = new Map();
+
+    historialEnriquecido
+        .filter(item =>
+            (!companiaId || Number(item.companiaId) === companiaId)
+            &&
+            (!proyectoId || Number(item.proyectoId) === proyectoId)
+        )
+        .forEach(item => {
+            if (item.ticketId && !tickets.has(Number(item.ticketId))) {
+                tickets.set(
+                    Number(item.ticketId),
+                    item.numeroTicket || `Ticket #${item.ticketId}`
+                );
+            }
+        });
+
+    selectTicket.innerHTML =
+        `<option value="">Todos los tickets</option>`;
+
+    Array.from(tickets.entries())
+        .sort((a, b) =>
+            String(b[1]).localeCompare(
+                String(a[1]),
+                "es",
+                { numeric: true }
+            )
+        )
+        .forEach(([id, numero]) => {
+            const option = document.createElement("option");
+            option.value = String(id);
+            option.textContent = numero;
+            selectTicket.appendChild(option);
+        });
+}
+
+function aplicarFiltrosHistorial() {
+    const companiaId = Number(
+        document.getElementById("filtroCompania")?.value || 0
+    );
+
+    const proyectoId = Number(
+        document.getElementById("filtroProyecto")?.value || 0
+    );
+
+    const ticketId = Number(
+        document.getElementById("filtroTicket")?.value || 0
+    );
+
+    const accion = String(
+        document.getElementById("filtroAccion")?.value || ""
+    )
+        .trim()
+        .toUpperCase();
+
+    const filtrados = historialEnriquecido.filter(item => {
+        if (
+            companiaId
+            &&
+            Number(item.companiaId) !== companiaId
+        ) {
+            return false;
+        }
+
+        if (
+            proyectoId
+            &&
+            Number(item.proyectoId) !== proyectoId
+        ) {
+            return false;
+        }
+
+        if (
+            ticketId
+            &&
+            Number(item.ticketId) !== ticketId
+        ) {
+            return false;
+        }
+
+        if (
+            accion
+            &&
+            String(item.accion || "").trim().toUpperCase() !== accion
+        ) {
+            return false;
+        }
+
+        return true;
+    });
+
+    pintarHistorial(filtrados);
+    actualizarTextoAlcanceHistorial(filtrados.length);
+}
 
 function pintarHistorial(historial) {
-    const tbody =
-        document.getElementById("historialBody");
+    const tbody = document.getElementById("historialBody");
 
-    if (!tbody) {
-        return;
-    }
+    if (!tbody) return;
 
     tbody.innerHTML = "";
 
-    if (historial.length === 0) {
+    if (!Array.isArray(historial) || historial.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="7">
-                    No tienes eventos registrados.
+                <td colspan="9">
+                    No hay eventos que coincidan con los filtros seleccionados.
                 </td>
             </tr>
         `;
-
         return;
     }
 
-    historial.forEach(item => {
-        const tr =
-            document.createElement("tr");
+    historial
+        .slice()
+        .sort((a, b) =>
+            new Date(b.fechaCreacion || 0)
+            -
+            new Date(a.fechaCreacion || 0)
+        )
+        .forEach(item => {
+            const tr = document.createElement("tr");
 
-        tr.innerHTML = `
-            <td>
-                ${escaparHtml(
-                    item.numeroTicket || "-"
-                )}
-            </td>
+            tr.innerHTML = `
+                <td>
+                    <strong>${escaparHtmlHistorial(item.numeroTicket || "-")}</strong>
+                </td>
 
-            <td>
-                ${escaparHtml(
-                    item.nombreUsuario || "Sistema"
-                )}
-            </td>
+                <td>${escaparHtmlHistorial(item.companiaNombre || "-")}</td>
 
-            <td>
-                <span class="badge badge-asignado">
-                    ${escaparHtml(
-                        item.accion || "-"
-                    )}
-                </span>
-            </td>
+                <td>${escaparHtmlHistorial(item.proyectoNombre || "-")}</td>
 
-            <td>
-                ${escaparHtml(
-                    item.valorAnterior || "-"
-                )}
-            </td>
+                <td>${escaparHtmlHistorial(item.nombreUsuario || "Sistema")}</td>
 
-            <td>
-                ${escaparHtml(
-                    item.valorNuevo || "-"
-                )}
-            </td>
+                <td>
+                    <span class="badge historial-action-badge">
+                        ${escaparHtmlHistorial(formatearAccionHistorial(item.accion))}
+                    </span>
+                </td>
 
-            <td>
-                ${escaparHtml(
-                    item.descripcion || "-"
-                )}
-            </td>
+                <td>${escaparHtmlHistorial(item.valorAnterior || "-")}</td>
 
-            <td>
-                ${formatearFecha(
-                    item.fechaCreacion
-                )}
-            </td>
-        `;
+                <td>${escaparHtmlHistorial(item.valorNuevo || "-")}</td>
 
-        tbody.appendChild(tr);
-    });
+                <td class="historial-description-cell">
+                    ${escaparHtmlHistorial(item.descripcion || "-")}
+                </td>
+
+                <td>${formatearFecha(item.fechaCreacion)}</td>
+            `;
+
+            tbody.appendChild(tr);
+        });
 }
 
-/* =====================================================
-   LIMPIAR FILTROS
-===================================================== */
+function actualizarTextoAlcanceHistorial(total) {
+    const alcance = document.getElementById("alcanceHistorial");
+    const contador = document.getElementById("contadorHistorial");
 
-function limpiarFiltros() {
-    const filtroTicket =
-        document.getElementById("filtroTicket");
+    const compania = document.getElementById("filtroCompania");
+    const proyecto = document.getElementById("filtroProyecto");
+    const ticket = document.getElementById("filtroTicket");
 
-    const filtroAccion =
-        document.getElementById("filtroAccion");
+    let texto = "Todos los eventos disponibles";
 
-    if (filtroTicket) {
-        filtroTicket.value = "";
+    if (ticket?.value) {
+        texto =
+            ticket.options[ticket.selectedIndex]?.text
+            || "Ticket seleccionado";
+    } else if (proyecto?.value) {
+        texto =
+            proyecto.options[proyecto.selectedIndex]?.text
+            || "Proyecto seleccionado";
+    } else if (compania?.value) {
+        texto =
+            compania.options[compania.selectedIndex]?.text
+            || "Compañía seleccionada";
     }
 
-    if (filtroAccion) {
-        filtroAccion.value = "";
+    if (alcance) alcance.textContent = texto;
+
+    if (contador) {
+        contador.textContent = `${total} evento(s) encontrado(s).`;
     }
-
-    historialVisible = [
-        ...historialOriginal
-    ];
-
-    pintarHistorial(historialVisible);
 }
 
-/* =====================================================
-   TEXTO SEGÚN USUARIO
-===================================================== */
+function formatearAccionHistorial(valor) {
+    const accion = String(valor || "").trim().toUpperCase();
 
-function configurarTextoHistorial(usuario) {
-    const titulo =
-        document.querySelector(".topbar h1");
+    const etiquetas = {
+        CREACION_TICKET: "Creación ticket",
+        ASIGNACION_AGENTE: "Asignación agente",
+        CAMBIO_ESTADO: "Cambio estado",
+        COMENTARIO_AGREGADO: "Comentario agregado",
+        CAMBIO_PRIORIDAD: "Cambio prioridad"
+    };
 
-    const descripcion =
-        document.querySelector(".topbar p");
-
-    if (!usuario || !titulo || !descripcion) {
-        return;
-    }
-
-    titulo.textContent = "Mi historial";
-
-    descripcion.textContent =
-        "Consulta únicamente las acciones realizadas por tu usuario.";
+    return etiquetas[accion] || accion.replaceAll("_", " ");
 }
 
-/* =====================================================
-   UTILIDAD DE SEGURIDAD
-===================================================== */
-
-function escaparHtml(valor) {
-    const texto = String(valor ?? "");
-
-    return texto
+function escaparHtmlHistorial(valor) {
+    return String(valor ?? "")
         .replaceAll("&", "&amp;")
         .replaceAll("<", "&lt;")
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
+}
+
+async function obtenerMensajeErrorHistorial(response) {
+    try {
+        const tipo =
+            response.headers.get("content-type")
+            || "";
+
+        if (tipo.includes("application/json")) {
+            const data = await response.json();
+
+            return data?.message
+                || data?.error
+                || null;
+        }
+
+        return await response.text();
+
+    } catch (error) {
+        return null;
+    }
 }

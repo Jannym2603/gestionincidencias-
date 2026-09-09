@@ -1,0 +1,208 @@
+<!DOCTYPE html> 
+<html lang="es"> 
+<head> 
+    <meta charset="UTF-8"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>Proyectos | Gestión de Incidencias</title> 
+    <link rel="stylesheet" href="style.css"> 
+</head> 
+
+<body> 
+
+<div class="app-container"> 
+
+    <aside class="sidebar"> 
+
+        <div class="sidebar-logo"> 
+            <div class="logo-icon">GI</div> 
+            <div> 
+                <h2>Gestión</h2> 
+                <span>de Incidencias</span> 
+            </div> 
+        </div> 
+
+        <nav class="menu"> 
+
+            <a href="dashboard.html" class="menu-item"> 
+                Dashboard 
+            </a> 
+
+            <a href="tickets.html" class="menu-item"> 
+                Tickets 
+            </a> 
+
+            <a 
+                href="proyectos.html" 
+                class="menu-item active" 
+                data-menu="proyectos" 
+            > 
+                Proyectos 
+            </a> 
+
+            <a 
+                href="crear-ticket.html" 
+                class="menu-item" 
+                data-menu="crear-ticket" 
+            > 
+                Crear Ticket 
+            </a> 
+
+            <a 
+                href="usuarios.html" 
+                class="menu-item" 
+                data-menu="usuarios" 
+            > 
+                Usuarios 
+            </a> 
+
+            <a 
+                href="reportes.html" 
+                class="menu-item" 
+                data-menu="reportes" 
+            > 
+                Reportes 
+            </a> 
+
+            <a 
+                href="historial.html" 
+                class="menu-item" 
+                data-menu="historial" 
+            > 
+                Historial 
+            </a> 
+
+            <a 
+                href="companias-proyectos.html" 
+                class="menu-item" 
+                data-menu="companias-proyectos" 
+            > 
+                Gestión organizacional 
+            </a> 
+
+            <a 
+                href="configuracion.html" 
+                class="menu-item" 
+                data-menu="configuracion" 
+            > 
+                Configuración 
+            </a> 
+
+        </nav> 
+
+    </aside> 
+
+
+    <main class="main-content"> 
+
+        <header class="topbar"> 
+
+            <div> 
+                <h1>Proyectos</h1> 
+                <p id="descripcionProyectos"> 
+                    Consulta los proyectos a los que tienes acceso. 
+                </p> 
+            </div> 
+
+            <div class="topbar-actions"> 
+
+                <div class="user-box"> 
+                    <div class="avatar" id="avatarUsuario">US</div> 
+                    <div> 
+                        <strong id="nombreUsuario">Usuario</strong> 
+                        <span id="rolUsuario">Rol</span> 
+                    </div> 
+                </div> 
+
+                <button 
+                    type="button" 
+                    class="logout-btn" 
+                    id="btnLogout" 
+                > 
+                    Cerrar sesión 
+                </button> 
+
+            </div> 
+
+        </header> 
+
+
+        <section class="table-section"> 
+
+            <div class="section-header"> 
+
+                <div> 
+                    <h2>Mis proyectos</h2> 
+                    <p> 
+                        Selecciona un proyecto para consultar sus tickets. 
+                    </p> 
+                </div> 
+
+                <button 
+                    type="button" 
+                    class="secondary-btn" 
+                    id="btnRecargarProyectos" 
+                > 
+                    Recargar 
+                </button> 
+
+            </div> 
+
+
+            <div class="filters-grid"> 
+
+                <div class="form-group"> 
+                    <label for="buscarProyecto"> 
+                        Buscar proyecto 
+                    </label> 
+
+                    <input 
+                        type="text" 
+                        id="buscarProyecto" 
+                        placeholder="Buscar por compañía o proyecto..." 
+                        autocomplete="off" 
+                    > 
+                </div> 
+
+
+                <div class="form-group"> 
+                    <label for="filtroCompaniaProyecto"> 
+                        Compañía 
+                    </label> 
+
+                    <select id="filtroCompaniaProyecto"> 
+                        <option value=""> 
+                            Todas las compañías 
+                        </option> 
+                    </select> 
+                </div> 
+
+            </div> 
+
+
+            <div 
+                id="estadoCargaProyectos" 
+                class="info-box" 
+                style="margin-top:16px;" 
+            > 
+                Preparando proyectos... 
+            </div> 
+
+
+            <div 
+                id="listaProyectos" 
+                class="project-cards-grid" 
+                style="margin-top:16px;" 
+            ></div> 
+
+        </section> 
+
+    </main> 
+
+</div> 
+
+
+<script src="app.js"></script> 
+<script src="proyectos.js"></script> 
+
+</body> 
+</html> 

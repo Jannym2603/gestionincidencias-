@@ -1,12 +1,40 @@
 let ticketActual = null;
 let ticketId = null;
 let enlacesCompartidosActuales = [];
+let intervaloSlaTicket = null;
+let proyectoOrigenId = null;
+let solicitudRecursoActual = null;
 
-document.addEventListener("DOMContentLoaded", () => {
-    inicializarLayout();
+document.addEventListener("DOMContentLoaded", async () => {
+
+    try {
+
+        inicializarLayout();
+
+    } catch (errorLayout) {
+
+        console.warn(
+            "El layout tuvo un problema, pero el detalle continuará:",
+            errorLayout
+        );
+    }
 
     const params = new URLSearchParams(window.location.search);
     ticketId = params.get("id");
+
+    const proyectoOrigen =
+        Number(
+            params.get("proyectoId")
+        );
+
+    proyectoOrigenId =
+        Number.isInteger(proyectoOrigen)
+        &&
+        proyectoOrigen > 0
+            ? proyectoOrigen
+            : null;
+
+    configurarRegresoTickets();
 
     if (!ticketId) {
         alert("No se recibió el ID del ticket.");
@@ -14,45 +42,318 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
 
-    cargarDetalleTicket();
-    cargarComentarios();
-    cargarAdjuntosTicket();
-    cargarUsuariosParaAsignar();
     configurarVistaPorRol();
     configurarModalHistorial();
     configurarModalComentario();
     configurarModalCompartirTicket();
+
+    /*
+     * Primero cargamos el ticket específico.
+     * Los demás módulos dependen de que ticketActual
+     * ya tenga compañía y proyecto.
+     */
+    const detalleCargado = await cargarDetalleTicket();
+
+    if (!detalleCargado) {
+        return;
+    }
+
+    await Promise.all([
+        cargarComentarios(),
+        cargarAdjuntosTicket()
+    ]);
+
+    const rol = obtenerRolSesion();
+
+    if (rol === "ADMIN" || rol === "SUPERVISOR") {
+        await Promise.all([
+            cargarUsuariosParaAsignar(),
+            cargarEnlacesCompartidos()
+        ]);
+    }
 });
+
+function obtenerRolSesion() {
+    const usuario = obtenerSesion();
+
+    return String(usuario?.rol || "")
+        .trim()
+        .toUpperCase();
+}
+
+
+/* =====================================================
+   FETCH CON TIMEOUT DEL DETALLE
+===================================================== */
+
+async function fetchConTimeoutTicket(
+    url,
+    timeoutMs = 10000
+) {
+
+    const controller =
+        new AbortController();
+
+
+    const timer =
+        setTimeout(
+            () => controller.abort(),
+            timeoutMs
+        );
+
+
+    try {
+
+        return await fetch(
+            url,
+            {
+                signal:
+                    controller.signal
+            }
+        );
+
+
+    } catch (error) {
+
+        if (
+            error?.name === "AbortError"
+        ) {
+
+            throw new Error(
+                `El servidor tardó demasiado en responder a ${url}.`
+            );
+        }
+
+
+        throw error;
+
+
+    } finally {
+
+        clearTimeout(
+            timer
+        );
+    }
+}
+
+
+/* =====================================================
+   ERROR VISIBLE EN EL DETALLE
+===================================================== */
+
+function mostrarErrorCargaTicket(
+    mensaje
+) {
+
+    const numero =
+        document.getElementById(
+            "ticketNumero"
+        );
+
+
+    const titulo =
+        document.getElementById(
+            "ticketTitulo"
+        );
+
+
+    if (numero) {
+
+        numero.textContent =
+            "No se pudo cargar el ticket";
+    }
+
+
+    if (titulo) {
+
+        titulo.textContent =
+            mensaje;
+    }
+
+
+    [
+        "ticketEstado",
+        "ticketPrioridad",
+        "ticketTipo",
+        "ticketTipoAtencion",
+        "ticketFecha",
+        "ticketCompania",
+        "ticketProyecto",
+        "ticketCliente",
+        "ticketCorreo",
+        "ticketAgente"
+    ]
+        .forEach(
+            id => {
+
+                const elemento =
+                    document.getElementById(
+                        id
+                    );
+
+
+                if (elemento) {
+
+                    elemento.textContent =
+                        "-";
+                }
+            }
+        );
+
+
+    const descripcion =
+        document.getElementById(
+            "ticketDescripcion"
+        );
+
+
+    if (descripcion) {
+
+        descripcion.textContent =
+            mensaje;
+    }
+
+
+    const sla =
+        document.getElementById(
+            "slaMensajeGeneral"
+        );
+
+
+    if (sla) {
+
+        sla.className =
+            "ticket-sla-message sla-message-danger";
+
+
+        sla.textContent =
+            "No fue posible calcular el SLA porque el ticket no terminó de cargar.";
+    }
+}
+
 
 /* =====================================================
    DETALLE DEL TICKET
 ===================================================== */
 
 async function cargarDetalleTicket() {
+
     try {
-        const response = await fetch(`${API_BASE}/tickets`);
+
+        /*
+         * Cargamos solamente el ticket solicitado.
+         *
+         * El backend actual ya dispone de:
+         * GET /api/tickets/{id}
+         *
+         * Además, ese endpoint valida que el usuario autenticado
+         * tenga permiso para consultar el ticket.
+         */
+        const response =
+            await fetchConTimeoutTicket(
+                `${API_BASE}/tickets/${
+                    encodeURIComponent(
+                        ticketId
+                    )
+                }`,
+                10000
+            );
+
 
         if (!response.ok) {
-            throw new Error("No se pudieron cargar los tickets.");
+
+            const mensaje =
+                await obtenerMensajeErrorRespuesta(
+                    response
+                );
+
+
+            if (
+                response.status === 403
+            ) {
+
+                throw new Error(
+                    mensaje
+                    ||
+                    "No tienes permiso para consultar este ticket."
+                );
+            }
+
+
+            if (
+                response.status === 404
+            ) {
+
+                throw new Error(
+                    mensaje
+                    ||
+                    "El ticket no fue encontrado."
+                );
+            }
+
+
+            throw new Error(
+                mensaje
+                ||
+                "No se pudo cargar el detalle del ticket."
+            );
         }
 
-        const tickets = await response.json();
 
-        ticketActual = tickets.find(
-            ticket => Number(ticket.id) === Number(ticketId)
+        ticketActual =
+            await response.json();
+
+
+        if (
+            !ticketActual
+            ||
+            Number(
+                ticketActual.id
+            )
+            !==
+            Number(
+                ticketId
+            )
+        ) {
+
+            throw new Error(
+                "La información recibida del ticket no es válida."
+            );
+        }
+
+
+        /*
+         * PintarDetalle también actualiza el panel SLA
+         * utilizando las fechas y estados enviados por el backend.
+         */
+        pintarDetalle(
+            ticketActual
         );
 
-        if (!ticketActual) {
-            alert("Ticket no encontrado.");
-            window.location.href = "tickets.html";
-            return;
-        }
+        await cargarSolicitudRecursoTicket();
 
-        pintarDetalle(ticketActual);
+        configurarVistaTicketSegunTipo();
+
+
+        return true;
+
 
     } catch (error) {
-        console.error("Error cargando detalle:", error);
-        alert("Error cargando el detalle del ticket.");
+
+        console.error(
+            "Error cargando detalle:",
+            error
+        );
+
+
+        mostrarErrorCargaTicket(
+            error.message
+            ||
+            "Error cargando el detalle del ticket."
+        );
+
+
+        return false;
     }
 }
 
@@ -72,8 +373,34 @@ function pintarDetalle(ticket) {
     document.getElementById("ticketTipo").textContent =
         ticket.tipoIncidenciaNombre || "-";
 
+    const tipoAtencion =
+        document.getElementById(
+            "ticketTipoAtencion"
+        );
+
+    if (tipoAtencion) {
+        tipoAtencion.textContent =
+            esTicketRecursoExterno(ticket)
+                ? "Recurso externo"
+                : "Operativo";
+    }
+
     document.getElementById("ticketFecha").textContent =
         formatearFecha(ticket.fechaCreacion);
+
+    /* NUEVO: compañía y proyecto */
+    const compania = document.getElementById("ticketCompania");
+    const proyecto = document.getElementById("ticketProyecto");
+
+    if (compania) {
+        compania.textContent =
+            ticket.companiaNombre || "Sin compañía";
+    }
+
+    if (proyecto) {
+        proyecto.textContent =
+            ticket.proyectoNombre || "Sin proyecto";
+    }
 
     document.getElementById("ticketCliente").textContent =
         ticket.clienteNombre || "-";
@@ -87,10 +414,22 @@ function pintarDetalle(ticket) {
     document.getElementById("ticketDescripcion").textContent =
         ticket.descripcion || "Sin descripción";
 
+    /*
+     * El backend ya calcula fechas y estados SLA.
+     * Aquí los mostramos de forma visual.
+     */
+    pintarSlaTicket(ticket);
+    configurarActualizacionSla();
+
     const nuevoEstado = document.getElementById("nuevoEstado");
 
     if (nuevoEstado && ticket.estado) {
-        nuevoEstado.value = ticket.estado;
+        const existeEstado = Array.from(nuevoEstado.options)
+            .some(option => option.value === ticket.estado);
+
+        if (existeEstado) {
+            nuevoEstado.value = ticket.estado;
+        }
     }
 
     const nuevaPrioridad =
@@ -99,7 +438,1432 @@ function pintarDetalle(ticket) {
     if (nuevaPrioridad && ticket.prioridad) {
         nuevaPrioridad.value = ticket.prioridad;
     }
+
+    const selectAgente = document.getElementById("agenteId");
+
+    if (
+        selectAgente &&
+        ticket.agenteId &&
+        Array.from(selectAgente.options)
+            .some(option => Number(option.value) === Number(ticket.agenteId))
+    ) {
+        selectAgente.value = String(ticket.agenteId);
+    }
 }
+
+
+/* =====================================================
+   TIPO DE ATENCIÓN / SOLICITUD DE RECURSO
+===================================================== */
+
+function esTicketRecursoExterno(
+    ticket = ticketActual
+) {
+
+    return String(
+        ticket?.tipoAtencion || "OPERATIVO"
+    )
+        .trim()
+        .toUpperCase()
+    === "RECURSO_EXTERNO";
+}
+
+
+async function cargarSolicitudRecursoTicket() {
+
+    solicitudRecursoActual =
+        null;
+
+    const seccion =
+        document.getElementById(
+            "seccionSolicitudRecursoTicket"
+        );
+
+    if (!esTicketRecursoExterno()) {
+
+        if (seccion) {
+            seccion.hidden = true;
+        }
+
+        return;
+    }
+
+    try {
+
+        const response =
+            await fetch(
+                `${API_BASE}/solicitudes-recursos/ticket/${
+                    encodeURIComponent(
+                        ticketId
+                    )
+                }`
+            );
+
+        if (
+            response.status === 403
+        ) {
+
+            if (seccion) {
+                seccion.hidden = true;
+            }
+
+            return;
+        }
+
+        if (!response.ok) {
+
+            throw new Error(
+                await obtenerMensajeErrorRespuesta(
+                    response
+                )
+                ||
+                "No se pudo cargar la solicitud de recurso."
+            );
+        }
+
+        solicitudRecursoActual =
+            await response.json();
+
+        pintarSolicitudRecursoTicket(
+            solicitudRecursoActual
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Error cargando solicitud de recurso:",
+            error
+        );
+
+        if (seccion) {
+            seccion.hidden = false;
+        }
+
+        ponerTextoRecurso(
+            "recursoEstado",
+            "No disponible"
+        );
+
+        ponerTextoRecurso(
+            "recursoObservaciones",
+            error.message
+            ||
+            "No se pudo cargar la solicitud."
+        );
+    }
+}
+
+
+function pintarSolicitudRecursoTicket(
+    solicitud
+) {
+
+    const seccion =
+        document.getElementById(
+            "seccionSolicitudRecursoTicket"
+        );
+
+    if (!seccion) {
+        return;
+    }
+
+    seccion.hidden =
+        false;
+
+    ponerTextoRecurso(
+        "recursoCategoria",
+        formatearTextoRecurso(
+            solicitud?.categoria
+        )
+    );
+
+    ponerTextoRecurso(
+        "recursoNombre",
+        solicitud?.recurso
+        ||
+        "-"
+    );
+
+    ponerTextoRecurso(
+        "recursoCantidad",
+        solicitud?.cantidad
+        ??
+        "-"
+    );
+
+    ponerTextoRecurso(
+        "recursoProveedor",
+        solicitud?.proveedor
+        ||
+        "Pendiente"
+    );
+
+    ponerTextoRecurso(
+        "recursoEstado",
+        formatearTextoRecurso(
+            solicitud?.estadoRecurso
+            ||
+            "NUEVO"
+        )
+    );
+
+    ponerTextoRecurso(
+        "recursoFechaSolicitudProveedor",
+        formatearFechaRecursoTicket(
+            solicitud?.fechaSolicitudProveedor
+        )
+    );
+
+    ponerTextoRecurso(
+        "recursoFechaEstimadaEntrega",
+        formatearFechaRecursoTicket(
+            solicitud?.fechaEstimadaEntrega
+        )
+    );
+
+    ponerTextoRecurso(
+        "recursoFechaRecepcion",
+        formatearFechaRecursoTicket(
+            solicitud?.fechaRecepcion
+        )
+    );
+
+    ponerTextoRecurso(
+        "recursoFechaEntregaCliente",
+        formatearFechaRecursoTicket(
+            solicitud?.fechaEntregaCliente
+        )
+    );
+
+    ponerTextoRecurso(
+        "recursoObservaciones",
+        solicitud?.observaciones
+        ||
+        "Sin observaciones"
+    );
+
+    const boton =
+        document.getElementById(
+            "btnAdministrarSolicitudRecurso"
+        );
+
+    const rol =
+        obtenerRolSesion();
+
+    if (boton) {
+
+        boton.hidden =
+            rol !== "ADMIN"
+            &&
+            rol !== "SUPERVISOR";
+
+        boton.onclick =
+            () => {
+
+                window.location.href =
+                    `solicitudes-recursos.html?ticketId=${
+                        encodeURIComponent(
+                            ticketId
+                        )
+                    }`;
+            };
+    }
+}
+
+
+function configurarVistaTicketSegunTipo() {
+
+    configurarVistaPorRol();
+
+    if (
+        !esTicketRecursoExterno()
+    ) {
+        return;
+    }
+
+    const nuevoEstado =
+        document.getElementById(
+            "nuevoEstado"
+        );
+
+    if (nuevoEstado) {
+        nuevoEstado.disabled = true;
+    }
+}
+
+
+function ponerTextoRecurso(
+    id,
+    valor
+) {
+
+    const elemento =
+        document.getElementById(
+            id
+        );
+
+    if (elemento) {
+        elemento.textContent =
+            valor;
+    }
+}
+
+
+function formatearTextoRecurso(
+    valor
+) {
+
+    const texto =
+        String(
+            valor || "-"
+        )
+            .trim();
+
+    if (
+        !texto
+        ||
+        texto === "-"
+    ) {
+        return "-";
+    }
+
+    return texto
+        .replaceAll(
+            "_",
+            " "
+        )
+        .toLowerCase()
+        .replace(
+            /\b\p{L}/gu,
+            letra =>
+                letra.toUpperCase()
+        );
+}
+
+
+function formatearFechaRecursoTicket(
+    valor
+) {
+
+    if (!valor) {
+        return "Pendiente";
+    }
+
+    const fecha =
+        new Date(
+            valor
+        );
+
+    if (
+        Number.isNaN(
+            fecha.getTime()
+        )
+    ) {
+        return String(valor);
+    }
+
+    return fecha.toLocaleString(
+        "es-PA"
+    );
+}
+
+
+/* =====================================================
+   REGRESO AL LISTADO DE TICKETS
+===================================================== */
+
+function configurarRegresoTickets() {
+
+    const boton =
+        document.getElementById(
+            "btnVolverTickets"
+        );
+
+
+    if (!boton) {
+
+        return;
+    }
+
+
+    boton.addEventListener(
+        "click",
+        () => {
+
+            window.location.href =
+                proyectoOrigenId
+
+                    ? `tickets.html?proyectoId=${
+                        encodeURIComponent(
+                            proyectoOrigenId
+                        )
+                    }`
+
+                    : "tickets.html";
+        }
+    );
+}
+
+
+/* =====================================================
+   SLA DEL TICKET
+===================================================== */
+
+function pintarSlaTicket(
+    ticket
+) {
+
+    if (!ticket) {
+        return;
+    }
+
+    const regla =
+        obtenerReglaSlaPrioridad(
+            ticket.prioridad
+        );
+
+    const esRecurso =
+        esTicketRecursoExterno(
+            ticket
+        );
+
+    ponerTextoSla(
+        "slaReglaPrioridad",
+        regla.nombre
+    );
+
+    ponerTextoSla(
+        "slaReglaTiempos",
+        esRecurso
+            ? `Respuesta: ${regla.respuesta} · Resolución: No aplica por dependencia externa`
+            : `Respuesta: ${regla.respuesta} · Resolución: ${regla.resolucion}`
+    );
+
+    const respuesta =
+        construirEstadoSlaVisual({
+            fechaInicio:
+                ticket.fechaCreacion,
+
+            fechaLimite:
+                ticket.fechaLimiteRespuesta,
+
+            fechaEvento:
+                ticket.fechaPrimeraRespuesta,
+
+            estadoBackend:
+                ticket.estadoSlaRespuesta
+                ||
+                ticket.slaEstadoRespuesta
+                ||
+                ""
+        });
+
+    pintarBloqueSla(
+        "Respuesta",
+        respuesta
+    );
+
+    ponerTextoSla(
+        "slaRespuestaLimite",
+        formatearFechaHoraSla(
+            ticket.fechaLimiteRespuesta
+        )
+    );
+
+    ponerTextoSla(
+        "slaPrimeraRespuestaFecha",
+        ticket.fechaPrimeraRespuesta
+            ? formatearFechaHoraSla(
+                ticket.fechaPrimeraRespuesta
+            )
+            : "Pendiente"
+    );
+
+    if (esRecurso) {
+
+        pintarResolucionNoAplicaRecurso(
+            respuesta
+        );
+
+        return;
+    }
+
+    const resolucion =
+        construirEstadoSlaVisual({
+            fechaInicio:
+                ticket.fechaCreacion,
+
+            fechaLimite:
+                ticket.fechaLimiteResolucion,
+
+            fechaEvento:
+                ticket.fechaResolucion,
+
+            estadoBackend:
+                ticket.estadoSlaResolucion
+                ||
+                ticket.slaEstadoResolucion
+                ||
+                ""
+        });
+
+    pintarBloqueSla(
+        "Resolucion",
+        resolucion
+    );
+
+    ponerTextoSla(
+        "slaResolucionLimite",
+        formatearFechaHoraSla(
+            ticket.fechaLimiteResolucion
+        )
+    );
+
+    ponerTextoSla(
+        "slaResolucionFecha",
+        ticket.fechaResolucion
+            ? formatearFechaHoraSla(
+                ticket.fechaResolucion
+            )
+            : "Pendiente"
+    );
+
+    pintarMensajeGeneralSla(
+        respuesta,
+        resolucion
+    );
+}
+
+
+function pintarResolucionNoAplicaRecurso(
+    respuesta
+) {
+
+    const resolucion = {
+        estado:
+            "NO_APLICA",
+
+        porcentaje:
+            0,
+
+        textoTiempo:
+            "Depende de proveedor externo",
+
+        clase:
+            "neutral"
+    };
+
+    pintarBloqueSla(
+        "Resolucion",
+        resolucion
+    );
+
+    ponerTextoSla(
+        "slaResolucionLimite",
+        "No aplica"
+    );
+
+    ponerTextoSla(
+        "slaResolucionFecha",
+        "Se controla desde la solicitud de recurso"
+    );
+
+    const mensaje =
+        document.getElementById(
+            "slaMensajeGeneral"
+        );
+
+    if (!mensaje) {
+        return;
+    }
+
+    mensaje.className =
+        "ticket-sla-message";
+
+    if (
+        respuesta.estado === "VENCIDO"
+        ||
+        respuesta.estado === "INCUMPLIDO"
+    ) {
+
+        mensaje.classList.add(
+            "sla-message-danger"
+        );
+
+        mensaje.textContent =
+            "La primera respuesta presenta incumplimiento. El tiempo de entrega del recurso se mide por separado y no afecta el SLA de resolución operativo.";
+
+        return;
+    }
+
+    if (
+        respuesta.estado === "EN_RIESGO"
+    ) {
+
+        mensaje.classList.add(
+            "sla-message-warning"
+        );
+
+        mensaje.textContent =
+            "La primera respuesta está en riesgo. El tiempo del proveedor se controla de forma independiente.";
+
+        return;
+    }
+
+    mensaje.classList.add(
+        "sla-message-ok"
+    );
+
+    mensaje.textContent =
+        "El SLA de primera respuesta permanece activo. El SLA de resolución operativo no aplica porque este ticket depende de un proveedor externo.";
+}
+
+
+/* =====================================================
+   REGLAS SLA SEGÚN PRIORIDAD
+===================================================== */
+
+function obtenerReglaSlaPrioridad(
+    prioridad
+) {
+
+    const valor =
+        String(
+            prioridad || ""
+        )
+            .trim()
+            .toUpperCase();
+
+
+    switch (valor) {
+
+        case "P1_CRITICA":
+
+            return {
+                nombre:
+                    "P1 · Crítica",
+
+                respuesta:
+                    "30 min",
+
+                resolucion:
+                    "4 h"
+            };
+
+
+        case "P2_ALTA":
+
+            return {
+                nombre:
+                    "P2 · Alta",
+
+                respuesta:
+                    "1 h",
+
+                resolucion:
+                    "8 h"
+            };
+
+
+        case "P3_MEDIA":
+
+            return {
+                nombre:
+                    "P3 · Media",
+
+                respuesta:
+                    "4 h",
+
+                resolucion:
+                    "24 h"
+            };
+
+
+        case "P4_BAJA":
+
+            return {
+                nombre:
+                    "P4 · Baja",
+
+                respuesta:
+                    "8 h",
+
+                resolucion:
+                    "72 h"
+            };
+
+
+        default:
+
+            return {
+                nombre:
+                    prioridad || "Sin prioridad",
+
+                respuesta:
+                    "-",
+
+                resolucion:
+                    "-"
+            };
+    }
+}
+
+
+/* =====================================================
+   CONSTRUIR ESTADO VISUAL DEL SLA
+===================================================== */
+
+function construirEstadoSlaVisual({
+    fechaInicio,
+    fechaLimite,
+    fechaEvento,
+    estadoBackend
+}) {
+
+    const estadoNormalizado =
+        normalizarEstadoSlaTicket(
+            estadoBackend
+        );
+
+
+    const inicio =
+        fechaInicio
+            ? new Date(fechaInicio)
+            : null;
+
+
+    const limite =
+        fechaLimite
+            ? new Date(fechaLimite)
+            : null;
+
+
+    const evento =
+        fechaEvento
+            ? new Date(fechaEvento)
+            : null;
+
+
+    if (
+        !inicio
+        ||
+        !limite
+        ||
+        Number.isNaN(
+            inicio.getTime()
+        )
+        ||
+        Number.isNaN(
+            limite.getTime()
+        )
+    ) {
+
+        return {
+            estado:
+                estadoNormalizado
+                ||
+                "SIN_CONFIGURAR",
+
+            porcentaje:
+                0,
+
+            textoTiempo:
+                "Sin SLA configurado",
+
+            clase:
+                "neutral"
+        };
+    }
+
+
+    const totalMs =
+        Math.max(
+            1,
+            limite.getTime()
+            -
+            inicio.getTime()
+        );
+
+
+    /*
+     * Si ya ocurrió la primera respuesta o resolución,
+     * el SLA deja de correr y se evalúa con la hora
+     * real del evento.
+     */
+    if (
+        evento
+        &&
+        !Number.isNaN(
+            evento.getTime()
+        )
+    ) {
+
+        const consumidoMs =
+            Math.max(
+                0,
+                evento.getTime()
+                -
+                inicio.getTime()
+            );
+
+
+        const porcentaje =
+            Math.min(
+                100,
+                Math.max(
+                    0,
+                    Math.round(
+                        (
+                            consumidoMs
+                            /
+                            totalMs
+                        )
+                        *
+                        100
+                    )
+                )
+            );
+
+
+        const cumplido =
+            evento <= limite;
+
+
+        return {
+            estado:
+                cumplido
+                    ? "CUMPLIDO"
+                    : "INCUMPLIDO",
+
+            porcentaje:
+                porcentaje,
+
+            textoTiempo:
+                cumplido
+                    ? "Atendido dentro del tiempo acordado"
+                    : "Atendido después del tiempo límite",
+
+            clase:
+                cumplido
+                    ? "ok"
+                    : "danger"
+        };
+    }
+
+
+    const ahora =
+        new Date();
+
+
+    if (
+        ahora > limite
+    ) {
+
+        return {
+            estado:
+                "VENCIDO",
+
+            porcentaje:
+                100,
+
+            textoTiempo:
+                `Vencido hace ${
+                    formatearDuracionSla(
+                        ahora.getTime()
+                        -
+                        limite.getTime()
+                    )
+                }`,
+
+            clase:
+                "danger"
+        };
+    }
+
+
+    const consumidoMs =
+        Math.max(
+            0,
+            ahora.getTime()
+            -
+            inicio.getTime()
+        );
+
+
+    const porcentaje =
+        Math.min(
+            100,
+            Math.max(
+                0,
+                Math.round(
+                    (
+                        consumidoMs
+                        /
+                        totalMs
+                    )
+                    *
+                    100
+                )
+            )
+        );
+
+
+    const restanteMs =
+        Math.max(
+            0,
+            limite.getTime()
+            -
+            ahora.getTime()
+        );
+
+
+    const enRiesgo =
+        porcentaje >= 75
+        ||
+        estadoNormalizado === "EN_RIESGO";
+
+
+    return {
+        estado:
+            enRiesgo
+                ? "EN_RIESGO"
+                : "EN_TIEMPO",
+
+        porcentaje:
+            porcentaje,
+
+        textoTiempo:
+            `${formatearDuracionSla(restanteMs)} restante(s)`,
+
+        clase:
+            enRiesgo
+                ? "warning"
+                : "ok"
+    };
+}
+
+
+/* =====================================================
+   PINTAR CADA BLOQUE SLA
+===================================================== */
+
+function pintarBloqueSla(
+    prefijo,
+    datos
+) {
+
+    const card =
+        document.getElementById(
+            `sla${prefijo}Card`
+        );
+
+
+    const badge =
+        document.getElementById(
+            `sla${prefijo}Badge`
+        );
+
+
+    const titulo =
+        document.getElementById(
+            `sla${prefijo}EstadoTexto`
+        );
+
+
+    const progreso =
+        document.getElementById(
+            `sla${prefijo}Progreso`
+        );
+
+
+    const barra =
+        document.getElementById(
+            `sla${prefijo}Barra`
+        );
+
+
+    const tiempo =
+        document.getElementById(
+            `sla${prefijo}Tiempo`
+        );
+
+
+    const porcentaje =
+        document.getElementById(
+            `sla${prefijo}Porcentaje`
+        );
+
+
+    const clase =
+        datos.clase
+        ||
+        "neutral";
+
+
+    if (card) {
+
+        card.classList.remove(
+            "sla-card-ok",
+            "sla-card-warning",
+            "sla-card-danger",
+            "sla-card-neutral"
+        );
+
+
+        card.classList.add(
+            `sla-card-${clase}`
+        );
+    }
+
+
+    if (badge) {
+
+        badge.className =
+            `ticket-sla-status sla-status-${clase}`;
+
+
+        badge.textContent =
+            formatearEstadoSlaTicket(
+                datos.estado
+            );
+    }
+
+
+    if (titulo) {
+
+        titulo.textContent =
+            obtenerTituloEstadoSla(
+                datos.estado
+            );
+    }
+
+
+    if (progreso) {
+
+        progreso.setAttribute(
+            "aria-valuenow",
+            String(
+                datos.porcentaje
+            )
+        );
+    }
+
+
+    if (barra) {
+
+        barra.className =
+            `sla-progress-${clase}`;
+
+
+        barra.style.width =
+            `${datos.porcentaje}%`;
+    }
+
+
+    if (tiempo) {
+
+        tiempo.textContent =
+            datos.textoTiempo;
+    }
+
+
+    if (porcentaje) {
+
+        porcentaje.textContent =
+            `${datos.porcentaje}% consumido`;
+    }
+}
+
+
+/* =====================================================
+   MENSAJE GENERAL
+===================================================== */
+
+function pintarMensajeGeneralSla(
+    respuesta,
+    resolucion
+) {
+
+    const mensaje =
+        document.getElementById(
+            "slaMensajeGeneral"
+        );
+
+
+    if (!mensaje) {
+
+        return;
+    }
+
+
+    mensaje.className =
+        "ticket-sla-message";
+
+
+    const estados =
+        [
+            respuesta.estado,
+            resolucion.estado
+        ];
+
+
+    if (
+        estados.includes(
+            "VENCIDO"
+        )
+        ||
+        estados.includes(
+            "INCUMPLIDO"
+        )
+    ) {
+
+        mensaje.classList.add(
+            "sla-message-danger"
+        );
+
+
+        mensaje.textContent =
+            "Este ticket presenta un SLA vencido o incumplido y requiere atención prioritaria.";
+
+        return;
+    }
+
+
+    if (
+        estados.includes(
+            "EN_RIESGO"
+        )
+    ) {
+
+        mensaje.classList.add(
+            "sla-message-warning"
+        );
+
+
+        mensaje.textContent =
+            "Este ticket está próximo a alcanzar uno de sus límites de SLA.";
+
+        return;
+    }
+
+
+    if (
+        estados.every(
+            estado =>
+                estado === "CUMPLIDO"
+                ||
+                estado === "EN_TIEMPO"
+        )
+    ) {
+
+        mensaje.classList.add(
+            "sla-message-ok"
+        );
+
+
+        mensaje.textContent =
+            "El ticket se encuentra dentro de los tiempos de servicio establecidos.";
+
+        return;
+    }
+
+
+    mensaje.textContent =
+        "El SLA se calcula automáticamente según la prioridad del ticket.";
+}
+
+
+/* =====================================================
+   ACTUALIZACIÓN AUTOMÁTICA
+===================================================== */
+
+function configurarActualizacionSla() {
+
+    if (
+        intervaloSlaTicket
+    ) {
+
+        clearInterval(
+            intervaloSlaTicket
+        );
+    }
+
+
+    /*
+     * Se actualiza una vez por minuto para que el usuario
+     * pueda ver cuándo pasa de EN TIEMPO a EN RIESGO
+     * o a VENCIDO sin recargar la página.
+     */
+    intervaloSlaTicket =
+        setInterval(
+            () => {
+
+                if (
+                    ticketActual
+                ) {
+
+                    pintarSlaTicket(
+                        ticketActual
+                    );
+                }
+            },
+            60000
+        );
+}
+
+
+/* =====================================================
+   FORMATOS SLA
+===================================================== */
+
+function normalizarEstadoSlaTicket(
+    estado
+) {
+
+    const valor =
+        String(
+            estado || ""
+        )
+            .trim()
+            .toUpperCase();
+
+
+    const validos =
+        [
+            "CUMPLIDO",
+            "INCUMPLIDO",
+            "VENCIDO",
+            "EN_RIESGO",
+            "EN_TIEMPO",
+            "SIN_CONFIGURAR"
+        ];
+
+
+    return validos.includes(
+        valor
+    )
+        ? valor
+        : "";
+}
+
+
+function formatearEstadoSlaTicket(
+    estado
+) {
+
+    switch (
+        normalizarEstadoSlaTicket(
+            estado
+        )
+    ) {
+
+        case "CUMPLIDO":
+
+            return "Cumplido";
+
+
+        case "INCUMPLIDO":
+
+            return "Incumplido";
+
+
+        case "VENCIDO":
+
+            return "Vencido";
+
+
+        case "EN_RIESGO":
+
+            return "En riesgo";
+
+
+        case "EN_TIEMPO":
+
+            return "En tiempo";
+
+
+        default:
+
+            return "Sin configurar";
+    }
+}
+
+
+function obtenerTituloEstadoSla(
+    estado
+) {
+
+    switch (
+        normalizarEstadoSlaTicket(
+            estado
+        )
+    ) {
+
+        case "CUMPLIDO":
+
+            return "Objetivo cumplido";
+
+
+        case "INCUMPLIDO":
+
+            return "Objetivo incumplido";
+
+
+        case "VENCIDO":
+
+            return "Tiempo excedido";
+
+
+        case "EN_RIESGO":
+
+            return "Próximo al límite";
+
+
+        case "EN_TIEMPO":
+
+            return "Dentro del tiempo";
+
+
+        default:
+
+            return "Sin configuración";
+    }
+}
+
+
+function formatearFechaHoraSla(
+    valor
+) {
+
+    if (!valor) {
+
+        return "-";
+    }
+
+
+    const fecha =
+        new Date(
+            valor
+        );
+
+
+    if (
+        Number.isNaN(
+            fecha.getTime()
+        )
+    ) {
+
+        return "-";
+    }
+
+
+    return fecha.toLocaleString(
+        "es-PA",
+        {
+            day:
+                "2-digit",
+
+            month:
+                "2-digit",
+
+            year:
+                "numeric",
+
+            hour:
+                "2-digit",
+
+            minute:
+                "2-digit"
+        }
+    );
+}
+
+
+function formatearDuracionSla(
+    milisegundos
+) {
+
+    const totalMinutos =
+        Math.max(
+            0,
+            Math.ceil(
+                milisegundos
+                /
+                60000
+            )
+        );
+
+
+    if (
+        totalMinutos < 60
+    ) {
+
+        return `${totalMinutos} min`;
+    }
+
+
+    const horas =
+        Math.floor(
+            totalMinutos
+            /
+            60
+        );
+
+
+    const minutos =
+        totalMinutos
+        %
+        60;
+
+
+    if (
+        horas < 24
+    ) {
+
+        return minutos > 0
+            ? `${horas} h ${minutos} min`
+            : `${horas} h`;
+    }
+
+
+    const dias =
+        Math.floor(
+            horas
+            /
+            24
+        );
+
+
+    const horasRestantes =
+        horas
+        %
+        24;
+
+
+    return horasRestantes > 0
+        ? `${dias} d ${horasRestantes} h`
+        : `${dias} d`;
+}
+
+
+function ponerTextoSla(
+    id,
+    valor
+) {
+
+    const elemento =
+        document.getElementById(
+            id
+        );
+
+
+    if (elemento) {
+
+        elemento.textContent =
+            valor;
+    }
+}
+
 
 /* =====================================================
    VISTA SEGÚN ROL
@@ -123,20 +1887,51 @@ function configurarVistaPorRol() {
     const seccionEnlacesCompartidos =
         document.getElementById("seccionEnlacesCompartidos");
 
+    const botonHistorial =
+        document.querySelector(".ticket-history-link");
+
     if (!usuario) {
         return;
     }
 
+    const rol = obtenerRolSesion();
+
+    if (botonHistorial) {
+        botonHistorial.style.display =
+            rol === "ADMIN"
+                ? "inline-flex"
+                : "none";
+    }
+
+    if (accionesSupervisor) {
+        accionesSupervisor.style.display = "none";
+    }
+
+    if (accionesAgente) {
+        accionesAgente.style.display = "none";
+    }
+
+    if (seccionEnlacesCompartidos) {
+        seccionEnlacesCompartidos.style.display = "none";
+    }
+
     const esSupervisorOAdmin =
-        usuario.rol === "SUPERVISOR" ||
-        usuario.rol === "ADMIN";
+        rol === "SUPERVISOR"
+        ||
+        rol === "ADMIN";
 
     if (esSupervisorOAdmin) {
         if (accionesSupervisor) {
             accionesSupervisor.style.display = "block";
         }
 
-        if (accionesAgente) {
+        if (
+            accionesAgente
+            &&
+            !esTicketRecursoExterno(
+                ticketActual
+            )
+        ) {
             accionesAgente.style.display = "block";
         }
 
@@ -146,35 +1941,52 @@ function configurarVistaPorRol() {
 
         if (mensajeAcciones) {
             mensajeAcciones.textContent =
-                "Puedes asignar agentes, cambiar el estado, ajustar la prioridad y compartir el ticket.";
+                esTicketRecursoExterno(ticketActual)
+                    ? "Puedes asignar el ticket y compartirlo. El seguimiento del recurso se administra desde Solicitudes de Recursos."
+                    : "Puedes asignar agentes, cambiar el estado, ajustar la prioridad y compartir el ticket.";
         }
-
-        cargarEnlacesCompartidos();
     }
 
-    if (usuario.rol === "AGENTE") {
-        if (accionesAgente) {
+    if (rol === "AGENTE") {
+        if (
+            accionesAgente
+            &&
+            !esTicketRecursoExterno(
+                ticketActual
+            )
+        ) {
             accionesAgente.style.display = "block";
         }
 
         if (mensajeAcciones) {
             mensajeAcciones.textContent =
-                "Puedes trabajar el ticket, actualizar su estado y ajustar su prioridad.";
+                esTicketRecursoExterno(ticketActual)
+                    ? "Este ticket depende de un recurso externo. Puedes consultar su seguimiento, pero el flujo del proveedor es administrado por supervisores y administradores."
+                    : "Puedes trabajar el ticket y utilizar las acciones autorizadas para tu rol.";
         }
     }
 
-    if (usuario.rol === "CLIENTE") {
+    if (rol === "CLIENTE") {
         if (mensajeAcciones) {
             mensajeAcciones.textContent =
-                "Puedes consultar el ticket y agregar comentarios públicos.";
+                esTicketRecursoExterno(ticketActual)
+                    ? "Puedes consultar el ticket, seguir el estado del recurso y agregar comentarios públicos."
+                    : "Puedes consultar el ticket y agregar comentarios públicos.";
         }
 
         if (tipoComentario) {
+            tipoComentario.innerHTML = `
+                <option value="PUBLICO">
+                    PÚBLICO
+                </option>
+            `;
+
             tipoComentario.value = "PUBLICO";
             tipoComentario.disabled = true;
         }
     }
 }
+
 
 /* =====================================================
    ASIGNACIÓN DE AGENTE
@@ -183,15 +1995,24 @@ function configurarVistaPorRol() {
 async function cargarUsuariosParaAsignar() {
     const usuario = obtenerSesion();
     const select = document.getElementById("agenteId");
+    const rol = obtenerRolSesion();
 
     if (
         !usuario ||
-        (
-            usuario.rol !== "SUPERVISOR" &&
-            usuario.rol !== "ADMIN"
-        ) ||
+        (rol !== "SUPERVISOR" && rol !== "ADMIN") ||
         !select
     ) {
+        return;
+    }
+
+    if (!ticketActual?.proyectoId) {
+        select.innerHTML = `
+            <option value="">
+                El ticket no tiene un proyecto válido
+            </option>
+        `;
+
+        select.disabled = true;
         return;
     }
 
@@ -203,40 +2024,101 @@ async function cargarUsuariosParaAsignar() {
             </option>
         `;
 
-        const response = await fetch(`${API_BASE}/usuarios`);
+        /*
+         * Mostramos TODOS los usuarios activos con rol AGENTE.
+         *
+         * También consultamos los accesos actuales del proyecto
+         * para saber si el agente ya pertenece al proyecto.
+         *
+         * Si todavía no tiene acceso, no lo ocultamos:
+         * al asignarlo al ticket se le otorgará/reactivará
+         * automáticamente el acceso a ese mismo proyecto.
+         */
+        const [respuestaUsuarios, respuestaAccesos] =
+            await Promise.all([
+                fetch(`${API_BASE}/usuarios`),
+                fetch(
+                    `${API_BASE}/usuario-proyectos/proyecto/${ticketActual.proyectoId}`
+                )
+            ]);
 
-        if (!response.ok) {
-            throw new Error("No se pudieron cargar los usuarios.");
+        if (!respuestaUsuarios.ok) {
+            throw new Error(
+                await obtenerMensajeErrorRespuesta(
+                    respuestaUsuarios
+                )
+            );
         }
 
-        const usuarios = await response.json();
+        if (!respuestaAccesos.ok) {
+            throw new Error(
+                await obtenerMensajeErrorRespuesta(
+                    respuestaAccesos
+                )
+            );
+        }
 
-        const agentes = Array.isArray(usuarios)
-            ? usuarios.filter(usuarioItem => {
-                const rol = String(usuarioItem.rol || "")
-                    .trim()
-                    .toUpperCase();
+        const usuarios =
+            await respuestaUsuarios.json();
 
-                return (
-                    rol === "AGENTE" &&
-                    usuarioItem.estado !== false
+        const accesos =
+            await respuestaAccesos.json();
+
+        const usuariosConAcceso =
+            new Set(
+                (Array.isArray(accesos) ? accesos : [])
+                    .filter(
+                        acceso =>
+                            Boolean(acceso?.estado)
+                    )
+                    .map(
+                        acceso =>
+                            Number(acceso.usuarioId)
+                    )
+                    .filter(
+                        id =>
+                            id > 0
+                    )
+            );
+
+        const agentes =
+            Array.isArray(usuarios)
+                ? usuarios.filter(
+                    usuarioItem => {
+                        const rolUsuario =
+                            String(
+                                usuarioItem.rol || ""
+                            )
+                                .trim()
+                                .toUpperCase();
+
+                        return (
+                            rolUsuario === "AGENTE"
+                            &&
+                            usuarioItem.estado !== false
+                        );
+                    }
+                )
+                : [];
+
+        agentes.sort(
+            (agenteA, agenteB) => {
+                const nombreA =
+                    `${agenteA.nombre || ""} ${agenteA.apellido || ""}`
+                        .trim()
+                        .toLowerCase();
+
+                const nombreB =
+                    `${agenteB.nombre || ""} ${agenteB.apellido || ""}`
+                        .trim()
+                        .toLowerCase();
+
+                return nombreA.localeCompare(
+                    nombreB,
+                    "es"
                 );
-            })
-            : [];
-
-        agentes.sort((agenteA, agenteB) => {
-            const nombreA =
-                `${agenteA.nombre || ""} ${agenteA.apellido || ""}`
-                    .trim()
-                    .toLowerCase();
-
-            const nombreB =
-                `${agenteB.nombre || ""} ${agenteB.apellido || ""}`
-                    .trim()
-                    .toLowerCase();
-
-            return nombreA.localeCompare(nombreB, "es");
-        });
+            }
+        );
 
         select.innerHTML = `
             <option value="">
@@ -244,34 +2126,73 @@ async function cargarUsuariosParaAsignar() {
             </option>
         `;
 
-        agentes.forEach(agente => {
-            const option = document.createElement("option");
+        agentes.forEach(
+            agente => {
+                const option =
+                    document.createElement(
+                        "option"
+                    );
 
-            const nombreCompleto =
-                `${agente.nombre || ""} ${agente.apellido || ""}`
-                    .trim();
+                const nombreCompleto =
+                    `${agente.nombre || ""} ${agente.apellido || ""}`
+                        .trim();
 
-            option.value = agente.id;
-            option.textContent =
-                nombreCompleto || "Agente";
+                const tieneAcceso =
+                    usuariosConAcceso.has(
+                        Number(agente.id)
+                    );
 
-            select.appendChild(option);
-        });
+                option.value =
+                    String(agente.id);
+
+                option.dataset.tieneAcceso =
+                    String(tieneAcceso);
+
+                option.textContent =
+                    tieneAcceso
+                        ? (nombreCompleto || "Agente")
+                        : `${nombreCompleto || "Agente"} — se agregará al proyecto`;
+
+                select.appendChild(
+                    option
+                );
+            }
+        );
 
         if (agentes.length === 0) {
             select.innerHTML = `
                 <option value="">
-                    No hay agentes registrados
+                    No hay usuarios activos con rol AGENTE
                 </option>
             `;
 
             select.disabled = true;
+
         } else {
             select.disabled = false;
+
+            if (
+                ticketActual?.agenteId
+                &&
+                agentes.some(
+                    agente =>
+                        Number(agente.id)
+                        ===
+                        Number(ticketActual.agenteId)
+                )
+            ) {
+                select.value =
+                    String(
+                        ticketActual.agenteId
+                    );
+            }
         }
 
     } catch (error) {
-        console.error("Error cargando agentes:", error);
+        console.error(
+            "Error cargando agentes:",
+            error
+        );
 
         select.innerHTML = `
             <option value="">
@@ -284,40 +2205,144 @@ async function cargarUsuariosParaAsignar() {
 }
 
 async function asignarTicket() {
-    const selectAgente = document.getElementById("agenteId");
-    const agenteId = selectAgente?.value;
+    const selectAgente =
+        document.getElementById(
+            "agenteId"
+        );
+
+    const agenteId =
+        Number(
+            selectAgente?.value
+        );
 
     if (!agenteId) {
-        alert("Selecciona un agente.");
+        alert(
+            "Selecciona un agente."
+        );
+
         return;
     }
 
-    try {
-        const response = await fetch(
-            `${API_BASE}/tickets/${ticketId}/asignar`,
-            {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    agenteId: Number(agenteId)
-                })
-            }
+    if (!ticketActual?.proyectoId) {
+        alert(
+            "El ticket no tiene un proyecto válido."
         );
 
-        if (!response.ok) {
-            throw new Error("No se pudo asignar el ticket.");
+        return;
+    }
+
+    const opcionSeleccionada =
+        selectAgente?.selectedOptions?.[0];
+
+    const agenteYaTieneAcceso =
+        opcionSeleccionada?.dataset
+            ?.tieneAcceso === "true";
+
+    try {
+        /*
+         * El backend mantiene la regla de seguridad:
+         * un agente debe tener acceso al proyecto antes
+         * de quedar asignado al ticket.
+         *
+         * Para que ADMIN/SUPERVISOR puedan hacer todo
+         * desde la misma pantalla, si el agente todavía
+         * no pertenece al proyecto creamos o reactivamos
+         * ese acceso primero.
+         */
+        if (!agenteYaTieneAcceso) {
+            const respuestaAcceso =
+                await fetch(
+                    `${API_BASE}/usuario-proyectos`,
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
+                        body:
+                            JSON.stringify({
+                                usuarioId:
+                                    agenteId,
+                                proyectoId:
+                                    Number(
+                                        ticketActual.proyectoId
+                                    )
+                            })
+                    }
+                );
+
+            if (!respuestaAcceso.ok) {
+                const mensaje =
+                    await obtenerMensajeErrorRespuesta(
+                        respuestaAcceso
+                    );
+
+                /*
+                 * Si otra acción acaba de crear el acceso,
+                 * continuamos con la asignación.
+                 */
+                if (
+                    !String(mensaje || "")
+                        .toLowerCase()
+                        .includes(
+                            "ya tiene acceso"
+                        )
+                ) {
+                    throw new Error(
+                        mensaje
+                        ||
+                        "No se pudo habilitar al agente en el proyecto."
+                    );
+                }
+            }
         }
 
-        alert("Ticket asignado correctamente.");
+        const response =
+            await fetch(
+                `${API_BASE}/tickets/${ticketId}/asignar`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+                    body:
+                        JSON.stringify({
+                            agenteId:
+                                agenteId
+                        })
+                }
+            );
+
+        if (!response.ok) {
+            throw new Error(
+                await obtenerMensajeErrorRespuesta(
+                    response
+                )
+            );
+        }
+
+        alert(
+            agenteYaTieneAcceso
+                ? "Ticket asignado correctamente."
+                : "Agente agregado al proyecto y ticket asignado correctamente."
+        );
 
         await cargarDetalleTicket();
+        await cargarUsuariosParaAsignar();
         await cargarHistorial();
 
     } catch (error) {
-        console.error("Error asignando ticket:", error);
-        alert("Error asignando ticket.");
+        console.error(
+            "Error asignando ticket:",
+            error
+        );
+
+        alert(
+            error.message
+            ||
+            "Error asignando ticket."
+        );
     }
 }
 
@@ -326,6 +2351,18 @@ async function asignarTicket() {
 ===================================================== */
 
 async function cambiarEstadoTicket() {
+
+    if (
+        esTicketRecursoExterno()
+    ) {
+
+        alert(
+            "Los tickets de recurso externo no utilizan el flujo operativo de estados. Administra el estado desde Solicitudes de Recursos."
+        );
+
+        return;
+    }
+
     const estado =
         document.getElementById("nuevoEstado")?.value;
 
@@ -334,6 +2371,11 @@ async function cambiarEstadoTicket() {
             .getElementById("notaResolucion")
             ?.value
             .trim() || "";
+
+    if (!estado) {
+        alert("Selecciona un estado.");
+        return;
+    }
 
     if (
         (estado === "RESUELTO" || estado === "CERRADO") &&
@@ -361,7 +2403,9 @@ async function cambiarEstadoTicket() {
         );
 
         if (!response.ok) {
-            throw new Error("No se pudo cambiar el estado.");
+            throw new Error(
+                await obtenerMensajeErrorRespuesta(response)
+            );
         }
 
         alert("Estado actualizado correctamente.");
@@ -378,7 +2422,11 @@ async function cambiarEstadoTicket() {
 
     } catch (error) {
         console.error("Error cambiando estado:", error);
-        alert("Error cambiando estado.");
+
+        alert(
+            error.message ||
+            "Error cambiando estado."
+        );
     }
 }
 
@@ -403,6 +2451,11 @@ async function cambiarPrioridadTicket() {
         return;
     }
 
+    if (!prioridad) {
+        alert("Selecciona una prioridad.");
+        return;
+    }
+
     try {
         const response = await fetch(
             `${API_BASE}/tickets/${ticketId}/prioridad`,
@@ -420,7 +2473,9 @@ async function cambiarPrioridadTicket() {
         );
 
         if (!response.ok) {
-            throw new Error("No se pudo cambiar la prioridad.");
+            throw new Error(
+                await obtenerMensajeErrorRespuesta(response)
+            );
         }
 
         alert("Prioridad actualizada correctamente.");
@@ -439,7 +2494,11 @@ async function cambiarPrioridadTicket() {
 
     } catch (error) {
         console.error("Error cambiando prioridad:", error);
-        alert("Error cambiando prioridad.");
+
+        alert(
+            error.message ||
+            "Error cambiando prioridad."
+        );
     }
 }
 
@@ -675,11 +2734,30 @@ async function cargarComentarios() {
 
         if (!response.ok) {
             throw new Error(
-                "No se pudieron cargar los comentarios."
+                await obtenerMensajeErrorRespuesta(response)
             );
         }
 
-        const comentarios = await response.json();
+        let comentarios = await response.json();
+
+        if (!Array.isArray(comentarios)) {
+            comentarios = [];
+        }
+
+        /*
+         * Defensa visual adicional.
+         * El backend ya filtra los comentarios internos
+         * para CLIENTE, pero no los pintamos aunque una
+         * respuesta inesperada los incluyera.
+         */
+        if (obtenerRolSesion() === "CLIENTE") {
+            comentarios = comentarios.filter(
+                comentario =>
+                    String(comentario?.tipoComentario || "PUBLICO")
+                        .trim()
+                        .toUpperCase() === "PUBLICO"
+            );
+        }
 
         const contenedor =
             document.getElementById("listaComentarios");
@@ -743,7 +2821,10 @@ async function cargarComentarios() {
         if (contenedor) {
             contenedor.innerHTML = `
                 <p class="danger-text">
-                    No se pudieron cargar los comentarios.
+                    ${escaparHtml(
+                        error.message ||
+                        "No se pudieron cargar los comentarios."
+                    )}
                 </p>
             `;
         }
@@ -762,8 +2843,16 @@ async function crearComentario() {
     const contenido =
         contenidoInput?.value.trim() || "";
 
+    const rol = obtenerRolSesion();
+
+    /*
+     * CLIENTE siempre envía PUBLICO,
+     * aunque el select fuera manipulado manualmente.
+     */
     const tipoComentario =
-        tipoComentarioInput?.value || "PUBLICO";
+        rol === "CLIENTE"
+            ? "PUBLICO"
+            : (tipoComentarioInput?.value || "PUBLICO");
 
     if (!usuario) {
         window.location.href = "login.html";
@@ -795,7 +2884,7 @@ async function crearComentario() {
 
         if (!response.ok) {
             throw new Error(
-                "No se pudo crear el comentario."
+                await obtenerMensajeErrorRespuesta(response)
             );
         }
 
@@ -816,8 +2905,15 @@ async function crearComentario() {
             error
         );
 
-        alert("Error creando comentario.");
+        alert(
+            error.message ||
+            "Error creando comentario."
+        );
     }
+}
+
+function puedeVerHistorial() {
+    return obtenerRolSesion() === "ADMIN";
 }
 
 /* =====================================================
@@ -848,6 +2944,10 @@ function configurarModalHistorial() {
 }
 
 async function abrirModalHistorial() {
+    if (!puedeVerHistorial()) {
+        return;
+    }
+
     const modal = document.getElementById("modalHistorial");
     const contenedor = document.getElementById("listaHistorial");
 
@@ -887,6 +2987,10 @@ function cerrarModalHistorial() {
 ===================================================== */
 
 async function cargarHistorial() {
+    if (!puedeVerHistorial()) {
+        return;
+    }
+
     try {
         const response = await fetch(
             `${API_BASE}/historial-tickets/ticket/${ticketId}`
@@ -1233,25 +3337,13 @@ async function generarEnlaceCompartido() {
 
         puedeVer: true,
 
-        puedeComentar:
-            document.getElementById(
-                "permisoComentarTicket"
-            )?.checked || false,
+        puedeComentar: false,
 
-        puedeVerAdjuntos:
-            document.getElementById(
-                "permisoVerAdjuntosTicket"
-            )?.checked || false,
+        puedeVerAdjuntos: false,
 
-        puedeSubirAdjuntos:
-            document.getElementById(
-                "permisoSubirAdjuntosTicket"
-            )?.checked || false,
+        puedeSubirAdjuntos: false,
 
-        puedeCambiarEstado:
-            document.getElementById(
-                "permisoCambiarEstadoTicket"
-            )?.checked || false,
+        puedeCambiarEstado: false,
 
         fechaExpiracion: fechaExpiracion
     };
@@ -1264,7 +3356,7 @@ async function generarEnlaceCompartido() {
         }
 
         mostrarMensajeCompartir(
-            "Generando y enviando el enlace...",
+            "Generando el enlace...",
             "info"
         );
 
@@ -1313,7 +3405,7 @@ async function generarEnlaceCompartido() {
         }
 
         mostrarMensajeCompartir(
-            "El enlace fue generado y enviado correctamente.",
+            "El enlace fue generado correctamente. El sistema intentó enviarlo al correo indicado.",
             "success"
         );
 
@@ -1335,7 +3427,7 @@ async function generarEnlaceCompartido() {
         if (boton) {
             boton.disabled = false;
             boton.textContent =
-                "Generar y enviar enlace";
+                "Generar enlace";
         }
     }
 }
@@ -1729,6 +3821,36 @@ function validarCorreo(correo) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
         correo
     );
+}
+
+async function obtenerMensajeErrorRespuesta(response) {
+    const contenidoTipo =
+        response.headers.get("content-type") || "";
+
+    if (contenidoTipo.includes("application/json")) {
+        try {
+            const contenido = await response.json();
+
+            return (
+                contenido.message ||
+                contenido.error ||
+                contenido.detail ||
+                `Error ${response.status}`
+            );
+
+        } catch (error) {
+            return `Error ${response.status}`;
+        }
+    }
+
+    try {
+        const texto = await response.text();
+
+        return texto || `Error ${response.status}`;
+
+    } catch (error) {
+        return `Error ${response.status}`;
+    }
 }
 
 async function obtenerMensajeErrorCompartido(

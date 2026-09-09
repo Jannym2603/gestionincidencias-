@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="
@@ -28,45 +29,26 @@
 
     <dependencies>
 
-        <!-- Spring Boot Web -->
+        <!-- ========================= -->
+        <!-- SPRING BOOT -->
+        <!-- ========================= -->
+
+        <!-- API REST / MVC -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- Spring Data JPA -->
+        <!-- JPA / Hibernate -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
 
-        <!-- Spring Security -->
+        <!-- Seguridad -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>
-
-        <!-- JWT: API utilizada desde el código Java -->
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-api</artifactId>
-            <version>${jjwt.version}</version>
-        </dependency>
-
-        <!-- JWT: implementación interna -->
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-impl</artifactId>
-            <version>${jjwt.version}</version>
-            <scope>runtime</scope>
-        </dependency>
-
-        <!-- JWT: conversión de los datos del token a JSON -->
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-jackson</artifactId>
-            <version>${jjwt.version}</version>
-            <scope>runtime</scope>
         </dependency>
 
         <!-- Validaciones -->
@@ -81,29 +63,69 @@
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
 
-        <!-- PostgreSQL -->
+
+        <!-- ========================= -->
+        <!-- JWT -->
+        <!-- ========================= -->
+
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>${jjwt.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+
+        <!-- ========================= -->
+        <!-- BASE DE DATOS -->
+        <!-- ========================= -->
+
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Lombok -->
+
+        <!-- ========================= -->
+        <!-- LOMBOK -->
+        <!-- ========================= -->
+
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
 
-        <!-- Genera metadatos para propiedades personalizadas -->
-        <!-- Permite que VS Code reconozca app.frontend.*, app.jwt.* y app.mail.* -->
+
+        <!-- ========================= -->
+        <!-- CONFIGURACIÓN -->
+        <!-- ========================= -->
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-configuration-processor</artifactId>
             <optional>true</optional>
         </dependency>
 
-        <!-- Herramientas para desarrollo -->
+
+        <!-- ========================= -->
+        <!-- DESARROLLO -->
+        <!-- ========================= -->
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
@@ -111,14 +133,26 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- Pruebas de Spring Boot -->
+
+        <!-- ========================= -->
+        <!-- PRUEBAS UNITARIAS -->
+        <!-- ========================= -->
+
+        <!--
+            Incluye:
+            - JUnit 5
+            - Mockito
+            - AssertJ
+            - Spring Test
+            - MockMvc
+        -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
 
-        <!-- Pruebas de Spring Security -->
+        <!-- Herramientas para probar Spring Security -->
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-test</artifactId>
@@ -127,33 +161,46 @@
 
     </dependencies>
 
+
+    <!-- ========================= -->
+    <!-- BUILD -->
+    <!-- ========================= -->
+
     <build>
 
         <plugins>
 
-            <!-- Permite ejecutar y empaquetar la aplicación Spring Boot -->
+            <!-- Spring Boot -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
 
                 <configuration>
+
                     <excludes>
+
                         <exclude>
                             <groupId>org.projectlombok</groupId>
                             <artifactId>lombok</artifactId>
                         </exclude>
+
                     </excludes>
+
                 </configuration>
+
             </plugin>
 
-            <!-- Configuración del compilador de Java -->
+
+            <!-- Compilador Java -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
 
                 <executions>
 
+                    <!-- Compilación normal -->
                     <execution>
+
                         <id>default-compile</id>
                         <phase>compile</phase>
 
@@ -162,25 +209,29 @@
                         </goals>
 
                         <configuration>
+
                             <annotationProcessorPaths>
 
-                                <!-- Procesador de anotaciones de Lombok -->
                                 <path>
                                     <groupId>org.projectlombok</groupId>
                                     <artifactId>lombok</artifactId>
                                 </path>
 
-                                <!-- Procesador de propiedades de Spring Boot -->
                                 <path>
                                     <groupId>org.springframework.boot</groupId>
                                     <artifactId>spring-boot-configuration-processor</artifactId>
                                 </path>
 
                             </annotationProcessorPaths>
+
                         </configuration>
+
                     </execution>
 
+
+                    <!-- Compilación de las pruebas -->
                     <execution>
+
                         <id>default-testCompile</id>
                         <phase>test-compile</phase>
 
@@ -189,25 +240,34 @@
                         </goals>
 
                         <configuration>
+
                             <annotationProcessorPaths>
 
-                                <!-- Procesador de anotaciones de Lombok -->
                                 <path>
                                     <groupId>org.projectlombok</groupId>
                                     <artifactId>lombok</artifactId>
                                 </path>
 
-                                <!-- Procesador de propiedades de Spring Boot -->
                                 <path>
                                     <groupId>org.springframework.boot</groupId>
                                     <artifactId>spring-boot-configuration-processor</artifactId>
                                 </path>
 
                             </annotationProcessorPaths>
+
                         </configuration>
+
                     </execution>
 
                 </executions>
+
+            </plugin>
+
+
+            <!-- Ejecuta las pruebas unitarias JUnit -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
             </plugin>
 
         </plugins>

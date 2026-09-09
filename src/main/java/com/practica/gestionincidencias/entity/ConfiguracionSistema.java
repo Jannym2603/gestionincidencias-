@@ -25,28 +25,88 @@ public class ConfiguracionSistema {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(
-        name = "crear_ticket_activo",
-        nullable = false
-    )
+    @Column(name = "crear_ticket_activo", nullable = false)
     private Boolean crearTicketActivo;
 
-    @Column(
-        name = "reportes_activos",
-        nullable = false
-    )
+    @Column(name = "solicitudes_recursos_activo", nullable = false)
+    @Builder.Default
+    private Boolean solicitudesRecursosActivo = true;
+
+    @Column(name = "reportes_activos", nullable = false)
     private Boolean reportesActivos;
 
-    @Column(
-        name = "historial_activo",
-        nullable = false
-    )
+    @Column(name = "historial_activo", nullable = false)
     private Boolean historialActivo;
 
-    @Column(
-        name = "variante_visual",
-        nullable = false,
-        length = 1
-    )
-    private String varianteVisual;
+    @Column(name = "crear_ticket_cliente", nullable = false)
+    @Builder.Default
+    private Boolean crearTicketCliente = true;
+
+    @Column(name = "crear_ticket_agente", nullable = false)
+    @Builder.Default
+    private Boolean crearTicketAgente = true;
+
+    @Column(name = "crear_ticket_supervisor", nullable = false)
+    @Builder.Default
+    private Boolean crearTicketSupervisor = true;
+
+    @Column(name = "crear_ticket_admin", nullable = false)
+    @Builder.Default
+    private Boolean crearTicketAdmin = true;
+
+    @Column(name = "solicitudes_recursos_cliente", nullable = false)
+    @Builder.Default
+    private Boolean solicitudesRecursosCliente = true;
+
+    @Column(name = "solicitudes_recursos_agente", nullable = false)
+    @Builder.Default
+    private Boolean solicitudesRecursosAgente = true;
+
+    @Column(name = "solicitudes_recursos_supervisor", nullable = false)
+    @Builder.Default
+    private Boolean solicitudesRecursosSupervisor = true;
+
+    @Column(name = "solicitudes_recursos_admin", nullable = false)
+    @Builder.Default
+    private Boolean solicitudesRecursosAdmin = true;
+
+    @Column(name = "reportes_cliente", nullable = false)
+    @Builder.Default
+    private Boolean reportesCliente = true;
+
+    @Column(name = "reportes_agente", nullable = false)
+    @Builder.Default
+    private Boolean reportesAgente = true;
+
+    @Column(name = "reportes_supervisor", nullable = false)
+    @Builder.Default
+    private Boolean reportesSupervisor = true;
+
+    @Column(name = "reportes_admin", nullable = false)
+    @Builder.Default
+    private Boolean reportesAdmin = true;
+
+    @Column(name = "historial_cliente", nullable = false)
+    @Builder.Default
+    private Boolean historialCliente = true;
+
+    @Column(name = "historial_agente", nullable = false)
+    @Builder.Default
+    private Boolean historialAgente = true;
+
+    @Column(name = "historial_supervisor", nullable = false)
+    @Builder.Default
+    private Boolean historialSupervisor = true;
+
+    @Column(name = "historial_admin", nullable = false)
+    @Builder.Default
+    private Boolean historialAdmin = true;
+
+    /*
+     * Campo interno conservado únicamente para compatibilidad
+     * con la columna existente en PostgreSQL.
+     */
+    @Column(name = "variante_visual", nullable = false, length = 1)
+    @Builder.Default
+    private String compatibilidadVisual = "A";
 }

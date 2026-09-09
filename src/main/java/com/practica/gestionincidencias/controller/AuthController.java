@@ -3,11 +3,14 @@ package com.practica.gestionincidencias.controller;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.practica.gestionincidencias.dto.CambiarPasswordRequestDTO;
 import com.practica.gestionincidencias.dto.ConfirmarRecuperacionPasswordRequestDTO;
@@ -31,6 +34,8 @@ import jakarta.validation.Valid;
 public class AuthController {
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final int MIN_PASSWORD_LENGTH = 6;
+    private static final int RECOVERY_CODE_EXPIRATION_MINUTES = 10;
 
     private final UsuarioRepository usuarioRepository;
     private final UsuarioRolRepository usuarioRolRepository;
@@ -65,11 +70,11 @@ public class AuthController {
                 .orElseThrow(() -> new RuntimeException("Correo no registrado."));
 
         if (usuario.getEstado() == null || !usuario.getEstado()) {
-            throw new RuntimeException("Este usuario esta inactivo.");
+            throw new RuntimeException("Este usuario está inactivo.");
         }
 
         if (!passwordValida(usuario, passwordIngresada)) {
-            throw new RuntimeException("Contrasena incorrecta.");
+            throw new RuntimeException("Contraseña incorrecta.");
         }
 
         UsuarioRol usuarioRol = usuarioRolRepository.findByUsuarioId(usuario.getId())
@@ -93,22 +98,77 @@ public class AuthController {
         );
     }
 
+    /*
+     * Cambio de contraseña del usuario autenticado.
+     *
+     * Ya no se acepta un correo enviado desde el navegador.
+     * La cuenta se obtiene directamente del JWT autenticado.
+     * Además, se exige la contraseña actual antes de guardar
+     * la nueva contraseña.
+     */
     @PostMapping("/cambiar-password")
-    public String cambiarPassword(@Valid @RequestBody CambiarPasswordRequestDTO request) {
+    public String cambiarPassword(
+            @Valid @RequestBody CambiarPasswordRequestDTO request,
+            Authentication authentication) {
 
-        String correoNormalizado = request.getCorreo().trim().toLowerCase();
-
-        Usuario usuario = usuarioRepository.findByCorreo(correoNormalizado)
-                .orElseThrow(() -> new RuntimeException("Correo no registrado."));
-
-        if (usuario.getEstado() == null || !usuario.getEstado()) {
-            throw new RuntimeException("Este usuario esta inactivo.");
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "Debes iniciar sesión para cambiar tu contraseña."
+            );
         }
 
-        usuario.setPassword(passwordEncoder.encode(request.getNuevaPassword().trim()));
+        String correoAutenticado = authentication.getName()
+                .trim()
+                .toLowerCase();
+
+        Usuario usuario = usuarioRepository.findByCorreo(correoAutenticado)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "El usuario autenticado no existe."
+                ));
+
+        if (usuario.getEstado() == null || !usuario.getEstado()) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Este usuario está inactivo."
+            );
+        }
+
+        String passwordActual = request.getPasswordActual().trim();
+        String nuevaPassword = request.getNuevaPassword().trim();
+
+        if (!passwordValida(usuario, passwordActual)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "La contraseña actual es incorrecta."
+            );
+        }
+
+        if (nuevaPassword.length() < MIN_PASSWORD_LENGTH) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "La nueva contraseña debe tener al menos 6 caracteres."
+            );
+        }
+
+        if (passwordEncoder.matches(
+                nuevaPassword,
+                usuario.getPassword()
+        )) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "La nueva contraseña debe ser diferente a la actual."
+            );
+        }
+
+        usuario.setPassword(
+                passwordEncoder.encode(nuevaPassword)
+        );
+
         usuarioRepository.save(usuario);
 
-        return "Contrasena actualizada correctamente.";
+        return "Contraseña actualizada correctamente.";
     }
 
     @PostMapping("/solicitar-recuperacion")
@@ -122,7 +182,7 @@ public class AuthController {
                 .orElseThrow(() -> new RuntimeException("Correo no registrado."));
 
         if (usuario.getEstado() == null || !usuario.getEstado()) {
-            throw new RuntimeException("Este usuario esta inactivo.");
+            throw new RuntimeException("Este usuario está inactivo.");
         }
 
         codigoRecuperacionPasswordRepository.deleteByCorreo(correoNormalizado);
@@ -134,14 +194,16 @@ public class AuthController {
                 .correo(correoNormalizado)
                 .codigo(codigo)
                 .fechaCreacion(ahora)
-                .fechaExpiracion(ahora.plusMinutes(10))
+                .fechaExpiracion(
+                        ahora.plusMinutes(RECOVERY_CODE_EXPIRATION_MINUTES)
+                )
                 .usado(false)
                 .build();
 
         codigoRecuperacionPasswordRepository.save(codigoRecuperacion);
         notificacionService.notificarCodigoRecuperacionPassword(usuario, codigo);
 
-        return "Codigo de recuperacion enviado al correo registrado.";
+        return "Código de recuperación enviado al correo registrado.";
     }
 
     @PostMapping("/confirmar-recuperacion")
@@ -156,21 +218,21 @@ public class AuthController {
                 .orElseThrow(() -> new RuntimeException("Correo no registrado."));
 
         if (usuario.getEstado() == null || !usuario.getEstado()) {
-            throw new RuntimeException("Este usuario esta inactivo.");
+            throw new RuntimeException("Este usuario está inactivo.");
         }
 
         CodigoRecuperacionPassword codigoRecuperacion = codigoRecuperacionPasswordRepository
                 .findTopByCorreoAndUsadoFalseOrderByFechaCreacionDesc(correoNormalizado)
-                .orElseThrow(() -> new RuntimeException("No hay un codigo activo para este correo."));
+                .orElseThrow(() -> new RuntimeException("No hay un código activo para este correo."));
 
         if (codigoRecuperacion.getFechaExpiracion().isBefore(LocalDateTime.now())) {
             codigoRecuperacion.setUsado(true);
             codigoRecuperacionPasswordRepository.save(codigoRecuperacion);
-            throw new RuntimeException("El codigo de recuperacion expiro. Solicita uno nuevo.");
+            throw new RuntimeException("El código de recuperación expiró. Solicita uno nuevo.");
         }
 
         if (!codigoRecuperacion.getCodigo().equals(codigoIngresado)) {
-            throw new RuntimeException("El codigo de recuperacion no es valido.");
+            throw new RuntimeException("El código de recuperación no es válido.");
         }
 
         usuario.setPassword(passwordEncoder.encode(request.getNuevaPassword().trim()));
@@ -179,10 +241,12 @@ public class AuthController {
         codigoRecuperacion.setUsado(true);
         codigoRecuperacionPasswordRepository.save(codigoRecuperacion);
 
-        return "Contrasena actualizada correctamente.";
+        return "Contraseña actualizada correctamente.";
     }
 
-    private boolean passwordValida(Usuario usuario, String passwordIngresada) {
+    private boolean passwordValida(
+            Usuario usuario,
+            String passwordIngresada) {
 
         String passwordGuardada = usuario.getPassword();
 
@@ -190,16 +254,17 @@ public class AuthController {
             return false;
         }
 
-        if (passwordGuardada.startsWith("$2a$")
-                || passwordGuardada.startsWith("$2b$")
-                || passwordGuardada.startsWith("$2y$")) {
-
+        if (esHashBCrypt(passwordGuardada)) {
             return passwordEncoder.matches(
                     passwordIngresada,
                     passwordGuardada
             );
         }
 
+        /*
+         * Compatibilidad con contraseñas antiguas sin BCrypt.
+         * Si coincide, se migra inmediatamente a BCrypt.
+         */
         if (!passwordGuardada.equals(passwordIngresada)) {
             return false;
         }
@@ -211,6 +276,12 @@ public class AuthController {
         usuarioRepository.save(usuario);
 
         return true;
+    }
+
+    private boolean esHashBCrypt(String passwordGuardada) {
+        return passwordGuardada.startsWith("$2a$")
+                || passwordGuardada.startsWith("$2b$")
+                || passwordGuardada.startsWith("$2y$");
     }
 
     private String generarCodigoRecuperacion() {

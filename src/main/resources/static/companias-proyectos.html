@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión organizacional | Gestión de Incidencias</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="dashboard-page">
+<div class="app-container">
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <div class="logo-icon">GI</div>
+            <div><h2>Gestión</h2><span>de Incidencias</span></div>
+        </div>
+        <nav class="menu">
+            <a href="dashboard.html" class="menu-item">Dashboard</a>
+            <a href="tickets.html" class="menu-item">Tickets</a>
+            <a href="crear-ticket.html" class="menu-item" data-menu="crear-ticket">Crear Ticket</a>
+            <a href="usuarios.html" class="menu-item" data-menu="usuarios">Usuarios</a>
+            <a href="reportes.html" class="menu-item" data-menu="reportes">Reportes</a>
+            <a href="historial.html" class="menu-item" data-menu="historial">Historial</a>
+            <a href="companias-proyectos.html" class="menu-item active" data-menu="companias-proyectos">Gestión organizacional</a>
+            <a href="configuracion.html" class="menu-item" data-menu="configuracion">Configuración</a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="topbar">
+            <div>
+                <h1>Gestión organizacional</h1>
+                <p>Administra cada compañía, sus proyectos y los accesos asociados.</p>
+            </div>
+            <div class="topbar-actions">
+                <div class="user-box">
+                    <div class="avatar" id="avatarUsuario">US</div>
+                    <div><strong id="nombreUsuario">Usuario</strong><span id="rolUsuario">Rol</span></div>
+                </div>
+                <button class="logout-btn" id="btnLogout" type="button">Cerrar sesión</button>
+            </div>
+        </header>
+
+        <section class="action-bar">
+            <div>
+                <h2>Compañías registradas</h2>
+                <p>Desde cada compañía puedes agregar proyectos, editarla y administrar sus accesos.</p>
+            </div>
+            <div class="organization-page-actions">
+                <button class="secondary-btn" type="button" id="btnRecargar">Actualizar datos</button>
+                <button class="primary-btn" type="button" id="btnNuevaCompania">+ Nueva compañía</button>
+            </div>
+        </section>
+
+        <section id="listaCompaniasGestion" class="company-management-grid">
+            <p class="empty-message">Cargando compañías...</p>
+        </section>
+    </main>
+</div>
+
+<div class="modal-overlay" id="modalCompania" aria-hidden="true">
+    <div class="modal-card organization-modal" role="dialog" aria-modal="true">
+        <div class="modal-header">
+            <div><h2 id="tituloModalCompania">Nueva compañía</h2><p>Crea o modifica los datos de la compañía.</p></div>
+            <button type="button" class="modal-close-btn" data-close-modal="modalCompania">×</button>
+        </div>
+        <form id="formCompania">
+            <div class="modal-body">
+                <input type="hidden" id="companiaIdEdicion">
+                <div class="form-grid">
+                    <div class="form-group full"><label for="companiaNombre">Nombre</label><input type="text" id="companiaNombre" maxlength="150" required></div>
+                    <div class="form-group full"><label for="companiaDescripcion">Descripción</label><textarea id="companiaDescripcion" maxlength="1000"></textarea></div>
+                    <div class="form-group full"><label for="companiaEstado">Estado</label><select id="companiaEstado"><option value="true">Activa</option><option value="false">Inactiva</option></select></div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="secondary-btn" data-close-modal="modalCompania">Cancelar</button>
+                <button type="submit" class="primary-btn" id="btnGuardarCompania">Guardar compañía</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modalProyecto" aria-hidden="true">
+    <div class="modal-card organization-modal" role="dialog" aria-modal="true">
+        <div class="modal-header">
+            <div><h2 id="tituloModalProyecto">Nuevo proyecto</h2><p id="subtituloModalProyecto">Agrega un proyecto a la compañía.</p></div>
+            <button type="button" class="modal-close-btn" data-close-modal="modalProyecto">×</button>
+        </div>
+        <form id="formProyecto">
+            <div class="modal-body">
+                <input type="hidden" id="proyectoIdEdicion">
+                <input type="hidden" id="proyectoCompaniaId">
+                <div class="form-grid">
+                    <div class="form-group full"><label>Compañía</label><input type="text" id="proyectoCompaniaNombre" disabled></div>
+                    <div class="form-group full"><label for="proyectoNombre">Nombre</label><input type="text" id="proyectoNombre" maxlength="150" required></div>
+                    <div class="form-group full"><label for="proyectoDescripcion">Descripción</label><textarea id="proyectoDescripcion" maxlength="1000"></textarea></div>
+                    <div class="form-group full"><label for="proyectoEstado">Estado</label><select id="proyectoEstado"><option value="true">Activo</option><option value="false">Inactivo</option></select></div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="secondary-btn" data-close-modal="modalProyecto">Cancelar</button>
+                <button type="submit" class="primary-btn" id="btnGuardarProyecto">Guardar proyecto</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modalAccesosCompania" aria-hidden="true">
+    <div class="modal-card organization-access-modal" role="dialog" aria-modal="true">
+        <div class="modal-header">
+            <div><h2 id="tituloModalAccesos">Administrar accesos</h2><p>Los proyectos se muestran únicamente para la compañía seleccionada.</p></div>
+            <button type="button" class="modal-close-btn" data-close-modal="modalAccesosCompania">×</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="accesoCompaniaActualId">
+            <div class="form-group access-user-selector">
+                <label for="accesoUsuarioId">Usuario</label>
+                <select id="accesoUsuarioId"><option value="">Seleccione un usuario</option></select>
+            </div>
+            <div id="listaProyectosAccesoCompania" class="company-project-access-list">
+                <p class="empty-message">Selecciona un usuario para consultar sus accesos.</p>
+            </div>
+        </div>
+        <div class="modal-actions"><button type="button" class="secondary-btn" data-close-modal="modalAccesosCompania">Cerrar</button></div>
+    </div>
+</div>
+
+<script src="app.js"></script>
+<script src="companias-proyectos.js"></script>
+</body>
+</html>

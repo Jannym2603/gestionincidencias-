@@ -1,9 +1,11 @@
 document.addEventListener("DOMContentLoaded", async () => {
     inicializarLayout();
-    configurarAccesoFeatureFlags();
+    configurarAccesoAdministracionSistema();
     await cargarPerfilConfiguracion();
     configurarCambioPassword();
-    configurarFeatureFlags();
+    configurarAdministracionSistema();
+    configurarAcordeonModulos();
+    configurarEtiquetasEstado();
     configurarModalAuditoria();
 });
 
@@ -15,7 +17,7 @@ function mostrarSeccionConfig(seccion) {
     const mapa = {
         perfil: "seccionPerfil",
         password: "seccionPassword",
-        features: "seccionFeatures"
+        sistema: "seccionSistema"
     };
 
     const id = mapa[seccion];
@@ -29,50 +31,134 @@ function mostrarSeccionConfig(seccion) {
         cargarPerfilConfiguracion();
     }
 
-    if (seccion === "features") {
-        cargarFeatureFlagsEnFormulario();
+    if (seccion === "sistema") {
+        cargarModulosSistema();
     }
 
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-function configurarAccesoFeatureFlags() {
+function configurarAccesoAdministracionSistema() {
     const usuario = obtenerSesion();
-    const opcion = document.getElementById("opcionFeatureFlags");
-    const autorizado = usuario && ["ADMIN", "SUPERVISOR"].includes(usuario.rol);
+    const opcion = document.getElementById("opcionAdministracionSistema");
+    const seccion = document.getElementById("seccionSistema");
+    const autorizado = usuario?.rol === "ADMIN";
 
     if (opcion) {
         opcion.style.display = autorizado ? "block" : "none";
     }
+
+    if (!autorizado && seccion) {
+        seccion.style.display = "none";
+    }
 }
 
-function configurarFeatureFlags() {
-    const form = document.getElementById("featureFlagsForm");
-    const btnRestablecer = document.getElementById("btnRestablecerFeatures");
-    const btnVerAuditoria = document.getElementById("btnVerAuditoria");
 
-    if (!form) {
-        return;
-    }
+function actualizarEtiquetasEstado() {
+    document.querySelectorAll("[data-status-for]").forEach(etiqueta => {
+        const checkbox = document.getElementById(
+            etiqueta.dataset.statusFor
+        );
 
-    cargarFeatureFlagsEnFormulario();
-
-    form.addEventListener("submit", async event => {
-        event.preventDefault();
-
-        const usuario = obtenerSesion();
-
-        if (!usuario || !["ADMIN", "SUPERVISOR"].includes(usuario.rol)) {
-            mostrarMensajeFeatures(
-                "No tienes permiso para modificar esta configuración.",
-                true
-            );
+        if (!checkbox) {
             return;
         }
 
-        const variante = document.querySelector(
-            'input[name="varianteVisual"]:checked'
+        const activo = checkbox.checked;
+
+        etiqueta.textContent = activo
+            ? "ACTIVO"
+            : "INACTIVO";
+
+        etiqueta.classList.toggle(
+            "inactivo",
+            !activo
         );
+    });
+}
+
+
+function configurarAcordeonModulos() {
+    const items =
+        document.querySelectorAll(".modulo-acordeon-item");
+
+    items.forEach(item => {
+        const boton =
+            item.querySelector(".modulo-acordeon-header");
+
+        const panel =
+            item.querySelector(".modulo-acordeon-panel");
+
+        if (!boton || !panel) {
+            return;
+        }
+
+        boton.addEventListener("click", () => {
+            const estabaAbierto =
+                item.classList.contains("abierto");
+
+            items.forEach(otro => {
+                otro.classList.remove("abierto");
+
+                const otroBoton =
+                    otro.querySelector(".modulo-acordeon-header");
+
+                if (otroBoton) {
+                    otroBoton.setAttribute(
+                        "aria-expanded",
+                        "false"
+                    );
+                }
+            });
+
+            if (!estabaAbierto) {
+                item.classList.add("abierto");
+                boton.setAttribute(
+                    "aria-expanded",
+                    "true"
+                );
+            }
+        });
+    });
+}
+
+
+function configurarEtiquetasEstado() {
+    document.querySelectorAll("[data-status-for]").forEach(etiqueta => {
+        const checkbox = document.getElementById(
+            etiqueta.dataset.statusFor
+        );
+
+        if (!checkbox || checkbox.dataset.estadoConfigurado === "true") {
+            return;
+        }
+
+        checkbox.addEventListener(
+            "change",
+            actualizarEtiquetasEstado
+        );
+
+        checkbox.dataset.estadoConfigurado = "true";
+    });
+
+    actualizarEtiquetasEstado();
+}
+
+
+function configurarAdministracionSistema() {
+    const form = document.getElementById("modulosSistemaForm");
+    const btnRestablecer = document.getElementById("btnRestablecerModulos");
+    const btnVerAuditoria = document.getElementById("btnVerAuditoria");
+    const usuario = obtenerSesion();
+
+    if (!form || !usuario || usuario.rol !== "ADMIN") {
+        return;
+    }
+
+    cargarModulosSistema();
+
+    form.addEventListener("submit", async event => {
+        event.preventDefault();
 
         const botonGuardar = form.querySelector('button[type="submit"]');
 
@@ -83,88 +169,146 @@ function configurarFeatureFlags() {
 
         try {
             const flags = await actualizarFeatureFlagsGlobales({
-                crearTicket: document.getElementById("flagCrearTicket").checked,
-                reportes: document.getElementById("flagReportes").checked,
-                historial: document.getElementById("flagHistorial").checked,
-                varianteVisual: variante ? variante.value : "A"
+                crearTicket: obtenerChecked("flagCrearTicket"),
+                solicitudesRecursos: obtenerChecked("flagSolicitudesRecursos"),
+                reportes: obtenerChecked("flagReportes"),
+                historial: obtenerChecked("flagHistorial"),
+
+                crearTicketCliente: obtenerChecked("flagCrearTicketCliente"),
+                crearTicketAgente: obtenerChecked("flagCrearTicketAgente"),
+                crearTicketSupervisor: obtenerChecked("flagCrearTicketSupervisor"),
+                crearTicketAdmin: true,
+
+                solicitudesRecursosCliente: obtenerChecked("flagSolicitudesRecursosCliente"),
+                solicitudesRecursosAgente: obtenerChecked("flagSolicitudesRecursosAgente"),
+                solicitudesRecursosSupervisor: obtenerChecked("flagSolicitudesRecursosSupervisor"),
+                solicitudesRecursosAdmin: true,
+
+                reportesCliente: obtenerChecked("flagReportesCliente"),
+                reportesAgente: obtenerChecked("flagReportesAgente"),
+                reportesSupervisor: obtenerChecked("flagReportesSupervisor"),
+                reportesAdmin: true,
+
+                historialCliente: obtenerChecked("flagHistorialCliente"),
+                historialAgente: obtenerChecked("flagHistorialAgente"),
+                historialSupervisor: obtenerChecked("flagHistorialSupervisor"),
+                historialAdmin: true
             });
 
-            cargarFeatureFlagsEnFormulario(flags);
-            mostrarMensajeFeatures(
-                "Configuración global guardada en PostgreSQL."
-            );
+            cargarModulosSistema(flags);
+            mostrarMensajeModulos("Configuración del sistema guardada correctamente.");
         } catch (error) {
-            console.error("Error guardando Feature Flags:", error);
-            mostrarMensajeFeatures(error.message, true);
+            console.error("Error guardando configuración del sistema:", error);
+            mostrarMensajeModulos(error.message, true);
         } finally {
             if (botonGuardar) {
                 botonGuardar.disabled = false;
-                botonGuardar.textContent = "Guardar configuración";
+                botonGuardar.textContent = "Guardar cambios";
             }
         }
     });
 
-    if (btnVerAuditoria) {
-        btnVerAuditoria.addEventListener("click", abrirModalAuditoria);
-    }
+    btnVerAuditoria?.addEventListener("click", abrirModalAuditoria);
 
-    if (btnRestablecer) {
-        btnRestablecer.addEventListener("click", async () => {
-            const confirmar = window.confirm(
-                "¿Deseas restablecer la configuración global predeterminada?"
-            );
+    btnRestablecer?.addEventListener("click", async () => {
+        const confirmar = window.confirm(
+            "¿Deseas activar nuevamente Crear Ticket, Solicitudes de Recursos, Reportes e Historial para todos los roles configurables?"
+        );
 
-            if (!confirmar) {
-                return;
-            }
+        if (!confirmar) return;
 
-            btnRestablecer.disabled = true;
+        btnRestablecer.disabled = true;
 
-            try {
-                const flags = await actualizarFeatureFlagsGlobales({
-                    ...FEATURE_FLAGS_DEFAULT
-                });
+        try {
+            const flags = await actualizarFeatureFlagsGlobales({
+                crearTicket: true,
+                solicitudesRecursos: true,
+                reportes: true,
+                historial: true,
 
-                cargarFeatureFlagsEnFormulario(flags);
-                mostrarMensajeFeatures(
-                    "Se restablecieron los valores globales predeterminados."
-                );
-            } catch (error) {
-                console.error("Error restableciendo Feature Flags:", error);
-                mostrarMensajeFeatures(error.message, true);
-            } finally {
-                btnRestablecer.disabled = false;
-            }
-        });
-    }
+                crearTicketCliente: true,
+                crearTicketAgente: true,
+                crearTicketSupervisor: true,
+                crearTicketAdmin: true,
+
+                solicitudesRecursosCliente: true,
+                solicitudesRecursosAgente: true,
+                solicitudesRecursosSupervisor: true,
+                solicitudesRecursosAdmin: true,
+
+                reportesCliente: true,
+                reportesAgente: true,
+                reportesSupervisor: true,
+                reportesAdmin: true,
+
+                historialCliente: true,
+                historialAgente: true,
+                historialSupervisor: true,
+                historialAdmin: true
+            });
+
+            cargarModulosSistema(flags);
+            mostrarMensajeModulos("Se restablecieron los módulos del sistema.");
+        } catch (error) {
+            console.error("Error restableciendo módulos:", error);
+            mostrarMensajeModulos(error.message, true);
+        } finally {
+            btnRestablecer.disabled = false;
+        }
+    });
 }
 
-async function cargarFeatureFlagsEnFormulario(flags = null) {
-    let configuracion = flags;
-
-    if (!configuracion) {
-        configuracion = await cargarFeatureFlagsGlobales();
-    }
-
-    const crear = document.getElementById("flagCrearTicket");
-    const reportes = document.getElementById("flagReportes");
-    const historial = document.getElementById("flagHistorial");
-    const variante = document.querySelector(
-        `input[name="varianteVisual"][value="${configuracion.varianteVisual}"]`
+function obtenerChecked(id) {
+    return Boolean(
+        document.getElementById(id)?.checked
     );
-
-    if (crear) crear.checked = Boolean(configuracion.crearTicket);
-    if (reportes) reportes.checked = Boolean(configuracion.reportes);
-    if (historial) historial.checked = Boolean(configuracion.historial);
-    if (variante) variante.checked = true;
 }
 
-function mostrarMensajeFeatures(mensaje, esError = false) {
-    const elemento = document.getElementById("featureFlagsMensaje");
+function asignarChecked(id, valor) {
+    const checkbox = document.getElementById(id);
 
-    if (!elemento) {
+    if (checkbox) {
+        checkbox.checked = Boolean(valor);
+    }
+}
+
+async function cargarModulosSistema(flags = null) {
+    const usuario = obtenerSesion();
+
+    if (!usuario || usuario.rol !== "ADMIN") {
         return;
     }
+
+    const configuracion = flags || await cargarFeatureFlagsGlobales();
+
+    asignarChecked("flagCrearTicket", configuracion.crearTicket);
+    asignarChecked("flagSolicitudesRecursos", configuracion.solicitudesRecursos);
+    asignarChecked("flagReportes", configuracion.reportes);
+    asignarChecked("flagHistorial", configuracion.historial);
+
+    asignarChecked("flagCrearTicketCliente", configuracion.crearTicketCliente);
+    asignarChecked("flagCrearTicketAgente", configuracion.crearTicketAgente);
+    asignarChecked("flagCrearTicketSupervisor", configuracion.crearTicketSupervisor);
+
+    asignarChecked("flagSolicitudesRecursosCliente", configuracion.solicitudesRecursosCliente);
+    asignarChecked("flagSolicitudesRecursosAgente", configuracion.solicitudesRecursosAgente);
+    asignarChecked("flagSolicitudesRecursosSupervisor", configuracion.solicitudesRecursosSupervisor);
+
+    asignarChecked("flagReportesCliente", configuracion.reportesCliente);
+    asignarChecked("flagReportesAgente", configuracion.reportesAgente);
+    asignarChecked("flagReportesSupervisor", configuracion.reportesSupervisor);
+
+    asignarChecked("flagHistorialCliente", configuracion.historialCliente);
+    asignarChecked("flagHistorialAgente", configuracion.historialAgente);
+    asignarChecked("flagHistorialSupervisor", configuracion.historialSupervisor);
+
+    actualizarEtiquetasEstado();
+}
+
+function mostrarMensajeModulos(mensaje, esError = false) {
+    const elemento = document.getElementById("modulosSistemaMensaje");
+
+    if (!elemento) return;
 
     elemento.textContent = mensaje;
     elemento.classList.toggle("error", esError);
@@ -175,7 +319,6 @@ function mostrarMensajeFeatures(mensaje, esError = false) {
         elemento.classList.remove("error");
     }, 4000);
 }
-
 
 function configurarModalAuditoria() {
     const modal = document.getElementById("modalAuditoriaConfiguracion");
@@ -280,6 +423,7 @@ function pintarAuditoriaConfiguracion(registros) {
 
     lista.innerHTML = registros.map(registro => {
         const cambios = obtenerCambiosAuditoria(registro);
+
         const cambiosHTML = cambios.length > 0
             ? cambios.map(cambio => `
                 <div class="audit-change-row">
@@ -291,7 +435,7 @@ function pintarAuditoriaConfiguracion(registros) {
                     </div>
                 </div>
             `).join("")
-            : '<p class="audit-no-change">Se guardó la configuración sin modificar valores.</p>';
+            : '<p class="audit-no-change">Registro histórico sin detalle por módulo o rol.</p>';
 
         return `
             <article class="audit-item">
@@ -311,23 +455,64 @@ function pintarAuditoriaConfiguracion(registros) {
 function obtenerCambiosAuditoria(registro) {
     const cambios = [];
 
-    agregarCambioBooleano(cambios, "Crear Ticket", registro.crearTicketAnterior, registro.crearTicketNuevo);
-    agregarCambioBooleano(cambios, "Reportes", registro.reportesAnterior, registro.reportesNuevo);
-    agregarCambioBooleano(cambios, "Historial", registro.historialAnterior, registro.historialNuevo);
-
-    if (registro.varianteAnterior !== registro.varianteNueva) {
+    /*
+     * Registros nuevos:
+     * cada fila de auditoría representa un cambio puntual
+     * de módulo/rol.
+     */
+    if (
+        registro.modulo &&
+        registro.rol &&
+        registro.valorAnterior !== null &&
+        registro.valorAnterior !== undefined &&
+        registro.valorNuevo !== null &&
+        registro.valorNuevo !== undefined
+    ) {
         cambios.push({
-            nombre: "Variante visual",
-            anterior: `Variante ${registro.varianteAnterior || "—"}`,
-            nuevo: `Variante ${registro.varianteNueva || "—"}`
+            nombre: `${formatearModuloAuditoria(registro.modulo)} · ${formatearRolAuditoria(registro.rol)}`,
+            anterior: formatearValorAuditoria(registro.valorAnterior),
+            nuevo: formatearValorAuditoria(registro.valorNuevo)
         });
+
+        return cambios;
     }
+
+    /*
+     * Compatibilidad con registros antiguos,
+     * creados antes de agregar módulo/rol/valores.
+     */
+    agregarCambioBooleano(
+        cambios,
+        "Crear Ticket · Global",
+        registro.crearTicketAnterior,
+        registro.crearTicketNuevo
+    );
+
+    agregarCambioBooleano(
+        cambios,
+        "Reportes · Global",
+        registro.reportesAnterior,
+        registro.reportesNuevo
+    );
+
+    agregarCambioBooleano(
+        cambios,
+        "Historial · Global",
+        registro.historialAnterior,
+        registro.historialNuevo
+    );
 
     return cambios;
 }
 
 function agregarCambioBooleano(cambios, nombre, anterior, nuevo) {
-    if (Boolean(anterior) === Boolean(nuevo)) {
+    if (
+        anterior === null ||
+        anterior === undefined ||
+        nuevo === null ||
+        nuevo === undefined ||
+        Boolean(anterior) === Boolean(nuevo)
+    ) {
         return;
     }
 
@@ -337,6 +522,43 @@ function agregarCambioBooleano(cambios, nombre, anterior, nuevo) {
         nuevo: nuevo ? "Activo" : "Inactivo"
     });
 }
+
+function formatearModuloAuditoria(modulo) {
+    const nombres = {
+        CREAR_TICKET: "Crear Ticket",
+        SOLICITUDES_RECURSOS: "Solicitudes de Recursos",
+        REPORTES: "Reportes",
+        HISTORIAL: "Historial"
+    };
+
+    return nombres[String(modulo || "").toUpperCase()]
+        || String(modulo || "Módulo");
+}
+
+function formatearRolAuditoria(rol) {
+    const valor = String(rol || "").toUpperCase();
+
+    if (valor === "GLOBAL") {
+        return "Global";
+    }
+
+    return valor || "Sin rol";
+}
+
+function formatearValorAuditoria(valor) {
+    const normalizado = String(valor ?? "").trim().toLowerCase();
+
+    if (normalizado === "true") {
+        return "Activo";
+    }
+
+    if (normalizado === "false") {
+        return "Inactivo";
+    }
+
+    return String(valor ?? "-");
+}
+
 
 function formatearFechaHoraAuditoria(fecha) {
     if (!fecha) {
@@ -369,35 +591,71 @@ function escaparHTML(valor) {
 
 async function cargarPerfilConfiguracion() {
     const usuarioSesion = obtenerSesion();
-    if (!usuarioSesion) { window.location.href = "login.html"; return; }
+
+    if (!usuarioSesion) {
+        window.location.href = "login.html";
+        return;
+    }
 
     try {
-        const response = await fetch(`${API_BASE}/usuarios`);
-        if (!response.ok) throw new Error(await obtenerMensajeError(response) || "No se pudieron cargar los usuarios.");
-        const usuarios = await response.json();
-        const usuarioActualizado = usuarios.find(usuario => Number(usuario.id) === Number(usuarioSesion.id));
-        if (!usuarioActualizado) throw new Error("Usuario no encontrado.");
+        /*
+         * El perfil se consulta directamente desde el usuario
+         * autenticado. Ya no se descarga la lista completa
+         * de usuarios del sistema.
+         */
+        const response =
+            await fetch(`${API_BASE}/usuarios/me`);
+
+        if (!response.ok) {
+            throw new Error(
+                await obtenerMensajeError(response)
+                || "No se pudo cargar el perfil."
+            );
+        }
+
+        const usuarioActualizado =
+            await response.json();
 
         const usuarioSesionActualizada = {
-            id: usuarioSesion.id,
-            nombre: `${usuarioActualizado.nombre} ${usuarioActualizado.apellido}`.trim(),
+            id: usuarioActualizado.id,
+            nombre: `${usuarioActualizado.nombre || ""} ${usuarioActualizado.apellido || ""}`.trim(),
             correo: usuarioActualizado.correo,
-            rol: usuarioSesion.rol,
+            rol: usuarioActualizado.rol || usuarioSesion.rol,
             token: usuarioSesion.token
         };
 
-        guardarSesion(usuarioSesionActualizada);
-        pintarDatosPerfil(usuarioSesionActualizada);
+        guardarSesion(
+            usuarioSesionActualizada
+        );
+
+        pintarDatosPerfil({
+            ...usuarioSesionActualizada,
+            telefono: usuarioActualizado.telefono || "-"
+        });
+
         pintarUsuarioHeader();
+
     } catch (error) {
-        console.error("Error cargando perfil:", error);
-        pintarDatosPerfil(usuarioSesion);
+        console.error(
+            "Error cargando perfil:",
+            error
+        );
+
+        pintarDatosPerfil(
+            usuarioSesion
+        );
+
         pintarUsuarioHeader();
     }
 }
 
 function pintarDatosPerfil(usuario) {
-    const campos = { perfilNombre: usuario.nombre, perfilCorreo: usuario.correo, perfilRol: usuario.rol };
+    const campos = {
+        perfilNombre: usuario.nombre,
+        perfilCorreo: usuario.correo,
+        perfilTelefono: usuario.telefono,
+        perfilRol: usuario.rol
+    };
     Object.entries(campos).forEach(([id, valor]) => {
         const elemento = document.getElementById(id);
         if (elemento) elemento.value = valor || "";
@@ -406,42 +664,110 @@ function pintarDatosPerfil(usuario) {
 
 function configurarCambioPassword() {
     const form = document.getElementById("configPasswordForm");
+    const btnRecuperar = document.getElementById("btnRecuperarPasswordConfig");
+
+    if (btnRecuperar) {
+        btnRecuperar.addEventListener("click", () => {
+            const continuar = window.confirm(
+                "Para recuperar tu contraseña por correo debes salir de la sesión actual. ¿Deseas continuar?"
+            );
+
+            if (continuar) {
+                cerrarSesion();
+            }
+        });
+    }
+
     if (!form) return;
 
     form.addEventListener("submit", async event => {
         event.preventDefault();
+
         const usuario = obtenerSesion();
-        if (!usuario) { window.location.href = "login.html"; return; }
 
-        const nuevaPassword = document.getElementById("nuevaPasswordConfig").value.trim();
-        const confirmarPassword = document.getElementById("confirmarPasswordConfig").value.trim();
-
-        if (!nuevaPassword || !confirmarPassword) return alert("Completa ambos campos.");
-        if (nuevaPassword.length < 6) return alert("La contraseña debe tener al menos 6 caracteres.");
-        if (nuevaPassword !== confirmarPassword) return alert("Las contraseñas no coinciden.");
-
-        await cambiarPasswordDesdeConfiguracion(usuario.correo, nuevaPassword);
-    });
-}
-
-async function cambiarPasswordDesdeConfiguracion(correo, nuevaPassword) {
-    try {
-        const response = await fetch(`${API_BASE}/auth/cambiar-password`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ correo, nuevaPassword })
-        });
-
-        if (!response.ok) {
-            alert(await obtenerMensajeError(response) || "No se pudo cambiar la contraseña.");
+        if (!usuario) {
+            window.location.href = "login.html";
             return;
         }
 
-        alert("Contraseña actualizada correctamente. Por seguridad, vuelve a iniciar sesión.");
+        const passwordActual =
+            document.getElementById("passwordActualConfig").value.trim();
+
+        const nuevaPassword =
+            document.getElementById("nuevaPasswordConfig").value.trim();
+
+        const confirmarPassword =
+            document.getElementById("confirmarPasswordConfig").value.trim();
+
+        if (!passwordActual || !nuevaPassword || !confirmarPassword) {
+            alert("Completa los tres campos.");
+            return;
+        }
+
+        if (nuevaPassword.length < 6) {
+            alert("La nueva contraseña debe tener al menos 6 caracteres.");
+            return;
+        }
+
+        if (passwordActual === nuevaPassword) {
+            alert("La nueva contraseña debe ser diferente de la contraseña actual.");
+            return;
+        }
+
+        if (nuevaPassword !== confirmarPassword) {
+            alert("La nueva contraseña y la confirmación no coinciden.");
+            return;
+        }
+
+        await cambiarPasswordDesdeConfiguracion(
+            passwordActual,
+            nuevaPassword
+        );
+    });
+}
+
+async function cambiarPasswordDesdeConfiguracion(
+    passwordActual,
+    nuevaPassword
+) {
+    try {
+        const response = await fetch(
+            `${API_BASE}/auth/cambiar-password`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    passwordActual,
+                    nuevaPassword
+                })
+            }
+        );
+
+        if (!response.ok) {
+            alert(
+                await obtenerMensajeError(response)
+                || "No se pudo cambiar la contraseña."
+            );
+            return;
+        }
+
+        alert(
+            "Contraseña actualizada correctamente. Por seguridad, vuelve a iniciar sesión."
+        );
+
         cerrarSesion();
+
     } catch (error) {
-        console.error("Error cambiando contraseña:", error);
-        alert("Error cambiando contraseña. Revisa que Spring Boot esté corriendo.");
+        console.error(
+            "Error cambiando contraseña:",
+            error
+        );
+
+        alert(
+            "Error cambiando contraseña. Revisa que Spring Boot esté corriendo."
+        );
     }
 }
 

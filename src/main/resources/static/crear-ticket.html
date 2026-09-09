@@ -66,6 +66,14 @@
             </a>
 
             <a
+                href="companias-proyectos.html"
+                class="menu-item"
+                data-menu="companias-proyectos"
+            >
+                Gestión organizacional
+            </a>
+
+            <a
                 href="configuracion.html"
                 class="menu-item"
                 data-menu="configuracion"
@@ -84,7 +92,7 @@
                 <h1>Crear Ticket</h1>
 
                 <p id="descripcionCrearTicket">
-                    Registra una nueva incidencia para seguimiento del equipo de soporte.
+                    Registra una incidencia operativa o una solicitud de recurso.
                 </p>
             </div>
 
@@ -133,6 +141,10 @@
 
         </section>
 
+        <div class="info-box" id="infoCrearTicket">
+            Selecciona el tipo de atención, el cliente, la compañía y el proyecto.
+        </div>
+
         <section class="form-card">
 
             <form id="crearTicketForm">
@@ -141,16 +153,120 @@
 
                     <div class="form-group full">
 
-                        <label for="titulo">
-                            Título
+                        <label for="tipoAtencion">
+                            Tipo de atención
                         </label>
 
-                        <input
-                            type="text"
-                            id="titulo"
-                            placeholder="Ejemplo: No puedo iniciar sesión"
+                        <select
+                            id="tipoAtencion"
                             required
                         >
+                            <option value="OPERATIVO" selected>
+                                Incidencia / soporte operativo
+                            </option>
+
+                            <option value="RECURSO_EXTERNO">
+                                Solicitud de recurso / proveedor externo
+                            </option>
+                        </select>
+
+                        <small class="form-help-text">
+                            Selecciona "Solicitud de recurso" cuando la solución dependa de una pieza,
+                            cámara, alarma, equipo u otro elemento suministrado por un proveedor externo.
+                        </small>
+
+                    </div>
+
+                    <div
+                        id="bloqueSolicitudRecurso"
+                        hidden
+                    >
+
+                        <div class="form-grid">
+
+                            <div class="form-group">
+                                <label for="categoriaRecurso">
+                                    Categoría del recurso
+                                </label>
+
+                                <select id="categoriaRecurso">
+                                    <option value="">
+                                        Seleccione una categoría
+                                    </option>
+                                    <option value="PIEZA_COMPUTADORA">
+                                        Pieza de computadora
+                                    </option>
+                                    <option value="ALARMA">
+                                        Alarma
+                                    </option>
+                                    <option value="CAMARA">
+                                        Cámara
+                                    </option>
+                                    <option value="EQUIPO">
+                                        Equipo
+                                    </option>
+                                    <option value="OTRO">
+                                        Otro
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="recursoSolicitado">
+                                    Recurso solicitado
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="recursoSolicitado"
+                                    placeholder="Ejemplo: Disco SSD 1 TB"
+                                >
+                            </div>
+
+                            <div class="form-group">
+                                <label for="cantidadRecurso">
+                                    Cantidad
+                                </label>
+
+                                <input
+                                    type="number"
+                                    id="cantidadRecurso"
+                                    min="1"
+                                    value="1"
+                                >
+                            </div>
+
+                            <div class="form-group full">
+                                <label for="observacionesRecurso">
+                                    Justificación / observaciones
+                                </label>
+
+                                <textarea
+                                    id="observacionesRecurso"
+                                    placeholder="Indica por qué se requiere el recurso y cualquier detalle útil."
+                                ></textarea>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div id="grupoTituloTicket">
+
+                        <div class="form-group full">
+
+                            <label for="titulo">
+                                Título
+                            </label>
+
+                            <input
+                                type="text"
+                                id="titulo"
+                                placeholder="Ejemplo: No puedo iniciar sesión"
+                                required
+                            >
+
+                        </div>
 
                     </div>
 
@@ -221,6 +337,20 @@
                             </option>
                         </select>
 
+                    </div>
+
+                    <div class="form-group">
+                        <label for="companiaId">Compañía</label>
+                        <select id="companiaId" required disabled>
+                            <option value="">Seleccione primero un cliente</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="proyectoId">Proyecto</label>
+                        <select id="proyectoId" required disabled>
+                            <option value="">Seleccione primero una compañía</option>
+                        </select>
                     </div>
 
                     <div class="form-group">

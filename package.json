@@ -1,0 +1,14 @@
+{
+  "name": "gestionincidencias",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sistema de Gestión de Incidencias desarrollado con Spring Boot, Java 17, PostgreSQL, HTML, CSS y JavaScript.",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
+  }
+}

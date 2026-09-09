@@ -1,33 +1,31 @@
-HELP.md
+### Maven / Java ###
 target/
-.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
+*.class
+*.jar
+*.war
 
-### STS ###
+### STS / Eclipse ###
 .apt_generated
 .classpath
 .factorypath
 .project
-.settings
+.settings/
 .springBeans
-.sts4-cache
+.sts4-cache/
 
 ### IntelliJ IDEA ###
-.idea
+.idea/
 *.iws
 *.iml
 *.ipr
 
 ### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
 build/
-!**/src/main/**/build/
-!**/src/test/**/build/
 
 ### VS Code ###
 .vscode/
@@ -43,3 +41,28 @@ src/main/resources/application-local.properties
 ### Archivos subidos por usuarios ###
 uploads/*
 !uploads/.gitkeep
+
+### Node.js ###
+node_modules/
+
+### Playwright ###
+test-results/
+playwright-report/
+blob-report/
+
+### Logs ###
+*.log
+
+### Archivos temporales ###
+*.tmp
+*.temp
+*.swp
+*.swo
+
+### Archivos comprimidos generados ###
+gestionincidencias*.zip
+
+### Sistema operativo ###
+.DS_Store
+Thumbs.db
+desktop.ini

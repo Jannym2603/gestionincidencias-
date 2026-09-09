@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import com.practica.gestionincidencias.entity.Comentario;
 import com.practica.gestionincidencias.entity.EnlaceCompartido;
+import com.practica.gestionincidencias.entity.SolicitudRecurso;
 import com.practica.gestionincidencias.entity.Ticket;
 import com.practica.gestionincidencias.entity.Usuario;
 
@@ -135,6 +136,256 @@ public class NotificacionService {
                         + comentario.getContenido()
         );
     }
+
+    /*
+     * Notifica al cliente cuando una solicitud de recurso cambia
+     * a un estado relevante para su seguimiento.
+     *
+     * No se envían correos por cambios administrativos menores
+     * como categoría, cantidad, proveedor u observaciones.
+     */
+    public void notificarCambioEstadoRecurso(
+            SolicitudRecurso solicitud,
+            String estadoAnterior,
+            String nuevoEstado) {
+
+        if (solicitud == null
+                || solicitud.getTicket() == null
+                || solicitud.getTicket().getCliente() == null) {
+
+            return;
+        }
+
+        Ticket ticket =
+                solicitud.getTicket();
+
+        String destinatario =
+                ticket.getCliente().getCorreo();
+
+        if (destinatario == null
+                || destinatario.isBlank()) {
+
+            return;
+        }
+
+        String estado =
+                nuevoEstado == null
+                        ? ""
+                        : nuevoEstado.trim().toUpperCase();
+
+        String asunto;
+        String mensajeEstado;
+
+        switch (estado) {
+
+            case "EN_VALIDACION" -> {
+                asunto =
+                        "Solicitud de recurso en validación: "
+                                + ticket.getNumeroTicket();
+
+                mensajeEstado =
+                        "Tu solicitud de recurso se encuentra en proceso de validación.";
+            }
+
+            case "SOLICITADO_PROVEEDOR" -> {
+                asunto =
+                        "Recurso solicitado al proveedor: "
+                                + ticket.getNumeroTicket();
+
+                mensajeEstado =
+                        "El recurso requerido ya fue solicitado al proveedor.";
+            }
+
+            case "ESPERANDO_PROVEEDOR" -> {
+                asunto =
+                        "Recurso en espera del proveedor: "
+                                + ticket.getNumeroTicket();
+
+                mensajeEstado =
+                        "La solicitud está a la espera de la entrega por parte del proveedor.";
+            }
+
+            case "RECIBIDO" -> {
+                asunto =
+                        "Recurso recibido: "
+                                + ticket.getNumeroTicket();
+
+                mensajeEstado =
+                        "El recurso fue recibido del proveedor y continuará con el proceso de entrega.";
+            }
+
+            case "ENTREGADO" -> {
+                asunto =
+                        "Recurso entregado: "
+                                + ticket.getNumeroTicket();
+
+                mensajeEstado =
+                        "El recurso asociado a tu solicitud fue registrado como entregado.";
+            }
+
+            case "CERRADO" -> {
+                asunto =
+                        "Solicitud de recurso cerrada: "
+                                + ticket.getNumeroTicket();
+
+                mensajeEstado =
+                        "La solicitud de recurso fue cerrada correctamente.";
+            }
+
+            case "CANCELADO" -> {
+                asunto =
+                        "Solicitud de recurso cancelada: "
+                                + ticket.getNumeroTicket();
+
+                mensajeEstado =
+                        "La solicitud de recurso fue cancelada.";
+            }
+
+            default -> {
+                /*
+                 * NUEVO y cualquier estado no contemplado no generan
+                 * correo para evitar notificaciones innecesarias.
+                 */
+                return;
+            }
+        }
+
+        String contenido =
+                mensajeEstado
+                        + "\n\n"
+                        + "Ticket: "
+                        + ticket.getNumeroTicket()
+                        + "\n"
+                        + "Título: "
+                        + ticket.getTitulo()
+                        + "\n"
+                        + "Recurso: "
+                        + valorCorreo(
+                                solicitud.getRecurso(),
+                                "Sin especificar"
+                        )
+                        + "\n"
+                        + "Cantidad: "
+                        + (
+                                solicitud.getCantidad() != null
+                                        ? solicitud.getCantidad()
+                                        : 1
+                        )
+                        + "\n"
+                        + "Estado anterior: "
+                        + valorCorreo(
+                                estadoAnterior,
+                                "-"
+                        )
+                        + "\n"
+                        + "Estado actual: "
+                        + valorCorreo(
+                                nuevoEstado,
+                                "-"
+                        );
+
+        if (solicitud.getFechaEstimadaEntrega() != null) {
+
+            contenido +=
+                    "\n"
+                            + "Fecha estimada de entrega: "
+                            + solicitud.getFechaEstimadaEntrega();
+        }
+
+        enviar(
+                destinatario,
+                asunto,
+                contenido
+        );
+    }
+
+
+    /*
+     * Alerta interna de retraso. Se envía una sola vez por fecha estimada
+     * vencida; el servicio programado registra la fecha de notificación
+     * únicamente cuando el correo se envía correctamente.
+     */
+    public boolean notificarRecursoRetrasado(
+            SolicitudRecurso solicitud) {
+
+        if (solicitud == null
+                || solicitud.getTicket() == null
+                || correoSoporte == null
+                || correoSoporte.isBlank()) {
+
+            return false;
+        }
+
+        Ticket ticket =
+                solicitud.getTicket();
+
+        String cliente =
+                ticket.getCliente() != null
+                        ? obtenerNombreUsuario(ticket.getCliente())
+                        : "Sin cliente";
+
+        String proyecto =
+                ticket.getProyecto() != null
+                        ? ticket.getProyecto().getNombre()
+                        : "Sin proyecto";
+
+        String contenido =
+                "Se detectó una solicitud de recurso con entrega vencida.\n\n"
+                        + "Ticket: "
+                        + valorCorreo(ticket.getNumeroTicket(), "-")
+                        + "\n"
+                        + "Título: "
+                        + valorCorreo(ticket.getTitulo(), "-")
+                        + "\n"
+                        + "Cliente: "
+                        + cliente
+                        + "\n"
+                        + "Proyecto: "
+                        + proyecto
+                        + "\n"
+                        + "Recurso: "
+                        + valorCorreo(solicitud.getRecurso(), "-")
+                        + "\n"
+                        + "Cantidad: "
+                        + valorCorreo(solicitud.getCantidad(), "1")
+                        + "\n"
+                        + "Proveedor: "
+                        + valorCorreo(solicitud.getProveedor(), "Pendiente")
+                        + "\n"
+                        + "Estado del recurso: "
+                        + valorCorreo(solicitud.getEstadoRecurso(), "NUEVO")
+                        + "\n"
+                        + "Fecha estimada de entrega: "
+                        + valorCorreo(solicitud.getFechaEstimadaEntrega(), "-")
+                        + "\n\n"
+                        + "La solicitud continúa con su estado real; RETRASADO "
+                        + "es únicamente una condición de seguimiento.";
+
+        return enviarSinCopiaSoporte(
+                correoSoporte,
+                "ALERTA: recurso retrasado - "
+                        + valorCorreo(ticket.getNumeroTicket(), "Ticket"),
+                contenido
+        );
+    }
+
+
+    private String valorCorreo(
+            Object valor,
+            String defecto) {
+
+        if (valor == null) {
+            return defecto;
+        }
+
+        String texto =
+                String.valueOf(valor).trim();
+
+        return texto.isBlank()
+                ? defecto
+                : texto;
+    }
+
 
     public void notificarCodigoRecuperacionPassword(
             Usuario usuario,
@@ -315,12 +566,12 @@ public class NotificacionService {
                 .withNano(0);
     }
 
-    private void enviar(
+    private boolean enviar(
             String destinatario,
             String asunto,
             String contenido) {
 
-        enviar(
+        return enviar(
                 destinatario,
                 asunto,
                 contenido,
@@ -328,12 +579,12 @@ public class NotificacionService {
         );
     }
 
-    private void enviarSinCopiaSoporte(
+    private boolean enviarSinCopiaSoporte(
             String destinatario,
             String asunto,
             String contenido) {
 
-        enviar(
+        return enviar(
                 destinatario,
                 asunto,
                 contenido,
@@ -341,7 +592,7 @@ public class NotificacionService {
         );
     }
 
-    private void enviar(
+    private boolean enviar(
             String destinatario,
             String asunto,
             String contenido,
@@ -356,7 +607,7 @@ public class NotificacionService {
                             + "de correo o destinatario."
             );
 
-            return;
+            return false;
         }
 
         SimpleMailMessage mensaje =
@@ -391,6 +642,8 @@ public class NotificacionService {
                             + asunto
             );
 
+            return true;
+
         } catch (RuntimeException error) {
 
             System.err.println(
@@ -398,6 +651,8 @@ public class NotificacionService {
                             + "por correo: "
                             + error.getMessage()
             );
+
+            return false;
         }
     }
 

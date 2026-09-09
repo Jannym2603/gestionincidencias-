@@ -6,9 +6,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.practica.gestionincidencias.entity.Usuario;
 
-public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
+public interface UsuarioRepository
+        extends JpaRepository<Usuario, Integer> {
 
-    Optional<Usuario> findByCorreo(String correo);
+    Optional<Usuario> findByCorreo(
+            String correo
+    );
 
-    boolean existsByCorreo(String correo);
+    boolean existsByCorreo(
+            String correo
+    );
 }

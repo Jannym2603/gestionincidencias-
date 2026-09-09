@@ -26,6 +26,17 @@ public class ConfiguracionSistemaController {
         this.service = service;
     }
 
+    /*
+     * Obtiene la configuración global del sistema:
+     *
+     * - Estado global de Crear Ticket
+     * - Estado global de Reportes
+     * - Estado global de Historial
+     * - Permisos por rol de cada módulo
+     *
+     * Cualquier usuario autenticado puede consultar
+     * esta configuración.
+     */
     @GetMapping
     public ResponseEntity<ConfiguracionSistemaDTO>
             obtenerConfiguracion() {
@@ -35,10 +46,14 @@ public class ConfiguracionSistemaController {
         );
     }
 
+    /*
+     * Actualiza la configuración global
+     * y los permisos por rol.
+     *
+     * Solamente ADMIN puede modificarla.
+     */
     @PutMapping
-    @PreAuthorize(
-            "hasAnyRole('ADMIN', 'SUPERVISOR')"
-    )
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ConfiguracionSistemaDTO>
             actualizarConfiguracion(
                     @RequestBody ConfiguracionSistemaDTO dto) {
@@ -48,10 +63,14 @@ public class ConfiguracionSistemaController {
         );
     }
 
+    /*
+     * Devuelve la auditoría de cambios
+     * realizados sobre la configuración.
+     *
+     * Solamente ADMIN puede consultarla.
+     */
     @GetMapping("/auditoria")
-    @PreAuthorize(
-            "hasAnyRole('ADMIN', 'SUPERVISOR')"
-    )
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<AuditoriaConfiguracionResponseDTO>>
             obtenerAuditoria() {
 

@@ -1,14 +1,16 @@
 package com.practica.gestionincidencias.dto;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 
 public class TicketRequestDTO {
 
-    @NotBlank(message = "El titulo es obligatorio.")
+    @NotBlank(message = "El título es obligatorio.")
     private String titulo;
 
-    @NotBlank(message = "La descripcion es obligatoria.")
+    @NotBlank(message = "La descripción es obligatoria.")
     private String descripcion;
 
     @NotNull(message = "El tipo de incidencia es obligatorio.")
@@ -16,6 +18,19 @@ public class TicketRequestDTO {
 
     @NotNull(message = "El cliente es obligatorio.")
     private Integer clienteId;
+
+    @NotNull(message = "El proyecto es obligatorio.")
+    private Integer proyectoId;
+
+    @NotBlank(message = "El tipo de atención es obligatorio.")
+    @Pattern(
+            regexp = "OPERATIVO|RECURSO_EXTERNO",
+            message = "El tipo de atención no es válido."
+    )
+    private String tipoAtencion;
+
+    @Valid
+    private SolicitudRecursoRequestDTO solicitudRecurso;
 
     private String severidad;
     private String criticidad;
@@ -43,6 +58,18 @@ public class TicketRequestDTO {
 
     public Integer getClienteId() {
         return clienteId;
+    }
+
+    public Integer getProyectoId() {
+        return proyectoId;
+    }
+
+    public String getTipoAtencion() {
+        return tipoAtencion;
+    }
+
+    public SolicitudRecursoRequestDTO getSolicitudRecurso() {
+        return solicitudRecurso;
     }
 
     public String getSeveridad() {
@@ -75,6 +102,19 @@ public class TicketRequestDTO {
 
     public void setClienteId(Integer clienteId) {
         this.clienteId = clienteId;
+    }
+
+    public void setProyectoId(Integer proyectoId) {
+        this.proyectoId = proyectoId;
+    }
+
+    public void setTipoAtencion(String tipoAtencion) {
+        this.tipoAtencion = tipoAtencion;
+    }
+
+    public void setSolicitudRecurso(
+            SolicitudRecursoRequestDTO solicitudRecurso) {
+        this.solicitudRecurso = solicitudRecurso;
     }
 
     public void setSeveridad(String severidad) {
