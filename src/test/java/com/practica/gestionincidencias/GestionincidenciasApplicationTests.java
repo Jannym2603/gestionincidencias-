@@ -2,11 +2,10 @@ package com.practica.gestionincidencias;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest(properties = {
-        "app.jwt.secret=clave-jwt-exclusiva-para-pruebas-1234567890",
-        "app.jwt.expiration-ms=28800000"
-})
+@SpringBootTest
+@ActiveProfiles("test")
 class GestionincidenciasApplicationTests {
 
     @Test

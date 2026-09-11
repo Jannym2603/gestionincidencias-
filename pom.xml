@@ -93,10 +93,18 @@
         <!-- BASE DE DATOS -->
         <!-- ========================= -->
 
+        <!-- PostgreSQL para ejecución normal -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
+        </dependency>
+
+        <!-- H2 únicamente para pruebas -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
         </dependency>
 
 
