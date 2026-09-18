@@ -27,18 +27,46 @@ public class CodigoRecuperacionPassword {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(nullable = false, length = 150)
+    @Column(
+            nullable = false,
+            length = 150
+    )
     private String correo;
 
-    @Column(nullable = false, length = 10)
+    /*
+     * Aquí ya no se guarda el código de 6 dígitos
+     * directamente.
+     *
+     * Se almacenará su hash BCrypt.
+     */
+    @Column(
+            nullable = false,
+            length = 100
+    )
     private String codigo;
 
-    @Column(nullable = false)
+    @Column(
+            nullable = false
+    )
     private LocalDateTime fechaCreacion;
 
-    @Column(nullable = false)
+    @Column(
+            nullable = false
+    )
     private LocalDateTime fechaExpiracion;
 
-    @Column(nullable = false)
+    @Column(
+            nullable = false
+    )
     private Boolean usado;
+
+    /*
+     * Cantidad de códigos incorrectos introducidos.
+     * Después de 5 intentos el código se invalida.
+     */
+    @Column(
+            nullable = false
+    )
+    @Builder.Default
+    private Integer intentosFallidos = 0;
 }

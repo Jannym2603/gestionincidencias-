@@ -275,13 +275,15 @@ También existe un servicio programado que puede enviar alertas por correo evita
 
 ---
 
-## 11. SLA y seguimiento
+## 11. Tiempo abierto y seguimiento
 
-El sistema permite controlar tiempos de atención asociados a los tickets.
+El tiempo principal visible del ticket se calcula desde `fechaCreacion` hasta `fechaCierre`. El ticket no vence ni se cierra automáticamente por haber superado una cantidad fija de horas.
 
-Para tickets operativos se mantiene el seguimiento normal de tiempos de respuesta y resolución.
+Cuando un ticket pasa a `RESUELTO`, el contador continúa. Solamente se detiene al llegar a `CERRADO`.
 
-En solicitudes de recursos externos, el tiempo de resolución puede depender de terceros, por lo que su seguimiento se realiza principalmente mediante el ciclo de vida de la solicitud y la fecha estimada de entrega.
+Las fechas de SLA pueden conservarse internamente como métricas de servicio, pero no representan la fecha de vencimiento del ticket.
+
+En solicitudes de recursos externos, el seguimiento se realiza mediante el ciclo de vida del recurso, la fecha estimada original, la fecha estimada actual y los días de retraso.
 
 ---
 
@@ -404,7 +406,7 @@ No deben almacenarse contraseñas reales dentro del repositorio.
 Por defecto, la aplicación utiliza:
 
 ```text
-Base de datos: gestion_incidencias
+Base de datos: gestionincidencias
 Servidor: localhost
 Puerto PostgreSQL: 5432
 Usuario: postgres
@@ -432,7 +434,7 @@ DB_PASSWORD
 En PostgreSQL:
 
 ```sql
-CREATE DATABASE gestion_incidencias;
+CREATE DATABASE gestionincidencias;
 ```
 
 ### 2. Configurar variables de entorno
@@ -598,3 +600,17 @@ Antes de una entrega o despliegue se recomienda ejecutar nuevamente todas las pr
 **Janeth Ramos**
 
 Proyecto desarrollado como parte de la práctica profesional de Ingeniería de Sistemas Informáticos.
+
+
+---
+
+## 27. Cambios consolidados de septiembre 2026
+
+- El tiempo visible del ticket corre desde la creación hasta `fechaCierre`; no expira automáticamente por SLA.
+- `RESUELTO` no detiene el contador; `CERRADO` sí.
+- Los tickets `RECURSO_EXTERNO` muestran y administran su recurso asociado desde el mismo detalle del ticket.
+- Las solicitudes externas conservan fecha estimada original y fecha actual, además de motivo y detalle de retraso.
+- Al cerrar una solicitud externa, el ticket asociado se cierra automáticamente y registra su fecha de cierre.
+- Los códigos de recuperación nuevos se guardan con BCrypt y se bloquean después de cinco intentos fallidos.
+- Las pruebas de contexto utilizan H2 mediante el perfil `test`.
+- Se incluyen scripts para configurar el entorno, verificar el proyecto e iniciar localmente.

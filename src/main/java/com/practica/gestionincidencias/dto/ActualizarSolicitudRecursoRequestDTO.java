@@ -23,6 +23,9 @@ public class ActualizarSolicitudRecursoRequestDTO {
     private LocalDateTime fechaRecepcion;
     private LocalDateTime fechaEntregaCliente;
 
+    private String motivoRetraso;
+    private String detalleRetraso;
+
     private String observaciones;
 
     public ActualizarSolicitudRecursoRequestDTO() {
@@ -64,6 +67,14 @@ public class ActualizarSolicitudRecursoRequestDTO {
         return fechaEntregaCliente;
     }
 
+    public String getMotivoRetraso() {
+        return motivoRetraso;
+    }
+
+    public String getDetalleRetraso() {
+        return detalleRetraso;
+    }
+
     public String getObservaciones() {
         return observaciones;
     }
@@ -90,25 +101,50 @@ public class ActualizarSolicitudRecursoRequestDTO {
 
     public void setFechaSolicitudProveedor(
             LocalDateTime fechaSolicitudProveedor) {
-        this.fechaSolicitudProveedor = fechaSolicitudProveedor;
+
+        this.fechaSolicitudProveedor =
+                fechaSolicitudProveedor;
     }
 
     public void setFechaEstimadaEntrega(
             LocalDateTime fechaEstimadaEntrega) {
-        this.fechaEstimadaEntrega = fechaEstimadaEntrega;
+
+        this.fechaEstimadaEntrega =
+                fechaEstimadaEntrega;
     }
 
     public void setFechaRecepcion(
             LocalDateTime fechaRecepcion) {
-        this.fechaRecepcion = fechaRecepcion;
+
+        this.fechaRecepcion =
+                fechaRecepcion;
     }
 
     public void setFechaEntregaCliente(
             LocalDateTime fechaEntregaCliente) {
-        this.fechaEntregaCliente = fechaEntregaCliente;
+
+        this.fechaEntregaCliente =
+                fechaEntregaCliente;
     }
 
-    public void setObservaciones(String observaciones) {
-        this.observaciones = observaciones;
+    public void setMotivoRetraso(
+            String motivoRetraso) {
+
+        this.motivoRetraso =
+                motivoRetraso;
+    }
+
+    public void setDetalleRetraso(
+            String detalleRetraso) {
+
+        this.detalleRetraso =
+                detalleRetraso;
+    }
+
+    public void setObservaciones(
+            String observaciones) {
+
+        this.observaciones =
+                observaciones;
     }
 }

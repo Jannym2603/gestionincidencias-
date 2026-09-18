@@ -6,6 +6,8 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.practica.gestionincidencias.entity.SolicitudRecurso;
 
@@ -16,20 +18,37 @@ public interface SolicitudRecursoRepository
 
     boolean existsByTicketId(Integer ticketId);
 
+
     /*
-     * Permite consultar directamente desde la base de datos
-     * las solicitudes cuya fecha estimada ya venció y que
-     * todavía no se encuentran en un estado finalizado.
+     * Busca solicitudes cuya fecha base de entrega ya venció.
+     *
+     * Si existe fecha_estimada_entrega_original,
+     * utiliza esa fecha.
+     *
+     * Para registros antiguos que todavía no tengan
+     * fecha original, utiliza fecha_estimada_entrega.
      */
-    List<SolicitudRecurso>
-            findByFechaEstimadaEntregaBeforeAndEstadoRecursoNotIn(
-                    LocalDateTime fecha,
-                    Set<String> estadosExcluidos
-            );
+    @Query("""
+            SELECT s
+            FROM SolicitudRecurso s
+            WHERE
+                COALESCE(
+                    s.fechaEstimadaEntregaOriginal,
+                    s.fechaEstimadaEntrega
+                ) < :fecha
+            AND s.estadoRecurso NOT IN :estadosExcluidos
+            """)
+    List<SolicitudRecurso> buscarSolicitudesRetrasadas(
+            @Param("fecha") LocalDateTime fecha,
+            @Param("estadosExcluidos")
+            Set<String> estadosExcluidos
+    );
 
-    default List<SolicitudRecurso> findSolicitudesRetrasadas() {
 
-        return findByFechaEstimadaEntregaBeforeAndEstadoRecursoNotIn(
+    default List<SolicitudRecurso>
+            findSolicitudesRetrasadas() {
+
+        return buscarSolicitudesRetrasadas(
                 LocalDateTime.now(),
                 Set.of(
                         "RECIBIDO",
@@ -39,16 +58,38 @@ public interface SolicitudRecursoRepository
                 )
         );
     }
+
+
+    /*
+     * Igual que la consulta anterior, pero solo devuelve
+     * solicitudes a las que todavía no se les haya enviado
+     * la notificación automática de retraso.
+     */
+    @Query("""
+            SELECT s
+            FROM SolicitudRecurso s
+            WHERE
+                COALESCE(
+                    s.fechaEstimadaEntregaOriginal,
+                    s.fechaEstimadaEntrega
+                ) < :fecha
+            AND s.fechaNotificacionRetraso IS NULL
+            AND s.estadoRecurso NOT IN :estadosExcluidos
+            """)
     List<SolicitudRecurso>
-            findByFechaEstimadaEntregaBeforeAndFechaNotificacionRetrasoIsNullAndEstadoRecursoNotIn(
+            buscarSolicitudesRetrasadasPendientesNotificacion(
+                    @Param("fecha")
                     LocalDateTime fecha,
+
+                    @Param("estadosExcluidos")
                     Set<String> estadosExcluidos
             );
+
 
     default List<SolicitudRecurso>
             findSolicitudesRetrasadasPendientesNotificacion() {
 
-        return findByFechaEstimadaEntregaBeforeAndFechaNotificacionRetrasoIsNullAndEstadoRecursoNotIn(
+        return buscarSolicitudesRetrasadasPendientesNotificacion(
                 LocalDateTime.now(),
                 Set.of(
                         "RECIBIDO",
@@ -58,5 +99,4 @@ public interface SolicitudRecursoRepository
                 )
         );
     }
-
 }

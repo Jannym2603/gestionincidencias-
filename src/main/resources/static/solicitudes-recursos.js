@@ -789,7 +789,10 @@ function aplicarFiltrosRecursos() {
                         item.categoria,
                         item.recurso,
                         item.proveedor,
-                        item.estadoRecurso
+                        item.estadoRecurso,
+                        item.situacionEntrega,
+                        item.motivoRetraso,
+                        item.detalleRetraso
                     ]
                         .some(valor =>
                             String(
@@ -1003,9 +1006,11 @@ function pintarSolicitudesRecursos(
 
                 <td>
                     <span class="badge">
-                        ${esSolicitudRetrasada(solicitud)
-                            ? "RETRASADO"
-                            : obtenerTextoSeguimientoRecurso(solicitud)}
+                        ${escaparHtmlRecursos(
+                            obtenerTextoSeguimientoRecurso(
+                                solicitud
+                            )
+                        )}
                     </span>
                 </td>
 
@@ -1127,6 +1132,13 @@ function abrirSolicitudRecurso(
     );
 
     asignarValor(
+        "detalleFechaEstimadaEntregaOriginal",
+        fechaParaInput(
+            solicitud.fechaEstimadaEntregaOriginal
+        )
+    );
+
+    asignarValor(
         "detalleFechaEstimadaEntrega",
         fechaParaInput(
             solicitud.fechaEstimadaEntrega
@@ -1135,9 +1147,27 @@ function abrirSolicitudRecurso(
 
     asignarValor(
         "detalleSeguimientoEntrega",
-        esSolicitudRetrasada(solicitud)
-            ? "RETRASADO"
-            : obtenerTextoSeguimientoRecurso(solicitud)
+        obtenerTextoSeguimientoRecurso(
+            solicitud
+        )
+    );
+
+    asignarValor(
+        "detalleDiasRetraso",
+        Number(
+            solicitud.diasRetraso
+            || 0
+        )
+    );
+
+    asignarValor(
+        "detalleMotivoRetraso",
+        solicitud.motivoRetraso
+    );
+
+    asignarValor(
+        "detalleDetalleRetraso",
+        solicitud.detalleRetraso
     );
 
     asignarValor(
@@ -1211,6 +1241,8 @@ function configurarEdicionPanel() {
         "detalleEstadoRecurso",
         "detalleFechaSolicitudProveedor",
         "detalleFechaEstimadaEntrega",
+        "detalleMotivoRetraso",
+        "detalleDetalleRetraso",
         "detalleFechaRecepcion",
         "detalleFechaEntregaCliente",
         "detalleObservaciones"
@@ -1328,6 +1360,16 @@ async function guardarSolicitudRecurso(
         fechaEstimadaEntrega:
             fechaParaBackend(
                 "detalleFechaEstimadaEntrega"
+            ),
+
+        motivoRetraso:
+            valorTexto(
+                "detalleMotivoRetraso"
+            ),
+
+        detalleRetraso:
+            valorTexto(
+                "detalleDetalleRetraso"
             ),
 
         fechaRecepcion:
@@ -1549,11 +1591,59 @@ function obtenerTextoSeguimientoRecurso(
     solicitud
 ) {
 
-    if (
-        !solicitud
-        ||
-        !solicitud.fechaEstimadaEntrega
-    ) {
+    if (!solicitud) {
+        return "SIN FECHA";
+    }
+
+    const situacion =
+        String(
+            solicitud.situacionEntrega
+            || ""
+        )
+            .trim()
+            .toUpperCase();
+
+    const diasRetraso =
+        Number(
+            solicitud.diasRetraso
+            || 0
+        );
+
+    switch (situacion) {
+
+        case "RETRASADO":
+            return diasRetraso > 0
+                ? `PIEZA RETRASADA · ${diasRetraso} día${diasRetraso === 1 ? "" : "s"}`
+                : "PIEZA RETRASADA";
+
+        case "REPROGRAMADO":
+            return "FECHA REPROGRAMADA";
+
+        case "RECIBIDO_CON_RETRASO":
+            return diasRetraso > 0
+                ? `RECIBIDO · ${diasRetraso} día${diasRetraso === 1 ? "" : "s"} de retraso`
+                : "RECIBIDO CON RETRASO";
+
+        case "RECIBIDO_EN_TIEMPO":
+            return "RECIBIDO EN TIEMPO";
+
+        case "CANCELADO":
+            return "CANCELADO";
+
+        case "EN_TIEMPO":
+            return "EN TIEMPO";
+
+        case "SIN_FECHA":
+            return "SIN FECHA";
+    }
+
+    if (esSolicitudRetrasada(solicitud)) {
+        return diasRetraso > 0
+            ? `PIEZA RETRASADA · ${diasRetraso} día${diasRetraso === 1 ? "" : "s"}`
+            : "PIEZA RETRASADA";
+    }
+
+    if (!solicitud.fechaEstimadaEntrega) {
         return "SIN FECHA";
     }
 
@@ -1575,9 +1665,7 @@ function obtenerTextoSeguimientoRecurso(
         return "COMPLETADO";
     }
 
-    if (
-        estado === "CANCELADO"
-    ) {
+    if (estado === "CANCELADO") {
         return "CANCELADO";
     }
 

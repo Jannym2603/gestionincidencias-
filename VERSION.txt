@@ -1,0 +1,18 @@
+GESTION DE INCIDENCIAS - VERSION CONSOLIDADA
+Fecha: 2026-09-17
+
+Incluye:
+- Spring Boot 3.5.15 / Java 17
+- PostgreSQL
+- JWT + BCrypt
+- Recuperacion de contrasena endurecida
+- Pruebas con H2
+- Seguimiento de recursos externos
+- Retrasos, fecha estimada original/actual y observaciones
+- Administracion del recurso desde el detalle del ticket
+- Tiempo abierto del ticket hasta CERRADO
+- Cierre automatico del ticket al cerrar una solicitud de recurso externo
+- Scripts de configuracion, verificacion e inicio local
+- SQL de actualizacion de base de datos
+
+No contiene contrasenas reales, archivos .env, carpeta .git, target, node_modules ni adjuntos reales de usuarios.

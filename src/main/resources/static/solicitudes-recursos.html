@@ -104,8 +104,9 @@
 
             <div>
                 <h1>Solicitudes de Recursos</h1>
+
                 <p id="descripcionSolicitudes">
-                    Consulta y administra recursos que dependen de proveedores externos.
+                    Consulta y administra los recursos requeridos para la atención de incidencias.
                 </p>
             </div>
 
@@ -142,26 +143,38 @@
 
         </header>
 
-        <div class="info-box" id="infoSolicitudes">
+
+        <div
+            class="info-box"
+            id="infoSolicitudes">
             Las solicitudes de recursos se muestran según tu rol y los proyectos a los que tienes acceso.
         </div>
 
-        <div class="info-box" id="contextoTicketSolicitud" hidden>
+
+        <div
+            class="info-box"
+            id="contextoTicketSolicitud"
+            hidden>
             Se abrió esta pantalla desde el detalle de un ticket.
         </div>
+
 
         <section class="table-section">
 
             <div class="section-header">
 
                 <div>
-                    <h2>Listado de solicitudes</h2>
+                    <h2>
+                        Listado de solicitudes
+                    </h2>
+
                     <p id="resumenSolicitudes">
                         Cargando solicitudes...
                     </p>
                 </div>
 
             </div>
+
 
             <div class="form-grid">
 
@@ -176,23 +189,51 @@
                         placeholder="Ticket, cliente, recurso, proveedor...">
                 </div>
 
+
                 <div class="form-group">
                     <label for="filtroEstadoRecurso">
                         Estado
                     </label>
 
                     <select id="filtroEstadoRecurso">
-                        <option value="">Todos</option>
-                        <option value="NUEVO">NUEVO</option>
-                        <option value="EN_VALIDACION">EN_VALIDACION</option>
-                        <option value="SOLICITADO_PROVEEDOR">SOLICITADO_PROVEEDOR</option>
-                        <option value="ESPERANDO_PROVEEDOR">ESPERANDO_PROVEEDOR</option>
-                        <option value="RECIBIDO">RECIBIDO</option>
-                        <option value="ENTREGADO">ENTREGADO</option>
-                        <option value="CERRADO">CERRADO</option>
-                        <option value="CANCELADO">CANCELADO</option>
+                        <option value="">
+                            Todos
+                        </option>
+
+                        <option value="NUEVO">
+                            NUEVO
+                        </option>
+
+                        <option value="EN_VALIDACION">
+                            EN_VALIDACION
+                        </option>
+
+                        <option value="SOLICITADO_PROVEEDOR">
+                            SOLICITADO_PROVEEDOR
+                        </option>
+
+                        <option value="ESPERANDO_PROVEEDOR">
+                            ESPERANDO_PROVEEDOR
+                        </option>
+
+                        <option value="RECIBIDO">
+                            RECIBIDO
+                        </option>
+
+                        <option value="ENTREGADO">
+                            ENTREGADO
+                        </option>
+
+                        <option value="CERRADO">
+                            CERRADO
+                        </option>
+
+                        <option value="CANCELADO">
+                            CANCELADO
+                        </option>
                     </select>
                 </div>
+
 
                 <div class="form-group">
                     <label for="filtroRetrasoRecurso">
@@ -200,11 +241,22 @@
                     </label>
 
                     <select id="filtroRetrasoRecurso">
-                        <option value="">Todos</option>
-                        <option value="RETRASADO">Solo retrasadas</option>
-                        <option value="EN_TIEMPO">No retrasadas</option>
+
+                        <option value="">
+                            Todos
+                        </option>
+
+                        <option value="RETRASADO">
+                            Solo retrasadas
+                        </option>
+
+                        <option value="EN_TIEMPO">
+                            No retrasadas
+                        </option>
+
                     </select>
                 </div>
+
 
                 <div class="form-group">
                     <label for="filtroCategoriaRecurso">
@@ -212,9 +264,12 @@
                     </label>
 
                     <select id="filtroCategoriaRecurso">
-                        <option value="">Todas</option>
+                        <option value="">
+                            Todas
+                        </option>
                     </select>
                 </div>
+
 
                 <div class="form-group">
                     <label for="filtroCompaniaRecurso">
@@ -222,9 +277,12 @@
                     </label>
 
                     <select id="filtroCompaniaRecurso">
-                        <option value="">Todas</option>
+                        <option value="">
+                            Todas
+                        </option>
                     </select>
                 </div>
+
 
                 <div class="form-group">
                     <label for="filtroProyectoRecurso">
@@ -232,17 +290,21 @@
                     </label>
 
                     <select id="filtroProyectoRecurso">
-                        <option value="">Todos</option>
+                        <option value="">
+                            Todos
+                        </option>
                     </select>
                 </div>
 
             </div>
+
 
             <div class="table-wrapper">
 
                 <table>
 
                     <thead>
+
                         <tr>
                             <th>Ticket</th>
                             <th>Cliente</th>
@@ -257,14 +319,18 @@
                             <th>Seguimiento</th>
                             <th>Acción</th>
                         </tr>
+
                     </thead>
 
+
                     <tbody id="solicitudesBody">
+
                         <tr>
                             <td colspan="12">
                                 Cargando solicitudes...
                             </td>
                         </tr>
+
                     </tbody>
 
                 </table>
@@ -272,6 +338,7 @@
             </div>
 
         </section>
+
 
         <section
             class="form-card"
@@ -281,6 +348,7 @@
             <div class="section-header">
 
                 <div>
+
                     <h2 id="tituloPanelSolicitud">
                         Detalle de solicitud
                     </h2>
@@ -288,7 +356,9 @@
                     <p id="subtituloPanelSolicitud">
                         Información de la solicitud seleccionada.
                     </p>
+
                 </div>
+
 
                 <div class="form-actions">
 
@@ -311,15 +381,19 @@
 
             </div>
 
+
             <form id="formSolicitudRecurso">
 
                 <input
                     type="hidden"
                     id="solicitudRecursoId">
 
+
                 <div class="form-grid">
 
+
                     <div class="form-group">
+
                         <label for="detalleNumeroTicket">
                             Ticket
                         </label>
@@ -328,9 +402,12 @@
                             type="text"
                             id="detalleNumeroTicket"
                             readonly>
+
                     </div>
 
+
                     <div class="form-group">
+
                         <label for="detalleCliente">
                             Cliente
                         </label>
@@ -339,9 +416,12 @@
                             type="text"
                             id="detalleCliente"
                             readonly>
+
                     </div>
 
+
                     <div class="form-group">
+
                         <label for="detalleCompania">
                             Compañía
                         </label>
@@ -350,9 +430,12 @@
                             type="text"
                             id="detalleCompania"
                             readonly>
+
                     </div>
 
+
                     <div class="form-group">
+
                         <label for="detalleProyecto">
                             Proyecto
                         </label>
@@ -361,9 +444,12 @@
                             type="text"
                             id="detalleProyecto"
                             readonly>
+
                     </div>
 
+
                     <div class="form-group">
+
                         <label for="detalleCategoria">
                             Categoría
                         </label>
@@ -371,9 +457,12 @@
                         <input
                             type="text"
                             id="detalleCategoria">
+
                     </div>
 
+
                     <div class="form-group">
+
                         <label for="detalleRecurso">
                             Recurso
                         </label>
@@ -381,9 +470,12 @@
                         <input
                             type="text"
                             id="detalleRecurso">
+
                     </div>
 
+
                     <div class="form-group">
+
                         <label for="detalleCantidad">
                             Cantidad
                         </label>
@@ -392,9 +484,12 @@
                             type="number"
                             id="detalleCantidad"
                             min="1">
+
                     </div>
 
+
                     <div class="form-group">
+
                         <label for="detalleProveedor">
                             Proveedor
                         </label>
@@ -403,26 +498,57 @@
                             type="text"
                             id="detalleProveedor"
                             placeholder="Nombre del proveedor">
+
                     </div>
 
+
                     <div class="form-group">
+
                         <label for="detalleEstadoRecurso">
                             Estado del recurso
                         </label>
 
                         <select id="detalleEstadoRecurso">
-                            <option value="NUEVO">NUEVO</option>
-                            <option value="EN_VALIDACION">EN_VALIDACION</option>
-                            <option value="SOLICITADO_PROVEEDOR">SOLICITADO_PROVEEDOR</option>
-                            <option value="ESPERANDO_PROVEEDOR">ESPERANDO_PROVEEDOR</option>
-                            <option value="RECIBIDO">RECIBIDO</option>
-                            <option value="ENTREGADO">ENTREGADO</option>
-                            <option value="CERRADO">CERRADO</option>
-                            <option value="CANCELADO">CANCELADO</option>
+
+                            <option value="NUEVO">
+                                NUEVO
+                            </option>
+
+                            <option value="EN_VALIDACION">
+                                EN_VALIDACION
+                            </option>
+
+                            <option value="SOLICITADO_PROVEEDOR">
+                                SOLICITADO_PROVEEDOR
+                            </option>
+
+                            <option value="ESPERANDO_PROVEEDOR">
+                                ESPERANDO_PROVEEDOR
+                            </option>
+
+                            <option value="RECIBIDO">
+                                RECIBIDO
+                            </option>
+
+                            <option value="ENTREGADO">
+                                ENTREGADO
+                            </option>
+
+                            <option value="CERRADO">
+                                CERRADO
+                            </option>
+
+                            <option value="CANCELADO">
+                                CANCELADO
+                            </option>
+
                         </select>
+
                     </div>
 
+
                     <div class="form-group">
+
                         <label for="detalleFechaSolicitudProveedor">
                             Fecha solicitud al proveedor
                         </label>
@@ -430,30 +556,133 @@
                         <input
                             type="datetime-local"
                             id="detalleFechaSolicitudProveedor">
+
                     </div>
 
+
+                    <!-- ============================== -->
+                    <!-- SEGUIMIENTO DE ENTREGA -->
+                    <!-- ============================== -->
+
+
                     <div class="form-group">
+
+                        <label for="detalleFechaEstimadaEntregaOriginal">
+                            Fecha estimada original
+                        </label>
+
+                        <input
+                            type="datetime-local"
+                            id="detalleFechaEstimadaEntregaOriginal"
+                            readonly>
+
+                    </div>
+
+
+                    <div class="form-group">
+
                         <label for="detalleFechaEstimadaEntrega">
-                            Fecha estimada de entrega
+                            Fecha estimada actual
                         </label>
 
                         <input
                             type="datetime-local"
                             id="detalleFechaEstimadaEntrega">
+
                     </div>
 
+
                     <div class="form-group">
+
                         <label for="detalleSeguimientoEntrega">
-                            Seguimiento de entrega
+                            Situación de la pieza
                         </label>
 
                         <input
                             type="text"
                             id="detalleSeguimientoEntrega"
                             readonly>
+
                     </div>
 
+
                     <div class="form-group">
+
+                        <label for="detalleDiasRetraso">
+                            Días de retraso
+                        </label>
+
+                        <input
+                            type="number"
+                            id="detalleDiasRetraso"
+                            value="0"
+                            min="0"
+                            readonly>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="detalleMotivoRetraso">
+                            Motivo / situación del retraso
+                        </label>
+
+                        <select id="detalleMotivoRetraso">
+
+                            <option value="">
+                                Sin especificar
+                            </option>
+
+                            <option value="FALTA_DISPONIBILIDAD">
+                                Falta de disponibilidad
+                            </option>
+
+                            <option value="FECHA_REPROGRAMADA">
+                                Fecha de entrega reprogramada
+                            </option>
+
+                            <option value="EN_PROCESO_ENVIO">
+                                En proceso de envío
+                            </option>
+
+                            <option value="RETRASO_LOGISTICO">
+                                Retraso logístico
+                            </option>
+
+                            <option value="PENDIENTE_CONFIRMACION">
+                                Pendiente de confirmación
+                            </option>
+
+                            <option value="OTRO">
+                                Otro
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-group full">
+
+                        <label for="detalleDetalleRetraso">
+                            Detalle del retraso
+                        </label>
+
+                        <textarea
+                            id="detalleDetalleRetraso"
+                            placeholder="Ejemplo: La fecha estimada de llegada fue reprogramada."></textarea>
+
+                    </div>
+
+
+                    <!-- ============================== -->
+                    <!-- RECEPCIÓN Y ENTREGA -->
+                    <!-- ============================== -->
+
+
+                    <div class="form-group">
+
                         <label for="detalleFechaRecepcion">
                             Fecha de recepción
                         </label>
@@ -461,9 +690,12 @@
                         <input
                             type="datetime-local"
                             id="detalleFechaRecepcion">
+
                     </div>
 
+
                     <div class="form-group">
+
                         <label for="detalleFechaEntregaCliente">
                             Fecha de entrega al cliente
                         </label>
@@ -471,9 +703,12 @@
                         <input
                             type="datetime-local"
                             id="detalleFechaEntregaCliente">
+
                     </div>
 
+
                     <div class="form-group full">
+
                         <label for="detalleObservaciones">
                             Observaciones
                         </label>
@@ -481,9 +716,11 @@
                         <textarea
                             id="detalleObservaciones"
                             placeholder="Observaciones de la solicitud"></textarea>
+
                     </div>
 
                 </div>
+
 
                 <div
                     class="form-actions"
@@ -505,6 +742,7 @@
     </main>
 
 </div>
+
 
 <script src="app.js"></script>
 <script src="solicitudes-recursos.js"></script>

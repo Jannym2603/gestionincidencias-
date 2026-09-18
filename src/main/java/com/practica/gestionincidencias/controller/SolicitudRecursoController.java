@@ -26,6 +26,7 @@ import com.practica.gestionincidencias.entity.Ticket;
 import com.practica.gestionincidencias.entity.Usuario;
 import com.practica.gestionincidencias.repository.HistorialTicketRepository;
 import com.practica.gestionincidencias.repository.SolicitudRecursoRepository;
+import com.practica.gestionincidencias.repository.TicketRepository;
 import com.practica.gestionincidencias.service.AccesoProyectoService;
 import com.practica.gestionincidencias.service.NotificacionService;
 
@@ -92,17 +93,20 @@ public class SolicitudRecursoController {
 
     private final SolicitudRecursoRepository solicitudRecursoRepository;
     private final HistorialTicketRepository historialTicketRepository;
+    private final TicketRepository ticketRepository;
     private final AccesoProyectoService accesoProyectoService;
     private final NotificacionService notificacionService;
 
     public SolicitudRecursoController(
             SolicitudRecursoRepository solicitudRecursoRepository,
             HistorialTicketRepository historialTicketRepository,
+            TicketRepository ticketRepository,
             AccesoProyectoService accesoProyectoService,
             NotificacionService notificacionService) {
 
         this.solicitudRecursoRepository = solicitudRecursoRepository;
         this.historialTicketRepository = historialTicketRepository;
+        this.ticketRepository = ticketRepository;
         this.accesoProyectoService = accesoProyectoService;
         this.notificacionService = notificacionService;
     }
@@ -247,6 +251,12 @@ public class SolicitudRecursoController {
                 usuario
         );
 
+        sincronizarCierreTicketSiAplica(
+                actualizada,
+                anterior,
+                usuario
+        );
+
         notificarCambioEstadoRecursoSiAplica(
                 actualizada,
                 anterior
@@ -368,6 +378,24 @@ public class SolicitudRecursoController {
             );
         }
 
+        if (request.getMotivoRetraso() != null) {
+
+            solicitud.setMotivoRetraso(
+                    normalizarOpcional(
+                            request.getMotivoRetraso()
+                    )
+            );
+        }
+
+        if (request.getDetalleRetraso() != null) {
+
+            solicitud.setDetalleRetraso(
+                    normalizarOpcional(
+                            request.getDetalleRetraso()
+                    )
+            );
+        }
+
         solicitud.setFechaSolicitudProveedor(
                 request.getFechaSolicitudProveedor() != null
                         ? request.getFechaSolicitudProveedor()
@@ -380,16 +408,24 @@ public class SolicitudRecursoController {
                         solicitud.getFechaEstimadaEntrega()
                 )) {
 
+            /*
+             * La primera fecha estimada queda guardada como fecha original.
+             * Si se cambia después, solo cambia la fecha estimada actual.
+             */
+            if (solicitud.getFechaEstimadaEntregaOriginal() == null) {
+
+                LocalDateTime fechaOriginal =
+                        solicitud.getFechaEstimadaEntrega() != null
+                                ? solicitud.getFechaEstimadaEntrega()
+                                : request.getFechaEstimadaEntrega();
+
+                solicitud.setFechaEstimadaEntregaOriginal(
+                        fechaOriginal
+                );
+            }
+
             solicitud.setFechaEstimadaEntrega(
                     request.getFechaEstimadaEntrega()
-            );
-
-            /*
-             * Si la fecha fue reprogramada, permitimos que el sistema
-             * pueda generar una nueva alerta si esa nueva fecha vence.
-             */
-            solicitud.setFechaNotificacionRetraso(
-                    null
             );
         }
 
@@ -619,10 +655,80 @@ public class SolicitudRecursoController {
                 solicitud.getProveedor(),
                 solicitud.getEstadoRecurso(),
                 solicitud.getFechaSolicitudProveedor(),
+                solicitud.getFechaEstimadaEntregaOriginal(),
                 solicitud.getFechaEstimadaEntrega(),
                 solicitud.getFechaRecepcion(),
                 solicitud.getFechaEntregaCliente(),
+                solicitud.getMotivoRetraso(),
+                solicitud.getDetalleRetraso(),
                 solicitud.getObservaciones()
+        );
+    }
+
+
+    /**
+     * Los tickets de RECURSO_EXTERNO no usan el flujo operativo manual.
+     * Cuando la solicitud de recurso llega realmente a CERRADO, el ticket
+     * asociado también se cierra y se fija fechaCierre. De esta forma el
+     * contador de tiempo abierto se detiene únicamente al finalizar todo el
+     * proceso del recurso.
+     */
+    private void sincronizarCierreTicketSiAplica(
+            SolicitudRecurso solicitud,
+            SnapshotSolicitudRecurso anterior,
+            Usuario usuario) {
+
+        if (solicitud == null
+                || solicitud.getTicket() == null
+                || anterior == null) {
+
+            return;
+        }
+
+        String estadoActual =
+                solicitud.getEstadoRecurso() == null
+                        ? ""
+                        : solicitud.getEstadoRecurso()
+                                .trim()
+                                .toUpperCase();
+
+        String estadoAnteriorRecurso =
+                anterior.estadoRecurso() == null
+                        ? ""
+                        : anterior.estadoRecurso()
+                                .trim()
+                                .toUpperCase();
+
+        if (!"CERRADO".equals(estadoActual)
+                || "CERRADO".equals(estadoAnteriorRecurso)) {
+
+            return;
+        }
+
+        Ticket ticket = solicitud.getTicket();
+        String estadoAnteriorTicket = ticket.getEstado();
+        LocalDateTime ahora = LocalDateTime.now();
+
+        ticket.setEstado("CERRADO");
+        ticket.setFechaActualizacion(ahora);
+
+        if (ticket.getFechaResolucion() == null) {
+            ticket.setFechaResolucion(ahora);
+        }
+
+        if (ticket.getFechaCierre() == null) {
+            ticket.setFechaCierre(ahora);
+        }
+
+        ticketRepository.save(ticket);
+
+        registrarHistorial(
+                ticket,
+                usuario,
+                "CIERRE_TICKET_RECURSO",
+                estadoAnteriorTicket,
+                "CERRADO",
+                "El ticket se cerró automáticamente al finalizar la solicitud de recurso externo."
         );
     }
 
@@ -697,6 +803,33 @@ public class SolicitudRecursoController {
                 anterior.fechaEstimadaEntrega(),
                 solicitud.getFechaEstimadaEntrega(),
                 "Se actualizó la fecha estimada de entrega del recurso."
+        );
+
+        registrarCambioSiAplica(
+                solicitud.getTicket(),
+                usuario,
+                "REGISTRO_FECHA_ESTIMADA_ORIGINAL",
+                anterior.fechaEstimadaEntregaOriginal(),
+                solicitud.getFechaEstimadaEntregaOriginal(),
+                "Se registró la fecha estimada original de entrega del recurso."
+        );
+
+        registrarCambioSiAplica(
+                solicitud.getTicket(),
+                usuario,
+                "CAMBIO_MOTIVO_RETRASO_RECURSO",
+                anterior.motivoRetraso(),
+                solicitud.getMotivoRetraso(),
+                "Se actualizó el motivo u observación principal del retraso del recurso."
+        );
+
+        registrarCambioSiAplica(
+                solicitud.getTicket(),
+                usuario,
+                "CAMBIO_DETALLE_RETRASO_RECURSO",
+                anterior.detalleRetraso(),
+                solicitud.getDetalleRetraso(),
+                "Se actualizó el detalle del retraso o reprogramación del recurso."
         );
 
         registrarCambioSiAplica(
@@ -897,9 +1030,12 @@ public class SolicitudRecursoController {
             String proveedor,
             String estadoRecurso,
             LocalDateTime fechaSolicitudProveedor,
+            LocalDateTime fechaEstimadaEntregaOriginal,
             LocalDateTime fechaEstimadaEntrega,
             LocalDateTime fechaRecepcion,
             LocalDateTime fechaEntregaCliente,
+            String motivoRetraso,
+            String detalleRetraso,
             String observaciones) {
     }
 
@@ -994,12 +1130,17 @@ public class SolicitudRecursoController {
                 solicitud.getProveedor(),
                 solicitud.getEstadoRecurso(),
                 solicitud.estaRetrasada(),
+                solicitud.getSituacionEntrega(),
+                solicitud.getDiasRetraso(),
 
                 solicitud.getFechaSolicitudProveedor(),
+                solicitud.getFechaEstimadaEntregaOriginal(),
                 solicitud.getFechaEstimadaEntrega(),
                 solicitud.getFechaRecepcion(),
                 solicitud.getFechaEntregaCliente(),
 
+                solicitud.getMotivoRetraso(),
+                solicitud.getDetalleRetraso(),
                 solicitud.getObservaciones(),
 
                 solicitud.getFechaCreacion(),

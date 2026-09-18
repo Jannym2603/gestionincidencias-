@@ -642,16 +642,35 @@ public class TicketController {
         ticket.setFechaActualizacion(ahora);
 
         if (
-                (
-                        nuevoEstado.equals("RESUELTO")
-                                || nuevoEstado.equals("CERRADO")
-                )
+                nuevoEstado.equals("RESUELTO")
                         && ticket.getFechaResolucion() == null
         ) {
 
             ticket.setFechaResolucion(ahora);
 
             evaluarCumplimientoResolucion(ticket);
+        }
+
+        /*
+         * El tiempo abierto del ticket termina solamente
+         * cuando el ticket llega al estado CERRADO.
+         */
+        if (nuevoEstado.equals("CERRADO")) {
+
+            /*
+             * Protección para tickets antiguos o datos incompletos:
+             * si llega al cierre sin fecha de resolución, se registra
+             * primero la resolución en el mismo momento.
+             */
+            if (ticket.getFechaResolucion() == null) {
+
+                ticket.setFechaResolucion(ahora);
+                evaluarCumplimientoResolucion(ticket);
+            }
+
+            if (ticket.getFechaCierre() == null) {
+                ticket.setFechaCierre(ahora);
+            }
         }
 
         Ticket ticketActualizado =
@@ -1421,6 +1440,7 @@ public class TicketController {
                 ticket.getFechaCreacion(),
                 ticket.getFechaActualizacion(),
                 ticket.getFechaResolucion(),
+                ticket.getFechaCierre(),
 
                 ticket.getFechaLimiteRespuesta(),
                 ticket.getFechaPrimeraRespuesta(),

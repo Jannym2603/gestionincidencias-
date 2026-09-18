@@ -326,6 +326,32 @@
                     <div class="ticket-data-item">
 
                         <span>
+                            Tiempo abierto
+                        </span>
+
+                        <strong id="ticketTiempoAbierto">
+                            Calculando...
+                        </strong>
+
+                    </div>
+
+
+                    <div class="ticket-data-item">
+
+                        <span>
+                            Fecha de cierre
+                        </span>
+
+                        <strong id="ticketFechaCierre">
+                            Pendiente
+                        </strong>
+
+                    </div>
+
+
+                    <div class="ticket-data-item">
+
+                        <span>
                             Compañía
                         </span>
 
@@ -415,249 +441,12 @@
 
 
         <!-- =========================
-             SLA DEL TICKET
+             TIEMPO DEL TICKET
         ========================== -->
 
-        <section class="ticket-sla-section" id="seccionSlaTicket">
-
-            <div class="ticket-sla-header">
-
-                <div>
-
-                    <span class="ticket-sla-eyebrow">
-                        Acuerdo de Nivel de Servicio
-                    </span>
-
-                    <h2>
-                        SLA del ticket
-                    </h2>
-
-                    <p>
-                        Control del tiempo máximo de primera respuesta
-                        y resolución según la prioridad de la incidencia.
-                    </p>
-
-                </div>
-
-
-                <div class="ticket-sla-priority-box">
-
-                    <span>
-                        Regla aplicada
-                    </span>
-
-                    <strong id="slaReglaPrioridad">
-                        Calculando...
-                    </strong>
-
-                    <small id="slaReglaTiempos">
-                        -
-                    </small>
-
-                </div>
-
-            </div>
-
-
-            <div class="ticket-sla-grid">
-
-                <!-- PRIMERA RESPUESTA -->
-
-                <article
-                    class="ticket-sla-card sla-card-neutral"
-                    id="slaRespuestaCard"
-                >
-
-                    <div class="ticket-sla-card-top">
-
-                        <div>
-
-                            <span class="ticket-sla-label">
-                                Primera respuesta
-                            </span>
-
-                            <h3 id="slaRespuestaEstadoTexto">
-                                Calculando...
-                            </h3>
-
-                        </div>
-
-
-                        <span
-                            class="ticket-sla-status sla-status-neutral"
-                            id="slaRespuestaBadge"
-                        >
-                            -
-                        </span>
-
-                    </div>
-
-
-                    <div
-                        class="ticket-sla-progress"
-                        id="slaRespuestaProgreso"
-                        role="progressbar"
-                        aria-label="SLA de primera respuesta"
-                        aria-valuemin="0"
-                        aria-valuemax="100"
-                        aria-valuenow="0"
-                    >
-                        <span
-                            id="slaRespuestaBarra"
-                            class="sla-progress-neutral"
-                            style="width:0%;"
-                        ></span>
-                    </div>
-
-
-                    <div class="ticket-sla-time-row">
-
-                        <strong id="slaRespuestaTiempo">
-                            -
-                        </strong>
-
-                        <span id="slaRespuestaPorcentaje">
-                            0% consumido
-                        </span>
-
-                    </div>
-
-
-                    <div class="ticket-sla-data-grid">
-
-                        <div>
-
-                            <span>
-                                Fecha límite
-                            </span>
-
-                            <strong id="slaRespuestaLimite">
-                                -
-                            </strong>
-
-                        </div>
-
-
-                        <div>
-
-                            <span>
-                                Primera respuesta
-                            </span>
-
-                            <strong id="slaPrimeraRespuestaFecha">
-                                Pendiente
-                            </strong>
-
-                        </div>
-
-                    </div>
-
-                </article>
-
-
-                <!-- RESOLUCIÓN -->
-
-                <article
-                    class="ticket-sla-card sla-card-neutral"
-                    id="slaResolucionCard"
-                >
-
-                    <div class="ticket-sla-card-top">
-
-                        <div>
-
-                            <span class="ticket-sla-label">
-                                Resolución
-                            </span>
-
-                            <h3 id="slaResolucionEstadoTexto">
-                                Calculando...
-                            </h3>
-
-                        </div>
-
-
-                        <span
-                            class="ticket-sla-status sla-status-neutral"
-                            id="slaResolucionBadge"
-                        >
-                            -
-                        </span>
-
-                    </div>
-
-
-                    <div
-                        class="ticket-sla-progress"
-                        id="slaResolucionProgreso"
-                        role="progressbar"
-                        aria-label="SLA de resolución"
-                        aria-valuemin="0"
-                        aria-valuemax="100"
-                        aria-valuenow="0"
-                    >
-                        <span
-                            id="slaResolucionBarra"
-                            class="sla-progress-neutral"
-                            style="width:0%;"
-                        ></span>
-                    </div>
-
-
-                    <div class="ticket-sla-time-row">
-
-                        <strong id="slaResolucionTiempo">
-                            -
-                        </strong>
-
-                        <span id="slaResolucionPorcentaje">
-                            0% consumido
-                        </span>
-
-                    </div>
-
-
-                    <div class="ticket-sla-data-grid">
-
-                        <div>
-
-                            <span>
-                                Fecha límite
-                            </span>
-
-                            <strong id="slaResolucionLimite">
-                                -
-                            </strong>
-
-                        </div>
-
-
-                        <div>
-
-                            <span>
-                                Fecha de resolución
-                            </span>
-
-                            <strong id="slaResolucionFecha">
-                                Pendiente
-                            </strong>
-
-                        </div>
-
-                    </div>
-
-                </article>
-
-            </div>
-
-
-            <div
-                class="ticket-sla-message"
-                id="slaMensajeGeneral"
-            >
-                Evaluando cumplimiento del SLA...
-            </div>
-
+        <section class="info-box" id="infoTiempoTicket">
+            El tiempo del ticket se cuenta desde su creación y continúa mientras permanezca abierto.
+            Solo se detiene cuando el estado cambia a CERRADO.
         </section>
 
 
@@ -714,7 +503,8 @@
                     </h2>
 
                     <p id="descripcionSolicitudRecursoTicket">
-                        Seguimiento del recurso solicitado y de su dependencia con el proveedor.
+                        El sistema detectó automáticamente que este ticket requiere un recurso externo.
+                        Puedes consultar y administrar la solicitud directamente desde este detalle.
                     </p>
 
                 </div>
@@ -723,12 +513,18 @@
                     class="secondary-btn"
                     id="btnAdministrarSolicitudRecurso"
                     type="button"
+                    hidden
                 >
-                    Administrar solicitud
+                    Editar recurso
                 </button>
 
             </div>
 
+            <div
+                class="info-box"
+                id="mensajeRecursoTicket"
+                hidden
+            ></div>
 
             <div class="ticket-data-grid">
 
@@ -763,8 +559,33 @@
                 </div>
 
                 <div class="ticket-data-item">
-                    <span>Fecha estimada de entrega</span>
+                    <span>Fecha estimada original</span>
+                    <strong id="recursoFechaEstimadaOriginal">Pendiente</strong>
+                </div>
+
+                <div class="ticket-data-item">
+                    <span>Fecha estimada actual</span>
                     <strong id="recursoFechaEstimadaEntrega">Pendiente</strong>
+                </div>
+
+                <div class="ticket-data-item">
+                    <span>Situación de la pieza</span>
+                    <strong id="recursoSituacionEntrega">SIN FECHA</strong>
+                </div>
+
+                <div class="ticket-data-item">
+                    <span>Días de retraso</span>
+                    <strong id="recursoDiasRetraso">0</strong>
+                </div>
+
+                <div class="ticket-data-item">
+                    <span>Motivo / situación del retraso</span>
+                    <strong id="recursoMotivoRetraso">Sin especificar</strong>
+                </div>
+
+                <div class="ticket-data-item ticket-data-full">
+                    <span>Detalle del retraso</span>
+                    <strong id="recursoDetalleRetraso">Sin detalle</strong>
                 </div>
 
                 <div class="ticket-data-item">
@@ -781,6 +602,174 @@
                     <span>Observaciones</span>
                     <strong id="recursoObservaciones">Sin observaciones</strong>
                 </div>
+
+            </div>
+
+            <div
+                class="ticket-action-panel"
+                id="panelAdministrarRecursoTicket"
+                style="display: none; margin-top: 18px;"
+            >
+
+                <div class="section-header ticket-section-header">
+                    <div>
+                        <h3>Administrar recurso</h3>
+                        <p>
+                            Los cambios se guardan en la solicitud asociada a este mismo ticket.
+                        </p>
+                    </div>
+                </div>
+
+                <form id="formAdministrarRecursoTicket">
+
+                    <div class="form-grid">
+
+                        <div class="form-group">
+                            <label for="recursoEditCategoria">Categoría</label>
+                            <input
+                                type="text"
+                                id="recursoEditCategoria"
+                                required
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="recursoEditNombre">Recurso</label>
+                            <input
+                                type="text"
+                                id="recursoEditNombre"
+                                required
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="recursoEditCantidad">Cantidad</label>
+                            <input
+                                type="number"
+                                id="recursoEditCantidad"
+                                min="1"
+                                required
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="recursoEditProveedor">Proveedor</label>
+                            <input
+                                type="text"
+                                id="recursoEditProveedor"
+                                placeholder="Nombre del proveedor"
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="recursoEditEstado">Estado del recurso</label>
+                            <select id="recursoEditEstado"></select>
+                            <small class="form-help-text">
+                                Solo se muestran las transiciones permitidas desde el estado actual.
+                            </small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="recursoEditFechaSolicitudProveedor">
+                                Fecha solicitud al proveedor
+                            </label>
+                            <input
+                                type="datetime-local"
+                                id="recursoEditFechaSolicitudProveedor"
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="recursoEditFechaEstimadaOriginal">
+                                Fecha estimada original
+                            </label>
+                            <input
+                                type="datetime-local"
+                                id="recursoEditFechaEstimadaOriginal"
+                                readonly
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="recursoEditFechaEstimadaEntrega">
+                                Fecha estimada actual
+                            </label>
+                            <input
+                                type="datetime-local"
+                                id="recursoEditFechaEstimadaEntrega"
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="recursoEditMotivoRetraso">
+                                Motivo / situación del retraso
+                            </label>
+                            <select id="recursoEditMotivoRetraso">
+                                <option value="">Sin especificar</option>
+                                <option value="FALTA_DISPONIBILIDAD">Falta de disponibilidad</option>
+                                <option value="FECHA_REPROGRAMADA">Fecha de entrega reprogramada</option>
+                                <option value="EN_PROCESO_ENVIO">En proceso de envío</option>
+                                <option value="RETRASO_LOGISTICO">Retraso logístico</option>
+                                <option value="PENDIENTE_CONFIRMACION">Pendiente de confirmación</option>
+                                <option value="OTRO">Otro</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group full">
+                            <label for="recursoEditDetalleRetraso">Detalle del retraso</label>
+                            <textarea
+                                id="recursoEditDetalleRetraso"
+                                placeholder="Describe la situación de la pieza cuando aplique."
+                            ></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="recursoEditFechaRecepcion">Fecha de recepción</label>
+                            <input
+                                type="datetime-local"
+                                id="recursoEditFechaRecepcion"
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="recursoEditFechaEntregaCliente">
+                                Fecha de entrega al cliente
+                            </label>
+                            <input
+                                type="datetime-local"
+                                id="recursoEditFechaEntregaCliente"
+                            >
+                        </div>
+
+                        <div class="form-group full">
+                            <label for="recursoEditObservaciones">Observaciones</label>
+                            <textarea
+                                id="recursoEditObservaciones"
+                                placeholder="Observaciones de la solicitud"
+                            ></textarea>
+                        </div>
+
+                    </div>
+
+                    <div class="form-actions">
+                        <button
+                            type="submit"
+                            class="primary-btn"
+                            id="btnGuardarRecursoTicket"
+                        >
+                            Guardar cambios
+                        </button>
+
+                        <button
+                            type="button"
+                            class="secondary-btn"
+                            id="btnCancelarEdicionRecursoTicket"
+                        >
+                            Cancelar
+                        </button>
+                    </div>
+
+                </form>
 
             </div>
 

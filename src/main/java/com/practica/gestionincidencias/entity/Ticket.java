@@ -77,15 +77,10 @@ public class Ticket {
     private Proyecto proyecto;
 
     /*
-     * Tipo de atención del ticket.
+     * Tipo de atención:
      *
-     * OPERATIVO:
-     * El tiempo de resolución depende directamente
-     * del equipo de operaciones.
-     *
-     * RECURSO_EXTERNO:
-     * El ticket requiere una pieza, equipo o recurso
-     * cuya entrega depende de un proveedor externo.
+     * OPERATIVO
+     * RECURSO_EXTERNO
      */
     @Builder.Default
     @Column(
@@ -119,14 +114,62 @@ public class Ticket {
     @Column(length = 30)
     private String urgencia;
 
+
+    /*
+     * ==========================================
+     * FECHAS PRINCIPALES DEL TICKET
+     * ==========================================
+     */
+
+    /*
+     * Momento en que se creó el ticket.
+     *
+     * Desde aquí comienza a correr el
+     * tiempo abierto.
+     */
     @Column(name = "fecha_creacion")
     private LocalDateTime fechaCreacion;
+
 
     @Column(name = "fecha_actualizacion")
     private LocalDateTime fechaActualizacion;
 
+
+    /*
+     * Momento en que técnicamente se resolvió
+     * el incidente.
+     *
+     * RESUELTO no significa que el ticket
+     * esté cerrado.
+     */
     @Column(name = "fecha_resolucion")
     private LocalDateTime fechaResolucion;
+
+
+    /*
+     * NUEVO:
+     *
+     * Momento en que el ticket llegó realmente
+     * al estado CERRADO.
+     *
+     * El contador de tiempo abierto se detendrá
+     * únicamente con esta fecha.
+     */
+    @Column(name = "fecha_cierre")
+    private LocalDateTime fechaCierre;
+
+
+    /*
+     * ==========================================
+     * SLA
+     * ==========================================
+     *
+     * Se conservan por compatibilidad con
+     * el sistema actual.
+     *
+     * Más adelante el tiempo abierto del ticket
+     * se mostrará separado del SLA.
+     */
 
     @Column(name = "fecha_limite_respuesta")
     private LocalDateTime fechaLimiteRespuesta;

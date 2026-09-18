@@ -19,21 +19,12 @@ public class TicketResponseDTO {
     private Integer agenteId;
     private String agenteNombre;
 
-    /*
-     * Proyecto y compañía a los que pertenece el ticket.
-     */
     private Integer proyectoId;
     private String proyectoNombre;
 
     private Integer companiaId;
     private String companiaNombre;
 
-    /*
-     * Tipo de atención:
-     *
-     * OPERATIVO
-     * RECURSO_EXTERNO
-     */
     private String tipoAtencion;
 
     private String estado;
@@ -43,39 +34,62 @@ public class TicketResponseDTO {
     private String impacto;
     private String urgencia;
 
+    /*
+     * ==========================================
+     * FECHAS PRINCIPALES
+     * ==========================================
+     */
+
     private LocalDateTime fechaCreacion;
     private LocalDateTime fechaActualizacion;
+
+    /*
+     * Momento en que el problema fue resuelto.
+     * El ticket todavía puede permanecer abierto.
+     */
     private LocalDateTime fechaResolucion;
 
     /*
-     * Datos del SLA de primera respuesta.
+     * Momento en que el ticket se cerró
+     * definitivamente.
+     *
+     * Esta fecha detendrá el contador
+     * de tiempo abierto.
      */
+    private LocalDateTime fechaCierre;
+
+
+    /*
+     * ==========================================
+     * SLA PRIMERA RESPUESTA
+     * ==========================================
+     */
+
     private LocalDateTime fechaLimiteRespuesta;
     private LocalDateTime fechaPrimeraRespuesta;
     private Boolean slaRespuestaCumplido;
 
+
     /*
-     * Datos del SLA de resolución.
+     * ==========================================
+     * SLA RESOLUCIÓN
+     * ==========================================
      */
+
     private LocalDateTime fechaLimiteResolucion;
     private Boolean slaResolucionCumplido;
 
+
     /*
      * Estados calculados del SLA.
-     *
-     * Valores posibles:
-     * EN_TIEMPO
-     * EN_RIESGO
-     * VENCIDO
-     * CUMPLIDO
-     * INCUMPLIDO
-     * SIN_CONFIGURAR
      */
     private String estadoSlaRespuesta;
     private String estadoSlaResolucion;
 
+
     public TicketResponseDTO() {
     }
+
 
     public TicketResponseDTO(
             Integer id,
@@ -111,6 +125,7 @@ public class TicketResponseDTO {
             LocalDateTime fechaCreacion,
             LocalDateTime fechaActualizacion,
             LocalDateTime fechaResolucion,
+            LocalDateTime fechaCierre,
 
             LocalDateTime fechaLimiteRespuesta,
             LocalDateTime fechaPrimeraRespuesta,
@@ -155,6 +170,7 @@ public class TicketResponseDTO {
         this.fechaCreacion = fechaCreacion;
         this.fechaActualizacion = fechaActualizacion;
         this.fechaResolucion = fechaResolucion;
+        this.fechaCierre = fechaCierre;
 
         this.fechaLimiteRespuesta = fechaLimiteRespuesta;
         this.fechaPrimeraRespuesta = fechaPrimeraRespuesta;
@@ -166,6 +182,7 @@ public class TicketResponseDTO {
         this.estadoSlaRespuesta = estadoSlaRespuesta;
         this.estadoSlaResolucion = estadoSlaResolucion;
     }
+
 
     public Integer getId() {
         return id;
@@ -265,6 +282,10 @@ public class TicketResponseDTO {
 
     public LocalDateTime getFechaResolucion() {
         return fechaResolucion;
+    }
+
+    public LocalDateTime getFechaCierre() {
+        return fechaCierre;
     }
 
     public LocalDateTime getFechaLimiteRespuesta() {

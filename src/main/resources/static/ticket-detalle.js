@@ -46,6 +46,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     configurarModalHistorial();
     configurarModalComentario();
     configurarModalCompartirTicket();
+    configurarFormularioRecursoTicket();
 
     /*
      * Primero cargamos el ticket específico.
@@ -177,6 +178,8 @@ function mostrarErrorCargaTicket(
         "ticketTipo",
         "ticketTipoAtencion",
         "ticketFecha",
+        "ticketTiempoAbierto",
+        "ticketFechaCierre",
         "ticketCompania",
         "ticketProyecto",
         "ticketCliente",
@@ -323,8 +326,8 @@ async function cargarDetalleTicket() {
 
 
         /*
-         * PintarDetalle también actualiza el panel SLA
-         * utilizando las fechas y estados enviados por el backend.
+         * PintarDetalle actualiza los datos generales y el contador
+         * de tiempo abierto utilizando fechaCreacion y fechaCierre.
          */
         pintarDetalle(
             ticketActual
@@ -388,6 +391,12 @@ function pintarDetalle(ticket) {
     document.getElementById("ticketFecha").textContent =
         formatearFecha(ticket.fechaCreacion);
 
+    /*
+     * Tiempo total que el ticket permanece abierto.
+     * No depende del SLA y solo se detiene al existir fechaCierre.
+     */
+    pintarTiempoAbiertoTicket(ticket);
+
     /* NUEVO: compañía y proyecto */
     const compania = document.getElementById("ticketCompania");
     const proyecto = document.getElementById("ticketProyecto");
@@ -415,11 +424,10 @@ function pintarDetalle(ticket) {
         ticket.descripcion || "Sin descripción";
 
     /*
-     * El backend ya calcula fechas y estados SLA.
-     * Aquí los mostramos de forma visual.
+     * El tiempo visible del ticket no depende del SLA.
+     * Se actualiza cada minuto y solo se detiene con fechaCierre.
      */
-    pintarSlaTicket(ticket);
-    configurarActualizacionSla();
+    configurarActualizacionTiempoAbierto();
 
     const nuevoEstado = document.getElementById("nuevoEstado");
 
@@ -456,6 +464,35 @@ function pintarDetalle(ticket) {
    TIPO DE ATENCIÓN / SOLICITUD DE RECURSO
 ===================================================== */
 
+const TRANSICIONES_RECURSO_TICKET = {
+    NUEVO: [
+        "EN_VALIDACION",
+        "CANCELADO"
+    ],
+    EN_VALIDACION: [
+        "SOLICITADO_PROVEEDOR",
+        "CANCELADO"
+    ],
+    SOLICITADO_PROVEEDOR: [
+        "ESPERANDO_PROVEEDOR",
+        "RECIBIDO",
+        "CANCELADO"
+    ],
+    ESPERANDO_PROVEEDOR: [
+        "RECIBIDO",
+        "CANCELADO"
+    ],
+    RECIBIDO: [
+        "ENTREGADO"
+    ],
+    ENTREGADO: [
+        "CERRADO"
+    ],
+    CERRADO: [],
+    CANCELADO: []
+};
+
+
 function esTicketRecursoExterno(
     ticket = ticketActual
 ) {
@@ -469,6 +506,16 @@ function esTicketRecursoExterno(
 }
 
 
+function puedeAdministrarRecursoTicket() {
+
+    const rol =
+        obtenerRolSesion();
+
+    return rol === "ADMIN"
+        || rol === "SUPERVISOR";
+}
+
+
 async function cargarSolicitudRecursoTicket() {
 
     solicitudRecursoActual =
@@ -479,14 +526,29 @@ async function cargarSolicitudRecursoTicket() {
             "seccionSolicitudRecursoTicket"
         );
 
+    /*
+     * El propio ticket indica automáticamente si su atención
+     * corresponde a un recurso externo. Para tickets operativos
+     * no mostramos este módulo.
+     */
     if (!esTicketRecursoExterno()) {
 
         if (seccion) {
             seccion.hidden = true;
         }
 
+        cerrarEdicionRecursoTicket();
         return;
     }
+
+    if (seccion) {
+        seccion.hidden = false;
+    }
+
+    mostrarMensajeRecursoTicket(
+        "Solicitud externa detectada automáticamente. Cargando seguimiento...",
+        "info"
+    );
 
     try {
 
@@ -499,9 +561,7 @@ async function cargarSolicitudRecursoTicket() {
                 }`
             );
 
-        if (
-            response.status === 403
-        ) {
+        if (response.status === 403) {
 
             if (seccion) {
                 seccion.hidden = true;
@@ -528,6 +588,11 @@ async function cargarSolicitudRecursoTicket() {
             solicitudRecursoActual
         );
 
+        mostrarMensajeRecursoTicket(
+            "Solicitud externa vinculada a este ticket.",
+            "success"
+        );
+
     } catch (error) {
 
         console.error(
@@ -550,6 +615,13 @@ async function cargarSolicitudRecursoTicket() {
             ||
             "No se pudo cargar la solicitud."
         );
+
+        mostrarMensajeRecursoTicket(
+            error.message
+            ||
+            "No se pudo cargar la solicitud de recurso.",
+            "error"
+        );
     }
 }
 
@@ -567,8 +639,7 @@ function pintarSolicitudRecursoTicket(
         return;
     }
 
-    seccion.hidden =
-        false;
+    seccion.hidden = false;
 
     ponerTextoRecurso(
         "recursoCategoria",
@@ -615,10 +686,51 @@ function pintarSolicitudRecursoTicket(
     );
 
     ponerTextoRecurso(
+        "recursoFechaEstimadaOriginal",
+        formatearFechaRecursoTicket(
+            solicitud?.fechaEstimadaEntregaOriginal
+        )
+    );
+
+    ponerTextoRecurso(
         "recursoFechaEstimadaEntrega",
         formatearFechaRecursoTicket(
             solicitud?.fechaEstimadaEntrega
         )
+    );
+
+    ponerTextoRecurso(
+        "recursoSituacionEntrega",
+        formatearTextoRecurso(
+            solicitud?.situacionEntrega
+            ||
+            "SIN_FECHA"
+        )
+    );
+
+    ponerTextoRecurso(
+        "recursoDiasRetraso",
+        Number(
+            solicitud?.diasRetraso
+            ||
+            0
+        )
+    );
+
+    ponerTextoRecurso(
+        "recursoMotivoRetraso",
+        solicitud?.motivoRetraso
+            ? formatearTextoRecurso(
+                solicitud.motivoRetraso
+            )
+            : "Sin especificar"
+    );
+
+    ponerTextoRecurso(
+        "recursoDetalleRetraso",
+        solicitud?.detalleRetraso
+        ||
+        "Sin detalle"
     );
 
     ponerTextoRecurso(
@@ -647,27 +759,668 @@ function pintarSolicitudRecursoTicket(
             "btnAdministrarSolicitudRecurso"
         );
 
-    const rol =
-        obtenerRolSesion();
-
     if (boton) {
 
         boton.hidden =
-            rol !== "ADMIN"
-            &&
-            rol !== "SUPERVISOR";
+            !puedeAdministrarRecursoTicket();
 
-        boton.onclick =
-            () => {
-
-                window.location.href =
-                    `solicitudes-recursos.html?ticketId=${
-                        encodeURIComponent(
-                            ticketId
-                        )
-                    }`;
-            };
+        boton.textContent =
+            "Editar recurso";
     }
+
+    cargarFormularioRecursoTicket(
+        solicitud
+    );
+}
+
+
+function configurarFormularioRecursoTicket() {
+
+    const boton =
+        document.getElementById(
+            "btnAdministrarSolicitudRecurso"
+        );
+
+    if (boton) {
+        boton.addEventListener(
+            "click",
+            () => {
+                alternarEdicionRecursoTicket();
+            }
+        );
+    }
+
+    const cancelar =
+        document.getElementById(
+            "btnCancelarEdicionRecursoTicket"
+        );
+
+    if (cancelar) {
+        cancelar.addEventListener(
+            "click",
+            () => {
+                cerrarEdicionRecursoTicket();
+                cargarFormularioRecursoTicket(
+                    solicitudRecursoActual
+                );
+            }
+        );
+    }
+
+    const formulario =
+        document.getElementById(
+            "formAdministrarRecursoTicket"
+        );
+
+    if (formulario) {
+        formulario.addEventListener(
+            "submit",
+            guardarSolicitudRecursoDesdeTicket
+        );
+    }
+}
+
+
+function alternarEdicionRecursoTicket() {
+
+    if (!puedeAdministrarRecursoTicket()) {
+        return;
+    }
+
+    const panel =
+        document.getElementById(
+            "panelAdministrarRecursoTicket"
+        );
+
+    const boton =
+        document.getElementById(
+            "btnAdministrarSolicitudRecurso"
+        );
+
+    if (!panel) {
+        return;
+    }
+
+    const estaAbierto =
+        panel.style.display !== "none";
+
+    panel.style.display =
+        estaAbierto
+            ? "none"
+            : "block";
+
+    if (boton) {
+        boton.textContent =
+            estaAbierto
+                ? "Editar recurso"
+                : "Ocultar edición";
+    }
+
+    if (!estaAbierto) {
+        cargarFormularioRecursoTicket(
+            solicitudRecursoActual
+        );
+
+        panel.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest"
+        });
+    }
+}
+
+
+function cerrarEdicionRecursoTicket() {
+
+    const panel =
+        document.getElementById(
+            "panelAdministrarRecursoTicket"
+        );
+
+    const boton =
+        document.getElementById(
+            "btnAdministrarSolicitudRecurso"
+        );
+
+    if (panel) {
+        panel.style.display = "none";
+    }
+
+    if (boton) {
+        boton.textContent =
+            "Editar recurso";
+    }
+}
+
+
+function cargarFormularioRecursoTicket(
+    solicitud = solicitudRecursoActual
+) {
+
+    if (!solicitud) {
+        return;
+    }
+
+    asignarValorCampoRecurso(
+        "recursoEditCategoria",
+        solicitud.categoria
+    );
+
+    asignarValorCampoRecurso(
+        "recursoEditNombre",
+        solicitud.recurso
+    );
+
+    asignarValorCampoRecurso(
+        "recursoEditCantidad",
+        solicitud.cantidad
+    );
+
+    asignarValorCampoRecurso(
+        "recursoEditProveedor",
+        solicitud.proveedor
+    );
+
+    asignarValorCampoRecurso(
+        "recursoEditFechaSolicitudProveedor",
+        aValorDatetimeLocal(
+            solicitud.fechaSolicitudProveedor
+        )
+    );
+
+    asignarValorCampoRecurso(
+        "recursoEditFechaEstimadaOriginal",
+        aValorDatetimeLocal(
+            solicitud.fechaEstimadaEntregaOriginal
+        )
+    );
+
+    asignarValorCampoRecurso(
+        "recursoEditFechaEstimadaEntrega",
+        aValorDatetimeLocal(
+            solicitud.fechaEstimadaEntrega
+        )
+    );
+
+    asignarValorCampoRecurso(
+        "recursoEditFechaRecepcion",
+        aValorDatetimeLocal(
+            solicitud.fechaRecepcion
+        )
+    );
+
+    asignarValorCampoRecurso(
+        "recursoEditFechaEntregaCliente",
+        aValorDatetimeLocal(
+            solicitud.fechaEntregaCliente
+        )
+    );
+
+    asignarValorCampoRecurso(
+        "recursoEditDetalleRetraso",
+        solicitud.detalleRetraso
+    );
+
+    asignarValorCampoRecurso(
+        "recursoEditObservaciones",
+        solicitud.observaciones
+    );
+
+    configurarSelectMotivoRetrasoTicket(
+        solicitud.motivoRetraso
+    );
+
+    configurarEstadosRecursoTicket(
+        solicitud.estadoRecurso
+    );
+}
+
+
+function configurarEstadosRecursoTicket(
+    estadoActualValor
+) {
+
+    const select =
+        document.getElementById(
+            "recursoEditEstado"
+        );
+
+    if (!select) {
+        return;
+    }
+
+    const estadoActual =
+        String(
+            estadoActualValor
+            ||
+            "NUEVO"
+        )
+            .trim()
+            .toUpperCase();
+
+    const siguientes =
+        TRANSICIONES_RECURSO_TICKET[
+            estadoActual
+        ]
+        ||
+        [];
+
+    const opciones = [
+        estadoActual,
+        ...siguientes
+    ];
+
+    select.innerHTML = "";
+
+    opciones.forEach(
+        estado => {
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+            option.value = estado;
+            option.textContent = estado;
+
+            select.appendChild(
+                option
+            );
+        }
+    );
+
+    select.value = estadoActual;
+
+    select.disabled =
+        siguientes.length === 0;
+}
+
+
+function configurarSelectMotivoRetrasoTicket(
+    valor
+) {
+
+    const select =
+        document.getElementById(
+            "recursoEditMotivoRetraso"
+        );
+
+    if (!select) {
+        return;
+    }
+
+    const normalizado =
+        String(valor || "")
+            .trim()
+            .toUpperCase();
+
+    if (
+        normalizado
+        &&
+        !Array.from(
+            select.options
+        ).some(
+            option =>
+                option.value === normalizado
+        )
+    ) {
+
+        const option =
+            document.createElement(
+                "option"
+            );
+
+        option.value = normalizado;
+        option.textContent =
+            formatearTextoRecurso(
+                normalizado
+            );
+
+        select.appendChild(
+            option
+        );
+    }
+
+    select.value = normalizado;
+}
+
+
+async function guardarSolicitudRecursoDesdeTicket(
+    event
+) {
+
+    event.preventDefault();
+
+    if (
+        !solicitudRecursoActual
+        ||
+        !puedeAdministrarRecursoTicket()
+    ) {
+        return;
+    }
+
+    const boton =
+        document.getElementById(
+            "btnGuardarRecursoTicket"
+        );
+
+    if (boton) {
+        boton.disabled = true;
+        boton.textContent = "Guardando...";
+    }
+
+    try {
+
+        const payload = {
+            categoria:
+                obtenerValorTextoRecurso(
+                    "recursoEditCategoria"
+                ),
+
+            recurso:
+                obtenerValorTextoRecurso(
+                    "recursoEditNombre"
+                ),
+
+            cantidad:
+                Number(
+                    document.getElementById(
+                        "recursoEditCantidad"
+                    )?.value
+                    ||
+                    0
+                ),
+
+            proveedor:
+                obtenerValorTextoRecurso(
+                    "recursoEditProveedor"
+                ),
+
+            estadoRecurso:
+                document.getElementById(
+                    "recursoEditEstado"
+                )?.value
+                ||
+                solicitudRecursoActual.estadoRecurso,
+
+            fechaSolicitudProveedor:
+                obtenerValorFechaRecurso(
+                    "recursoEditFechaSolicitudProveedor"
+                ),
+
+            fechaEstimadaEntrega:
+                obtenerValorFechaRecurso(
+                    "recursoEditFechaEstimadaEntrega"
+                ),
+
+            fechaRecepcion:
+                obtenerValorFechaRecurso(
+                    "recursoEditFechaRecepcion"
+                ),
+
+            fechaEntregaCliente:
+                obtenerValorFechaRecurso(
+                    "recursoEditFechaEntregaCliente"
+                ),
+
+            motivoRetraso:
+                document.getElementById(
+                    "recursoEditMotivoRetraso"
+                )?.value
+                ||
+                "",
+
+            detalleRetraso:
+                obtenerValorTextoRecurso(
+                    "recursoEditDetalleRetraso"
+                ),
+
+            observaciones:
+                obtenerValorTextoRecurso(
+                    "recursoEditObservaciones"
+                )
+        };
+
+        if (
+            !payload.categoria
+            ||
+            !payload.recurso
+            ||
+            !Number.isInteger(
+                payload.cantidad
+            )
+            ||
+            payload.cantidad < 1
+        ) {
+            throw new Error(
+                "Completa categoría, recurso y una cantidad válida."
+            );
+        }
+
+        const response =
+            await fetch(
+                `${API_BASE}/solicitudes-recursos/${
+                    encodeURIComponent(
+                        solicitudRecursoActual.id
+                    )
+                }`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+                    body:
+                        JSON.stringify(
+                            payload
+                        )
+                }
+            );
+
+        if (!response.ok) {
+
+            throw new Error(
+                await obtenerMensajeErrorRespuesta(
+                    response
+                )
+                ||
+                "No se pudieron guardar los cambios del recurso."
+            );
+        }
+
+        solicitudRecursoActual =
+            await response.json();
+
+        pintarSolicitudRecursoTicket(
+            solicitudRecursoActual
+        );
+
+        cerrarEdicionRecursoTicket();
+
+        mostrarMensajeRecursoTicket(
+            "Recurso actualizado correctamente desde el detalle del ticket.",
+            "success"
+        );
+
+        /*
+         * Si la solicitud externa llegó a CERRADO, el backend también
+         * cierra el ticket y fija fechaCierre. Recargamos el detalle para
+         * que el estado y el tiempo total queden actualizados al instante.
+         */
+        if (
+            String(
+                solicitudRecursoActual.estadoRecurso
+                ||
+                ""
+            )
+                .trim()
+                .toUpperCase()
+            ===
+            "CERRADO"
+        ) {
+
+            await cargarDetalleTicket();
+        }
+
+    } catch (error) {
+
+        console.error(
+            "Error actualizando recurso desde ticket:",
+            error
+        );
+
+        mostrarMensajeRecursoTicket(
+            error.message
+            ||
+            "No se pudieron guardar los cambios.",
+            "error"
+        );
+
+    } finally {
+
+        if (boton) {
+            boton.disabled = false;
+            boton.textContent =
+                "Guardar cambios";
+        }
+    }
+}
+
+
+function mostrarMensajeRecursoTicket(
+    mensaje,
+    tipo = "info"
+) {
+
+    const elemento =
+        document.getElementById(
+            "mensajeRecursoTicket"
+        );
+
+    if (!elemento) {
+        return;
+    }
+
+    elemento.hidden = false;
+    elemento.textContent = mensaje;
+
+    elemento.classList.remove(
+        "success-text",
+        "danger-text"
+    );
+
+    if (tipo === "success") {
+        elemento.classList.add(
+            "success-text"
+        );
+    }
+
+    if (tipo === "error") {
+        elemento.classList.add(
+            "danger-text"
+        );
+    }
+}
+
+
+function asignarValorCampoRecurso(
+    id,
+    valor
+) {
+
+    const campo =
+        document.getElementById(
+            id
+        );
+
+    if (!campo) {
+        return;
+    }
+
+    campo.value =
+        valor == null
+            ? ""
+            : String(valor);
+}
+
+
+function obtenerValorTextoRecurso(
+    id
+) {
+
+    return String(
+        document.getElementById(
+            id
+        )?.value
+        ||
+        ""
+    ).trim();
+}
+
+
+function obtenerValorFechaRecurso(
+    id
+) {
+
+    const valor =
+        String(
+            document.getElementById(
+                id
+            )?.value
+            ||
+            ""
+        ).trim();
+
+    return valor || null;
+}
+
+
+function aValorDatetimeLocal(
+    valor
+) {
+
+    if (!valor) {
+        return "";
+    }
+
+    const texto =
+        String(valor).trim();
+
+    /*
+     * LocalDateTime de Spring normalmente llega como
+     * yyyy-MM-ddTHH:mm:ss. datetime-local acepta yyyy-MM-ddTHH:mm.
+     */
+    const coincidencia =
+        texto.match(
+            /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})/
+        );
+
+    if (coincidencia) {
+        return coincidencia[1];
+    }
+
+    const fecha =
+        new Date(texto);
+
+    if (Number.isNaN(fecha.getTime())) {
+        return "";
+    }
+
+    const relleno =
+        numero =>
+            String(numero).padStart(
+                2,
+                "0"
+            );
+
+    return `${fecha.getFullYear()}-${
+        relleno(fecha.getMonth() + 1)
+    }-${
+        relleno(fecha.getDate())
+    }T${
+        relleno(fecha.getHours())
+    }:${
+        relleno(fecha.getMinutes())
+    }`;
 }
 
 
@@ -675,12 +1428,32 @@ function configurarVistaTicketSegunTipo() {
 
     configurarVistaPorRol();
 
+    const seccion =
+        document.getElementById(
+            "seccionSolicitudRecursoTicket"
+        );
+
     if (
         !esTicketRecursoExterno()
     ) {
+
+        if (seccion) {
+            seccion.hidden = true;
+        }
+
         return;
     }
 
+    if (seccion) {
+        seccion.hidden = false;
+    }
+
+    /*
+     * En un ticket de recurso externo el flujo técnico del ticket
+     * no se modifica manualmente desde el selector operativo.
+     * El seguimiento se administra desde el módulo de recurso
+     * que ya está integrado en este mismo detalle.
+     */
     const nuevoEstado =
         document.getElementById(
             "nuevoEstado"
@@ -802,6 +1575,130 @@ function configurarRegresoTickets() {
                     : "tickets.html";
         }
     );
+}
+
+
+/* =====================================================
+   TIEMPO ABIERTO DEL TICKET
+===================================================== */
+
+function pintarTiempoAbiertoTicket(
+    ticket = ticketActual
+) {
+
+    const elementoTiempo =
+        document.getElementById(
+            "ticketTiempoAbierto"
+        );
+
+    const elementoCierre =
+        document.getElementById(
+            "ticketFechaCierre"
+        );
+
+    if (!ticket) {
+        return;
+    }
+
+    const inicio = ticket.fechaCreacion
+        ? new Date(ticket.fechaCreacion)
+        : null;
+
+    const cierre = ticket.fechaCierre
+        ? new Date(ticket.fechaCierre)
+        : null;
+
+    if (
+        !inicio
+        || Number.isNaN(inicio.getTime())
+    ) {
+        if (elementoTiempo) {
+            elementoTiempo.textContent =
+                "Sin fecha de creación";
+        }
+
+        if (elementoCierre) {
+            elementoCierre.textContent =
+                cierre
+                    ? formatearFecha(ticket.fechaCierre)
+                    : "Pendiente";
+        }
+
+        return;
+    }
+
+    const fechaFinal =
+        cierre && !Number.isNaN(cierre.getTime())
+            ? cierre
+            : new Date();
+
+    const duracionMs = Math.max(
+        0,
+        fechaFinal.getTime() - inicio.getTime()
+    );
+
+    const duracion =
+        formatearDuracionTiempoAbierto(
+            duracionMs
+        );
+
+    if (elementoTiempo) {
+        elementoTiempo.textContent =
+            cierre
+                ? `Cerrado · ${duracion}`
+                : `Abierto · ${duracion}`;
+    }
+
+    if (elementoCierre) {
+        elementoCierre.textContent =
+            cierre
+                ? formatearFecha(ticket.fechaCierre)
+                : "Pendiente";
+    }
+}
+
+
+function formatearDuracionTiempoAbierto(
+    milisegundos
+) {
+
+    const totalMinutos = Math.max(
+        0,
+        Math.floor(
+            milisegundos / 60000
+        )
+    );
+
+    const dias = Math.floor(
+        totalMinutos / 1440
+    );
+
+    const horas = Math.floor(
+        (totalMinutos % 1440) / 60
+    );
+
+    const minutos =
+        totalMinutos % 60;
+
+    const partes = [];
+
+    if (dias > 0) {
+        partes.push(
+            `${dias} ${dias === 1 ? "día" : "días"}`
+        );
+    }
+
+    if (horas > 0 || dias > 0) {
+        partes.push(
+            `${horas} ${horas === 1 ? "h" : "h"}`
+        );
+    }
+
+    partes.push(
+        `${minutos} min`
+    );
+
+    return partes.join(" ");
 }
 
 
@@ -991,7 +1888,7 @@ function pintarResolucionNoAplicaRecurso(
         );
 
         mensaje.textContent =
-            "La primera respuesta presenta incumplimiento. El tiempo de entrega del recurso se mide por separado y no afecta el SLA de resolución operativo.";
+            "La primera respuesta presenta incumplimiento. El tiempo de entrega del recurso se mide por separado y el ticket permanece abierto hasta CERRADO.";
 
         return;
     }
@@ -1005,7 +1902,7 @@ function pintarResolucionNoAplicaRecurso(
         );
 
         mensaje.textContent =
-            "La primera respuesta está en riesgo. El tiempo del proveedor se controla de forma independiente.";
+            "La primera respuesta está en riesgo. El seguimiento del recurso se controla de forma independiente y el ticket continúa abierto.";
 
         return;
     }
@@ -1015,7 +1912,7 @@ function pintarResolucionNoAplicaRecurso(
     );
 
     mensaje.textContent =
-        "El SLA de primera respuesta permanece activo. El SLA de resolución operativo no aplica porque este ticket depende de un proveedor externo.";
+        "El SLA de primera respuesta permanece como indicador. La resolución operativa se controla desde la solicitud de recurso y el ticket permanece abierto hasta CERRADO.";
 }
 
 
@@ -1523,7 +2420,7 @@ function pintarMensajeGeneralSla(
 
 
         mensaje.textContent =
-            "Este ticket presenta un SLA vencido o incumplido y requiere atención prioritaria.";
+            "Este ticket supera un objetivo de SLA y requiere atención prioritaria. El ticket permanece abierto hasta que su estado cambie a CERRADO.";
 
         return;
     }
@@ -1541,7 +2438,7 @@ function pintarMensajeGeneralSla(
 
 
         mensaje.textContent =
-            "Este ticket está próximo a alcanzar uno de sus límites de SLA.";
+            "Este ticket está próximo a alcanzar uno de sus objetivos de SLA. Esto no cierra ni detiene el ticket.";
 
         return;
     }
@@ -1562,14 +2459,14 @@ function pintarMensajeGeneralSla(
 
 
         mensaje.textContent =
-            "El ticket se encuentra dentro de los tiempos de servicio establecidos.";
+            "El ticket se encuentra dentro de los objetivos de servicio. El tiempo abierto continúa hasta CERRADO.";
 
         return;
     }
 
 
     mensaje.textContent =
-        "El SLA se calcula automáticamente según la prioridad del ticket.";
+        "El SLA es un indicador de servicio según la prioridad; no es un vencimiento del ticket. El ticket permanece abierto hasta CERRADO.";
 }
 
 
@@ -1577,7 +2474,7 @@ function pintarMensajeGeneralSla(
    ACTUALIZACIÓN AUTOMÁTICA
 ===================================================== */
 
-function configurarActualizacionSla() {
+function configurarActualizacionTiempoAbierto() {
 
     if (
         intervaloSlaTicket
@@ -1602,7 +2499,7 @@ function configurarActualizacionSla() {
                     ticketActual
                 ) {
 
-                    pintarSlaTicket(
+                    pintarTiempoAbiertoTicket(
                         ticketActual
                     );
                 }
