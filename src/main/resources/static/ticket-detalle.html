@@ -41,86 +41,17 @@
 
 
         <nav class="menu">
-
-            <a
-                href="dashboard.html"
-                class="menu-item"
-            >
-                Dashboard
-            </a>
-
-
-            <a
-                href="tickets.html"
-                class="menu-item active"
-            >
-                Tickets
-            </a>
-
-
-            <a
-                href="crear-ticket.html"
-                class="menu-item"
-                data-menu="crear-ticket"
-            >
-                Crear Ticket
-            </a>
-
-
-            <a
-                href="solicitudes-recursos.html"
-                class="menu-item"
-                data-menu="solicitudes-recursos"
-            >
-                Solicitudes de Recursos
-            </a>
-
-
-            <a
-                href="usuarios.html"
-                class="menu-item"
-                data-menu="usuarios"
-            >
-                Usuarios
-            </a>
-
-
-            <a
-                href="reportes.html"
-                class="menu-item"
-                data-menu="reportes"
-            >
-                Reportes
-            </a>
-
-
-            <a
-                href="historial.html"
-                class="menu-item"
-                data-menu="historial"
-            >
-                Historial
-            </a>
-
-
-            <a
-                href="companias-proyectos.html"
-                class="menu-item"
-                data-menu="companias-proyectos"
-            >
-                Gestión organizacional
-            </a>
-
-
-            <a
-                href="configuracion.html"
-                class="menu-item"
-                data-menu="configuracion"
-            >
-                Configuración
-            </a>
-
-        </nav>
+                <a href="dashboard.html" class="menu-item">Dashboard</a>
+                <a href="tickets.html" class="menu-item active">Tickets</a>
+                <a href="proyectos.html" class="menu-item" data-menu="proyectos">Proyectos</a>
+                <a href="crear-ticket.html" class="menu-item" data-menu="crear-ticket">Crear Ticket</a>
+                <a href="solicitudes-recursos.html" class="menu-item" data-menu="solicitudes-recursos">Solicitudes de Recursos</a>
+                <a href="usuarios.html" class="menu-item menu-group-start" data-menu="usuarios">Usuarios</a>
+                <a href="reportes.html" class="menu-item" data-menu="reportes">Reportes</a>
+                <a href="historial.html" class="menu-item" data-menu="historial">Historial</a>
+                <a href="companias-proyectos.html" class="menu-item menu-group-start" data-menu="companias-proyectos">Gestión organizacional</a>
+                <a href="configuracion.html" class="menu-item" data-menu="configuracion">Configuración</a>
+            </nav>
 
     </aside>
 
@@ -901,41 +832,37 @@
                             <div class="form-group">
 
                                 <label for="nuevoEstado">
-                                    Cambiar estado
+                                    Siguiente paso
                                 </label>
 
                                 <select id="nuevoEstado">
-
-                                    <option value="ASIGNADO">
-                                        ASIGNADO
+                                    <option value="">
+                                        Cargando acciones disponibles...
                                     </option>
-
-                                    <option value="EN_PROGRESO">
-                                        EN_PROGRESO
-                                    </option>
-
-                                    <option value="RESUELTO">
-                                        RESUELTO
-                                    </option>
-
-                                    <option value="CERRADO">
-                                        CERRADO
-                                    </option>
-
                                 </select>
+
+                                <small
+                                    id="ayudaEstadoTicket"
+                                    class="ticket-state-guidance"
+                                >
+                                    El sistema mostrará únicamente la transición válida para el estado actual.
+                                </small>
 
                             </div>
 
 
                             <div class="form-group">
 
-                                <label for="notaResolucion">
-                                    Nota de resolución
+                                <label
+                                    for="notaResolucion"
+                                    id="labelNotaResolucion"
+                                >
+                                    Nota de cierre
                                 </label>
 
                                 <textarea
                                     id="notaResolucion"
-                                    placeholder="Obligatoria al resolver o cerrar el ticket."
+                                    placeholder="Describe la solución aplicada antes de cerrar el ticket."
                                 ></textarea>
 
                             </div>
@@ -943,6 +870,7 @@
 
                             <button
                                 class="primary-btn"
+                                id="btnActualizarEstado"
                                 type="button"
                                 onclick="cambiarEstadoTicket()"
                             >

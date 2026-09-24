@@ -536,19 +536,16 @@ async function cargarResumenOperacion(query = "") {
         data.ticketsNuevos
     );
 
-    ponerTextoReporte(
-        "ticketsAsignados",
-        data.ticketsAsignados
-    );
+    const enProgreso =
+        normalizarNumeroReporte(data.ticketsAsignados)
+        +
+        normalizarNumeroReporte(data.ticketsEnProgreso)
+        +
+        normalizarNumeroReporte(data.ticketsResueltos);
 
     ponerTextoReporte(
         "ticketsEnProgreso",
-        data.ticketsEnProgreso
-    );
-
-    ponerTextoReporte(
-        "ticketsResueltos",
-        data.ticketsResueltos
+        enProgreso
     );
 
     ponerTextoReporte(
@@ -704,8 +701,12 @@ function pintarTablaResumenSeparado(
         <tr>
             <td>Operaciones</td>
             <td>En progreso</td>
-            <td><strong>${normalizarNumeroReporte(op.ticketsEnProgreso)}</strong></td>
-            <td>Tickets que se encuentran actualmente en atención.</td>
+            <td><strong>${
+                normalizarNumeroReporte(op.ticketsAsignados)
+                + normalizarNumeroReporte(op.ticketsEnProgreso)
+                + normalizarNumeroReporte(op.ticketsResueltos)
+            }</strong></td>
+            <td>Tickets abiertos actualmente en atención. Incluye estados históricos aún no cerrados.</td>
         </tr>
 
         <tr>
@@ -776,8 +777,45 @@ async function cargarReporteSimple(
             );
         }
 
-        const data =
+        let data =
             await response.json();
+
+        /*
+         * El flujo vigente es NUEVO -> EN_PROGRESO -> CERRADO.
+         * Para reportes de estado se agrupan ASIGNADO y RESUELTO,
+         * que pueden existir en registros históricos, dentro de EN_PROGRESO.
+         */
+        if (
+            endpoint.includes("/tickets-por-estado")
+            &&
+            Array.isArray(data)
+        ) {
+            const acumulado = {};
+
+            data.forEach(item => {
+                const estado =
+                    String(item?.nombre || "SIN_ESTADO")
+                        .trim()
+                        .toUpperCase();
+
+                const estadoVisible =
+                    ["ASIGNADO", "RESUELTO"].includes(estado)
+                        ? "EN_PROGRESO"
+                        : estado;
+
+                acumulado[estadoVisible] =
+                    (acumulado[estadoVisible] || 0)
+                    +
+                    normalizarNumeroReporte(item?.total);
+            });
+
+            data =
+                Object.entries(acumulado)
+                    .map(([nombre, total]) => ({
+                        nombre,
+                        total
+                    }));
+        }
 
         contenedor.innerHTML = "";
 
@@ -841,9 +879,9 @@ function formatearNombreReporte(valor) {
 
     const equivalencias = {
         "NUEVO": "Nuevo",
-        "ASIGNADO": "Asignado",
+        "ASIGNADO": "En progreso (histórico)",
         "EN_PROGRESO": "En progreso",
-        "RESUELTO": "Resuelto",
+        "RESUELTO": "En progreso (histórico)",
         "CERRADO": "Cerrado",
         "P1_CRITICA": "P1 - Crítica",
         "P2_ALTA": "P2 - Alta",

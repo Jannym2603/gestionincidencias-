@@ -556,14 +556,16 @@ function pintarMetricasProyecto() {
 
 
     const progreso =
-        contarEstadoProyecto(
-            "EN_PROGRESO"
-        );
+        contarEstadoProyecto("ASIGNADO")
+        +
+        contarEstadoProyecto("EN_PROGRESO")
+        +
+        contarEstadoProyecto("RESUELTO");
 
 
-    const resueltos =
+    const cerrados =
         contarEstadoProyecto(
-            "RESUELTO"
+            "CERRADO"
         );
 
 
@@ -586,8 +588,8 @@ function pintarMetricasProyecto() {
 
 
     ponerTextoProyecto(
-        "metricaResueltos",
-        resueltos
+        "metricaCerrados",
+        cerrados
     );
 }
 
@@ -604,22 +606,12 @@ function pintarEstadosProyecto() {
         );
 
 
-    const asignados =
-        contarEstadoProyecto(
-            "ASIGNADO"
-        );
-
-
     const progreso =
-        contarEstadoProyecto(
-            "EN_PROGRESO"
-        );
-
-
-    const resueltos =
-        contarEstadoProyecto(
-            "RESUELTO"
-        );
+        contarEstadoProyecto("ASIGNADO")
+        +
+        contarEstadoProyecto("EN_PROGRESO")
+        +
+        contarEstadoProyecto("RESUELTO");
 
 
     const cerrados =
@@ -631,8 +623,6 @@ function pintarEstadosProyecto() {
     const abiertos =
         nuevos
         +
-        asignados
-        +
         progreso;
 
 
@@ -643,20 +633,8 @@ function pintarEstadosProyecto() {
 
 
     ponerTextoProyecto(
-        "estadoAsignado",
-        asignados
-    );
-
-
-    ponerTextoProyecto(
         "estadoProgreso",
         progreso
-    );
-
-
-    ponerTextoProyecto(
-        "estadoResuelto",
-        resueltos
     );
 
 
@@ -1559,12 +1537,20 @@ function calcularResumenSaludProyecto() {
         );
 
 
+    const resueltosHistoricos =
+        contarEstadoProyecto(
+            "RESUELTO"
+        );
+
+
     const abiertos =
         nuevos
         +
         asignados
         +
-        progreso;
+        progreso
+        +
+        resueltosHistoricos;
 
 
     let enRiesgo = 0;
@@ -1588,7 +1574,9 @@ function calcularResumenSaludProyecto() {
                 ||
                 estado === "ASIGNADO"
                 ||
-                estado === "EN_PROGRESO";
+                estado === "EN_PROGRESO"
+                ||
+                estado === "RESUELTO";
 
 
             if (

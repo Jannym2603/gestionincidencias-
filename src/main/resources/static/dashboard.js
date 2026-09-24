@@ -167,28 +167,28 @@ function cargarResumenOperativo(
         )
     );
 
-    colocarTexto(
-        "ticketsAsignados",
-        contarEstadoDashboard(
-            operativos,
-            "ASIGNADO"
-        )
-    );
+    /*
+     * ASIGNADO y RESUELTO se conservan solamente por compatibilidad
+     * con tickets históricos. Mientras no exista un cierre formal,
+     * se contabilizan dentro del trabajo en progreso.
+     */
+    const enProgreso =
+        operativos.filter(
+            ticket =>
+                [
+                    "ASIGNADO",
+                    "EN_PROGRESO",
+                    "RESUELTO"
+                ].includes(
+                    String(ticket.estado || "")
+                        .trim()
+                        .toUpperCase()
+                )
+        ).length;
 
     colocarTexto(
         "ticketsEnProgreso",
-        contarEstadoDashboard(
-            operativos,
-            "EN_PROGRESO"
-        )
-    );
-
-    colocarTexto(
-        "ticketsResueltos",
-        contarEstadoDashboard(
-            operativos,
-            "RESUELTO"
-        )
+        enProgreso
     );
 
     colocarTexto(
@@ -281,12 +281,30 @@ function cargarReportesOperativos(tickets) {
     const operativos =
         obtenerTicketsOperativos(tickets);
 
+    const estadosNormalizados = {};
+
+    operativos.forEach(ticket => {
+        const estado =
+            String(ticket.estado || "SIN_ESTADO")
+                .trim()
+                .toUpperCase();
+
+        const etiqueta =
+            ["ASIGNADO", "RESUELTO"].includes(estado)
+                ? "EN_PROGRESO"
+                : estado;
+
+        estadosNormalizados[etiqueta] =
+            (estadosNormalizados[etiqueta] || 0) + 1;
+    });
+
     pintarReporte(
         "estadoReporte",
-        contarPorCampo(
-            operativos,
-            "estado"
-        )
+        Object.entries(estadosNormalizados)
+            .map(([nombre, total]) => ({
+                nombre,
+                total
+            }))
     );
 
     pintarReporte(
@@ -583,11 +601,34 @@ function pintarReporte(
             "report-item";
 
         div.innerHTML =
-            `<span>${escaparHtmlDashboard(item.nombre)}</span>`
+            `<span>${escaparHtmlDashboard(formatearEtiquetaDashboard(item.nombre))}</span>`
             + `<strong>${item.total}</strong>`;
 
         contenedor.appendChild(div);
     });
+}
+
+
+function formatearEtiquetaDashboard(valor) {
+    const texto =
+        String(valor || "")
+            .trim();
+
+    const equivalencias = {
+        NUEVO: "Nuevo",
+        EN_PROGRESO: "En progreso",
+        CERRADO: "Cerrado",
+        P1_CRITICA: "P1 · Crítica",
+        P2_ALTA: "P2 · Alta",
+        P3_MEDIA: "P3 · Media",
+        P4_BAJA: "P4 · Baja"
+    };
+
+    return equivalencias[
+        texto.toUpperCase()
+    ]
+    ||
+    texto.replaceAll("_", " ");
 }
 
 

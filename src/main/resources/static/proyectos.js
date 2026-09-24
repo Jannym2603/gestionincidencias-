@@ -655,7 +655,7 @@ function pintarProyectos(
                     ${stat("Total", resumen.total)}
                     ${stat("Nuevos", resumen.nuevos)}
                     ${stat("En progreso", resumen.enProgreso)}
-                    ${stat("Resueltos", resumen.resueltos)}
+                    ${stat("Cerrados", resumen.cerrados)}
 
                 </div>
 
@@ -778,7 +778,7 @@ function resumenProyecto(
         contar("ASIGNADO");
 
 
-    const enProgreso =
+    const enProgresoActual =
         contar("EN_PROGRESO");
 
 
@@ -790,10 +790,20 @@ function resumenProyecto(
         contar("CERRADO");
 
 
+    /*
+     * ASIGNADO y RESUELTO pueden existir en tickets históricos.
+     * Mientras no estén cerrados se muestran como trabajo en progreso.
+     */
+    const enProgreso =
+        asignados
+        +
+        enProgresoActual
+        +
+        resueltos;
+
+
     const abiertos =
         nuevos
-        +
-        asignados
         +
         enProgreso;
 
@@ -816,7 +826,8 @@ function resumenProyecto(
                 [
                     "NUEVO",
                     "ASIGNADO",
-                    "EN_PROGRESO"
+                    "EN_PROGRESO",
+                    "RESUELTO"
                 ]
                     .includes(
                         estado

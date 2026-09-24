@@ -429,16 +429,7 @@ function pintarDetalle(ticket) {
      */
     configurarActualizacionTiempoAbierto();
 
-    const nuevoEstado = document.getElementById("nuevoEstado");
-
-    if (nuevoEstado && ticket.estado) {
-        const existeEstado = Array.from(nuevoEstado.options)
-            .some(option => option.value === ticket.estado);
-
-        if (existeEstado) {
-            nuevoEstado.value = ticket.estado;
-        }
-    }
+    configurarFlujoEstadoTicket(ticket);
 
     const nuevaPrioridad =
         document.getElementById("nuevaPrioridad");
@@ -456,6 +447,251 @@ function pintarDetalle(ticket) {
             .some(option => Number(option.value) === Number(ticket.agenteId))
     ) {
         selectAgente.value = String(ticket.agenteId);
+    }
+}
+
+
+
+/* =====================================================
+   FLUJO VISUAL DEL TICKET
+   NUEVO -> EN_PROGRESO -> CERRADO
+===================================================== */
+
+function configurarFlujoEstadoTicket(
+    ticket = ticketActual
+) {
+
+    const select =
+        document.getElementById(
+            "nuevoEstado"
+        );
+
+    const nota =
+        document.getElementById(
+            "notaResolucion"
+        );
+
+    const boton =
+        document.getElementById(
+            "btnActualizarEstado"
+        );
+
+    const ayuda =
+        document.getElementById(
+            "ayudaEstadoTicket"
+        );
+
+    const labelNota =
+        document.getElementById(
+            "labelNotaResolucion"
+        );
+
+    if (!select || !ticket) {
+        return;
+    }
+
+    const estadoActual =
+        String(
+            ticket.estado || "NUEVO"
+        )
+            .trim()
+            .toUpperCase();
+
+    const transiciones = {
+        NUEVO: [],
+        ASIGNADO: ["EN_PROGRESO"],
+        EN_PROGRESO: ["CERRADO"],
+        RESUELTO: ["CERRADO"],
+        CERRADO: []
+    };
+
+    const siguientes =
+        transiciones[estadoActual]
+        ||
+        [];
+
+    select.innerHTML = "";
+
+    const agregarOpcion = (
+        valor,
+        texto
+    ) => {
+        const option =
+            document.createElement(
+                "option"
+            );
+
+        option.value = valor;
+        option.textContent = texto;
+
+        select.appendChild(
+            option
+        );
+    };
+
+    if (esTicketRecursoExterno(ticket)) {
+
+        agregarOpcion(
+            "",
+            "Seguimiento desde Solicitudes de recursos"
+        );
+
+        select.disabled = true;
+
+        if (nota) {
+            nota.disabled = true;
+            nota.required = false;
+            nota.value = "";
+        }
+
+        if (boton) {
+            boton.disabled = true;
+            boton.textContent =
+                "Estado administrado por recurso";
+        }
+
+        if (ayuda) {
+            ayuda.textContent =
+                "Este ticket depende de un recurso externo. Su avance se administra desde la solicitud asociada.";
+        }
+
+        return;
+    }
+
+    if (estadoActual === "NUEVO") {
+
+        agregarOpcion(
+            "",
+            "Primero asigna un agente"
+        );
+
+        select.disabled = true;
+
+        if (nota) {
+            nota.disabled = true;
+            nota.required = false;
+            nota.value = "";
+        }
+
+        if (boton) {
+            boton.disabled = true;
+            boton.textContent =
+                "Asigna un agente para iniciar";
+        }
+
+        if (ayuda) {
+            ayuda.textContent =
+                "Al asignar el primer agente, el ticket pasará automáticamente de NUEVO a EN_PROGRESO.";
+        }
+
+        return;
+    }
+
+    if (estadoActual === "CERRADO") {
+
+        agregarOpcion(
+            "",
+            "Ticket finalizado"
+        );
+
+        select.disabled = true;
+
+        if (nota) {
+            nota.disabled = true;
+            nota.required = false;
+        }
+
+        if (boton) {
+            boton.disabled = true;
+            boton.textContent =
+                "Ticket finalizado";
+
+            boton
+                .closest(
+                    ".ticket-action-column"
+                )
+                ?.classList.add(
+                    "is-finalized"
+                );
+        }
+
+        if (ayuda) {
+            ayuda.textContent =
+                "El ticket ya está cerrado. El contador de tiempo abierto quedó detenido en la fecha de cierre.";
+        }
+
+        return;
+    }
+
+    siguientes.forEach(
+        estado => {
+            agregarOpcion(
+                estado,
+                estado === "CERRADO"
+                    ? "CERRAR TICKET"
+                    : estado.replaceAll("_", " ")
+            );
+        }
+    );
+
+    select.disabled =
+        siguientes.length === 0;
+
+    if (select.options.length > 0) {
+        select.selectedIndex = 0;
+    }
+
+    const permiteCierre =
+        siguientes.includes(
+            "CERRADO"
+        );
+
+    if (nota) {
+        nota.disabled =
+            !permiteCierre;
+
+        nota.required =
+            permiteCierre;
+
+        nota.placeholder =
+            permiteCierre
+                ? "Describe la solución aplicada antes de cerrar el ticket."
+                : "No se requiere una nota para este paso.";
+
+        if (!permiteCierre) {
+            nota.value = "";
+        }
+    }
+
+    if (labelNota) {
+        labelNota.textContent =
+            permiteCierre
+                ? "Nota de cierre *"
+                : "Nota de cierre";
+    }
+
+    if (boton) {
+        boton.disabled =
+            siguientes.length === 0;
+
+        boton.textContent =
+            permiteCierre
+                ? "Cerrar ticket"
+                : "Actualizar estado";
+    }
+
+    if (ayuda) {
+
+        if (estadoActual === "ASIGNADO") {
+            ayuda.textContent =
+                "Ticket histórico: continúa a EN_PROGRESO para incorporarlo al flujo actual.";
+        } else if (estadoActual === "RESUELTO") {
+            ayuda.textContent =
+                "Ticket histórico: solo falta registrar la nota final y cerrarlo.";
+        } else {
+            ayuda.textContent =
+                "El cierre requiere una nota. Al cerrar se registra la fecha final y se detiene el contador de tiempo abierto.";
+        }
     }
 }
 
@@ -1461,6 +1697,24 @@ function configurarVistaTicketSegunTipo() {
 
     if (nuevoEstado) {
         nuevoEstado.disabled = true;
+    }
+
+    const botonEstado =
+        document.getElementById(
+            "btnActualizarEstado"
+        );
+
+    if (botonEstado) {
+        botonEstado.disabled = true;
+    }
+
+    const notaCierre =
+        document.getElementById(
+            "notaResolucion"
+        );
+
+    if (notaCierre) {
+        notaCierre.disabled = true;
     }
 }
 
@@ -3275,12 +3529,22 @@ async function cambiarEstadoTicket() {
     }
 
     if (
-        (estado === "RESUELTO" || estado === "CERRADO") &&
+        estado === "CERRADO" &&
         !notaResolucion
     ) {
         alert(
-            "Debes agregar una nota de resolución para resolver o cerrar el ticket."
+            "Debes agregar una nota de cierre antes de finalizar el ticket."
         );
+        return;
+    }
+
+    if (
+        estado === "CERRADO"
+        &&
+        !window.confirm(
+            "¿Confirmas el cierre del ticket? Esta acción registrará la fecha final y detendrá el contador de tiempo abierto."
+        )
+    ) {
         return;
     }
 
@@ -3305,7 +3569,7 @@ async function cambiarEstadoTicket() {
             );
         }
 
-        alert("Estado actualizado correctamente.");
+        alert(estado === "CERRADO" ? "Ticket cerrado correctamente." : "Estado actualizado correctamente.");
 
         const notaInput =
             document.getElementById("notaResolucion");

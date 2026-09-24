@@ -322,8 +322,13 @@ function aplicarFeatureFlags(flags = obtenerFeatureFlags()) {
         document
             .querySelectorAll(`[data-menu='${menu}']`)
             .forEach(elemento => {
+                const ocultoPorRol =
+                    elemento.dataset.ocultoPorRol === "true";
+
                 elemento.style.display =
-                    activo ? "block" : "none";
+                    activo && !ocultoPorRol
+                        ? ""
+                        : "none";
             });
     });
 
@@ -572,6 +577,157 @@ function pintarUsuarioHeader() {
     document.body.classList.add("sesion-lista");
 }
 
+
+const MENU_PRINCIPAL_PRESENTACION = [
+    {
+        href: "dashboard.html",
+        label: "Dashboard",
+        icon: "▦"
+    },
+    {
+        href: "tickets.html",
+        label: "Tickets",
+        icon: "▤"
+    },
+    {
+        href: "proyectos.html",
+        label: "Proyectos",
+        icon: "◫",
+        dataMenu: "proyectos"
+    },
+    {
+        href: "crear-ticket.html",
+        label: "Crear ticket",
+        icon: "+",
+        dataMenu: "crear-ticket"
+    },
+    {
+        href: "solicitudes-recursos.html",
+        label: "Solicitudes de recursos",
+        icon: "↗",
+        dataMenu: "solicitudes-recursos"
+    },
+    {
+        href: "usuarios.html",
+        label: "Usuarios",
+        icon: "♙",
+        dataMenu: "usuarios",
+        groupStart: true
+    },
+    {
+        href: "reportes.html",
+        label: "Reportes",
+        icon: "▥",
+        dataMenu: "reportes"
+    },
+    {
+        href: "historial.html",
+        label: "Historial",
+        icon: "↺",
+        dataMenu: "historial"
+    },
+    {
+        href: "companias-proyectos.html",
+        label: "Gestión organizacional",
+        icon: "▧",
+        dataMenu: "companias-proyectos",
+        groupStart: true
+    },
+    {
+        href: "configuracion.html",
+        label: "Configuración",
+        icon: "⚙",
+        dataMenu: "configuracion"
+    }
+];
+
+const PAGINA_ACTIVA_MENU = {
+    "dashboard.html": "dashboard.html",
+    "tickets.html": "tickets.html",
+    "ticket-detalle.html": "tickets.html",
+    "crear-ticket.html": "crear-ticket.html",
+    "proyectos.html": "proyectos.html",
+    "proyecto-detalle.html": "proyectos.html",
+    "solicitudes-recursos.html": "solicitudes-recursos.html",
+    "usuarios.html": "usuarios.html",
+    "reportes.html": "reportes.html",
+    "historial.html": "historial.html",
+    "companias-proyectos.html": "companias-proyectos.html",
+    "configuracion.html": "configuracion.html"
+};
+
+const ICONOS_PAGINA = {
+    "dashboard.html": "▦",
+    "tickets.html": "▤",
+    "ticket-detalle.html": "▤",
+    "crear-ticket.html": "+",
+    "proyectos.html": "◫",
+    "proyecto-detalle.html": "◫",
+    "solicitudes-recursos.html": "↗",
+    "usuarios.html": "♙",
+    "reportes.html": "▥",
+    "historial.html": "↺",
+    "companias-proyectos.html": "▧",
+    "configuracion.html": "⚙"
+};
+
+function obtenerPaginaActual() {
+    return window.location.pathname.split("/").pop() || "dashboard.html";
+}
+
+function normalizarMenuPrincipal() {
+    const menu = document.querySelector(".menu");
+
+    if (!menu) {
+        return;
+    }
+
+    const paginaActual = obtenerPaginaActual();
+    const hrefActivo =
+        PAGINA_ACTIVA_MENU[paginaActual]
+        ||
+        paginaActual;
+
+    menu.innerHTML = "";
+
+    MENU_PRINCIPAL_PRESENTACION.forEach(item => {
+        const enlace = document.createElement("a");
+
+        enlace.href = item.href;
+        enlace.className = "menu-item";
+        enlace.textContent = item.label;
+        enlace.dataset.icon = item.icon;
+        enlace.dataset.tooltip = item.label;
+
+        if (item.dataMenu) {
+            enlace.dataset.menu = item.dataMenu;
+        }
+
+        if (item.groupStart) {
+            enlace.classList.add("menu-group-start");
+        }
+
+        if (item.href === hrefActivo) {
+            enlace.classList.add("active");
+            enlace.setAttribute("aria-current", "page");
+        }
+
+        menu.appendChild(enlace);
+    });
+}
+
+function configurarIdentidadPagina() {
+    const paginaActual = obtenerPaginaActual();
+    const icono = ICONOS_PAGINA[paginaActual] || "•";
+    const titulo = document.querySelector(".topbar h1");
+
+    document.body.dataset.pagina = paginaActual.replace(".html", "");
+
+    if (titulo) {
+        titulo.dataset.pageIcon = icono;
+    }
+}
+
 function configurarMenuPorRol() {
     const usuario = obtenerSesion();
 
@@ -698,10 +854,10 @@ function configurarMenuPorRol() {
         }
     }
 
-    itemProyectos.style.display = "block";
+    itemProyectos.style.display = "";
 
     if (itemSolicitudesRecursos) {
-        itemSolicitudesRecursos.style.display = "block";
+        itemSolicitudesRecursos.style.display = "";
     }
 
     /*
@@ -738,19 +894,19 @@ function configurarMenuPorRol() {
         }
 
         if (itemReportes) {
-            itemReportes.style.display = "block";
+            itemReportes.style.display = "";
         }
 
         if (itemHistorial) {
-            itemHistorial.style.display = "block";
+            itemHistorial.style.display = "";
         }
 
         if (itemCrearTicket) {
-            itemCrearTicket.style.display = "block";
+            itemCrearTicket.style.display = "";
         }
 
         if (itemConfiguracion) {
-            itemConfiguracion.style.display = "block";
+            itemConfiguracion.style.display = "";
         }
 
         if (itemCompaniasProyectos) {
@@ -764,11 +920,11 @@ function configurarMenuPorRol() {
         }
 
         if (itemReportes) {
-            itemReportes.style.display = "block";
+            itemReportes.style.display = "";
         }
 
         if (itemHistorial) {
-            itemHistorial.style.display = "block";
+            itemHistorial.style.display = "";
         }
 
         if (itemCrearTicket) {
@@ -776,7 +932,7 @@ function configurarMenuPorRol() {
         }
 
         if (itemConfiguracion) {
-            itemConfiguracion.style.display = "block";
+            itemConfiguracion.style.display = "";
         }
 
         if (itemCompaniasProyectos) {
@@ -786,53 +942,53 @@ function configurarMenuPorRol() {
 
     if (rol === "SUPERVISOR") {
         if (itemUsuarios) {
-            itemUsuarios.style.display = "block";
+            itemUsuarios.style.display = "";
         }
 
         if (itemReportes) {
-            itemReportes.style.display = "block";
+            itemReportes.style.display = "";
         }
 
         if (itemHistorial) {
-            itemHistorial.style.display = "block";
+            itemHistorial.style.display = "";
         }
 
         if (itemCrearTicket) {
-            itemCrearTicket.style.display = "block";
+            itemCrearTicket.style.display = "";
         }
 
         if (itemConfiguracion) {
-            itemConfiguracion.style.display = "block";
+            itemConfiguracion.style.display = "";
         }
 
         if (itemCompaniasProyectos) {
-            itemCompaniasProyectos.style.display = "block";
+            itemCompaniasProyectos.style.display = "";
         }
     }
 
     if (rol === "ADMIN") {
         if (itemUsuarios) {
-            itemUsuarios.style.display = "block";
+            itemUsuarios.style.display = "";
         }
 
         if (itemReportes) {
-            itemReportes.style.display = "block";
+            itemReportes.style.display = "";
         }
 
         if (itemHistorial) {
-            itemHistorial.style.display = "block";
+            itemHistorial.style.display = "";
         }
 
         if (itemCrearTicket) {
-            itemCrearTicket.style.display = "block";
+            itemCrearTicket.style.display = "";
         }
 
         if (itemConfiguracion) {
-            itemConfiguracion.style.display = "block";
+            itemConfiguracion.style.display = "";
         }
 
         if (itemCompaniasProyectos) {
-            itemCompaniasProyectos.style.display = "block";
+            itemCompaniasProyectos.style.display = "";
         }
     }
 
@@ -968,6 +1124,9 @@ function inicializarLayout() {
     if (!usuario) {
         return;
     }
+
+    normalizarMenuPrincipal();
+    configurarIdentidadPagina();
 
     bloquearPaginasPorRol();
     pintarUsuarioHeader();

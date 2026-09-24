@@ -22,11 +22,13 @@
             <nav class="menu">
                 <a href="dashboard.html" class="menu-item active">Dashboard</a>
                 <a href="tickets.html" class="menu-item">Tickets</a>
+                <a href="proyectos.html" class="menu-item" data-menu="proyectos">Proyectos</a>
                 <a href="crear-ticket.html" class="menu-item" data-menu="crear-ticket">Crear Ticket</a>
                 <a href="solicitudes-recursos.html" class="menu-item" data-menu="solicitudes-recursos">Solicitudes de Recursos</a>
-                <a href="usuarios.html" class="menu-item" data-menu="usuarios">Usuarios</a>
+                <a href="usuarios.html" class="menu-item menu-group-start" data-menu="usuarios">Usuarios</a>
                 <a href="reportes.html" class="menu-item" data-menu="reportes">Reportes</a>
                 <a href="historial.html" class="menu-item" data-menu="historial">Historial</a>
+                <a href="companias-proyectos.html" class="menu-item menu-group-start" data-menu="companias-proyectos">Gestión organizacional</a>
                 <a href="configuracion.html" class="menu-item" data-menu="configuracion">Configuración</a>
             </nav>
         </aside>
@@ -86,28 +88,16 @@
                     <div class="metric-card blue">
                         <span>Nuevos</span>
                         <h3 id="ticketsNuevos">0</h3>
-                        <p>Pendientes de atención</p>
+                        <p>Pendientes de asignación</p>
                     </div>
 
                     <div class="metric-card purple">
-                        <span>Asignados</span>
-                        <h3 id="ticketsAsignados">0</h3>
-                        <p>Con agente asignado</p>
-                    </div>
-
-                    <div class="metric-card orange">
                         <span>En progreso</span>
                         <h3 id="ticketsEnProgreso">0</h3>
-                        <p>En proceso</p>
+                        <p>En atención activa</p>
                     </div>
 
                     <div class="metric-card green">
-                        <span>Resueltos</span>
-                        <h3 id="ticketsResueltos">0</h3>
-                        <p>Solucionados</p>
-                    </div>
-
-                    <div class="metric-card gray">
                         <span>Cerrados</span>
                         <h3 id="ticketsCerrados">0</h3>
                         <p>Finalizados</p>
