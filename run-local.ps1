@@ -71,7 +71,36 @@ Write-Host "Base de datos:"
 Write-Host $env:DB_URL
 Write-Host ""
 
+$env:JAVA_TOOL_OPTIONS="-XX:ActiveProcessorCount=12 -Xms256m -Xmx1024m"
+
+Write-Host ""
+Write-Host "Modo ligero activado" -ForegroundColor Green
+Write-Host "Java usara 12 de 24 procesadores"
+Write-Host "Java usara como maximo 1 GB de RAM"
+Write-Host ""
+
+# ==========================================================
+# MODO LIGERO
+# Usa aproximadamente el 50% de los procesadores disponibles
+# ==========================================================
+
+$CPU_TOTAL = [Environment]::ProcessorCount
+$CPU_JAVA = [Math]::Max(
+    1,
+    [Math]::Floor($CPU_TOTAL / 2)
+)
+
+$env:JAVA_TOOL_OPTIONS="-XX:ActiveProcessorCount=$CPU_JAVA -Xms256m -Xmx768m"
+
+Write-Host ""
+Write-Host "Modo ligero activado" -ForegroundColor Green
+Write-Host "Procesadores detectados: $CPU_TOTAL"
+Write-Host "Procesadores para Java: $CPU_JAVA"
+Write-Host "RAM maxima para Java: 768 MB"
+Write-Host ""
+
 Write-Host "Ejecutando Spring Boot..." -ForegroundColor Cyan
 Write-Host ""
 
 .\mvnw spring-boot:run
+

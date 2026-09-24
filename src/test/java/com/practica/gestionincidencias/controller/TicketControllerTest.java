@@ -90,121 +90,53 @@ class TicketControllerTest {
                         accesoProyectoService
                 );
 
-
-        proyecto =
-                new Proyecto();
-
+        proyecto = new Proyecto();
         proyecto.setId(10);
         proyecto.setNombre("Proyecto de prueba");
         proyecto.setEstado(true);
 
-
-        cliente =
-                new Usuario();
-
+        cliente = new Usuario();
         cliente.setId(30);
         cliente.setNombre("Cliente");
         cliente.setApellido("Prueba");
         cliente.setCorreo("cliente@prueba.com");
         cliente.setEstado(true);
 
-
-        tipoIncidencia =
-                new TipoIncidencia();
-
+        tipoIncidencia = new TipoIncidencia();
         tipoIncidencia.setId(1);
         tipoIncidencia.setNombre("Problema técnico");
         tipoIncidencia.setEstado(true);
 
-
-        ticket =
-                new Ticket();
-
+        ticket = new Ticket();
         ticket.setId(1);
-
-        ticket.setNumeroTicket(
-                "INC-2026-0001"
-        );
-
-        ticket.setTitulo(
-                "Problema técnico"
-        );
-
-        ticket.setDescripcion(
-                "Descripción de prueba"
-        );
-
-        ticket.setEstado(
-                "NUEVO"
-        );
-
-        ticket.setPrioridad(
-                "P3_MEDIA"
-        );
-
-        ticket.setTipoAtencion(
-                "OPERATIVO"
-        );
-
-        ticket.setCliente(
-                cliente
-        );
-
-        ticket.setTipoIncidencia(
-                tipoIncidencia
-        );
-
-        ticket.setProyecto(
-                proyecto
-        );
-
-        ticket.setFechaCreacion(
-                LocalDateTime.now()
-        );
-
+        ticket.setNumeroTicket("INC-2026-0001");
+        ticket.setTitulo("Problema técnico");
+        ticket.setDescripcion("Descripción de prueba");
+        ticket.setEstado("NUEVO");
+        ticket.setPrioridad("P3_MEDIA");
+        ticket.setTipoAtencion("OPERATIVO");
+        ticket.setCliente(cliente);
+        ticket.setTipoIncidencia(tipoIncidencia);
+        ticket.setProyecto(proyecto);
+        ticket.setFechaCreacion(LocalDateTime.now());
         ticket.setFechaLimiteRespuesta(
                 LocalDateTime.now().plusHours(4)
         );
-
         ticket.setFechaLimiteResolucion(
                 LocalDateTime.now().plusHours(24)
         );
+        ticket.setAgenteAsignado(null);
 
-        ticket.setAgenteAsignado(
-                null
-        );
-
-
-        agente =
-                new Usuario();
-
+        agente = new Usuario();
         agente.setId(20);
+        agente.setNombre("Carlos");
+        agente.setApellido("Pérez");
+        agente.setEstado(true);
 
-        agente.setNombre(
-                "Carlos"
-        );
-
-        agente.setApellido(
-                "Pérez"
-        );
-
-        agente.setEstado(
-                true
-        );
-
-
-        administrador =
-                new Usuario();
-
+        administrador = new Usuario();
         administrador.setId(1);
-
-        administrador.setNombre(
-                "Administrador"
-        );
-
-        administrador.setEstado(
-                true
-        );
+        administrador.setNombre("Administrador");
+        administrador.setEstado(true);
     }
 
 
@@ -212,6 +144,8 @@ class TicketControllerTest {
      * =====================================================
      * PRUEBA 1
      * Debe permitir asignar un agente válido.
+     *
+     * NUEVO -> EN_PROGRESO
      * =====================================================
      */
     @Test
@@ -224,14 +158,12 @@ class TicketControllerTest {
                 agente.getId()
         );
 
-
         when(
                 ticketRepository.findById(1)
         )
                 .thenReturn(
                         Optional.of(ticket)
                 );
-
 
         when(
                 usuarioRepository.findById(
@@ -242,7 +174,6 @@ class TicketControllerTest {
                         Optional.of(agente)
                 );
 
-
         when(
                 accesoProyectoService
                         .obtenerUsuarioAutenticado()
@@ -250,7 +181,6 @@ class TicketControllerTest {
                 .thenReturn(
                         administrador
                 );
-
 
         when(
                 accesoProyectoService
@@ -261,7 +191,6 @@ class TicketControllerTest {
                 .thenReturn(
                         "ADMIN"
                 );
-
 
         when(
                 accesoProyectoService
@@ -274,7 +203,6 @@ class TicketControllerTest {
                         true
                 );
 
-
         when(
                 accesoProyectoService
                         .usuarioTieneAccesoProyecto(
@@ -286,14 +214,6 @@ class TicketControllerTest {
                         true
                 );
 
-
-        /*
-         * El controlador actual utiliza save(),
-         * no saveAndFlush().
-         *
-         * Mockito debe devolver el mismo Ticket
-         * que el controlador manda guardar.
-         */
         when(
                 ticketRepository.save(
                         any(Ticket.class)
@@ -304,21 +224,17 @@ class TicketControllerTest {
                                 invocation.getArgument(0)
                 );
 
-
         ticketController.asignarTicket(
                 1,
                 request
         );
 
-
         /*
-         * Verificamos que el agente
-         * realmente quedó asignado.
+         * El agente debe quedar asignado.
          */
         assertNotNull(
                 ticket.getAgenteAsignado()
         );
-
 
         assertEquals(
                 agente.getId(),
@@ -326,19 +242,16 @@ class TicketControllerTest {
                         .getId()
         );
 
-
         /*
-         * Al asignar por primera vez un ticket NUEVO,
-         * debe pasar automáticamente a ASIGNADO.
+         * NUEVO pasa directamente a EN_PROGRESO.
          */
         assertEquals(
-                "ASIGNADO",
+                "EN_PROGRESO",
                 ticket.getEstado()
         );
 
-
         /*
-         * Verificamos que se guardó una sola vez.
+         * El ticket debe guardarse una vez.
          */
         verify(
                 ticketRepository,
@@ -348,12 +261,15 @@ class TicketControllerTest {
                         ticket
                 );
 
-
         /*
-         * También debe generarse historial.
+         * Deben registrarse:
          *
-         * Al cambiar NUEVO -> ASIGNADO y asignar agente
-         * normalmente se generan eventos de historial.
+         * 1. ASIGNACION_AGENTE
+         * 2. CAMBIO_ESTADO
+         *
+         * porque el ticket pasó:
+         *
+         * NUEVO -> EN_PROGRESO
          */
         verify(
                 historialTicketRepository,
@@ -363,10 +279,8 @@ class TicketControllerTest {
                         any()
                 );
 
-
         /*
-         * Debe ejecutarse la notificación
-         * de asignación.
+         * Debe notificarse la asignación.
          */
         verify(
                 notificacionService,
@@ -388,10 +302,7 @@ class TicketControllerTest {
     @Test
     void noDebeAsignarAgenteInactivo() {
 
-        agente.setEstado(
-                false
-        );
-
+        agente.setEstado(false);
 
         AsignarTicketRequestDTO request =
                 new AsignarTicketRequestDTO();
@@ -400,14 +311,12 @@ class TicketControllerTest {
                 agente.getId()
         );
 
-
         when(
                 ticketRepository.findById(1)
         )
                 .thenReturn(
                         Optional.of(ticket)
                 );
-
 
         when(
                 usuarioRepository.findById(
@@ -418,7 +327,6 @@ class TicketControllerTest {
                         Optional.of(agente)
                 );
 
-
         when(
                 accesoProyectoService
                         .obtenerUsuarioAutenticado()
@@ -426,7 +334,6 @@ class TicketControllerTest {
                 .thenReturn(
                         administrador
                 );
-
 
         when(
                 accesoProyectoService
@@ -437,7 +344,6 @@ class TicketControllerTest {
                 .thenReturn(
                         "ADMIN"
                 );
-
 
         RuntimeException excepcion =
                 assertThrows(
@@ -450,12 +356,10 @@ class TicketControllerTest {
                                         )
                 );
 
-
         assertEquals(
                 "No se puede asignar el ticket a un agente inactivo.",
                 excepcion.getMessage()
         );
-
 
         verify(
                 ticketRepository,
@@ -464,7 +368,6 @@ class TicketControllerTest {
                 .save(
                         any(Ticket.class)
                 );
-
 
         verify(
                 notificacionService,
@@ -493,14 +396,12 @@ class TicketControllerTest {
                 agente.getId()
         );
 
-
         when(
                 ticketRepository.findById(1)
         )
                 .thenReturn(
                         Optional.of(ticket)
                 );
-
 
         when(
                 usuarioRepository.findById(
@@ -511,7 +412,6 @@ class TicketControllerTest {
                         Optional.of(agente)
                 );
 
-
         when(
                 accesoProyectoService
                         .obtenerUsuarioAutenticado()
@@ -519,7 +419,6 @@ class TicketControllerTest {
                 .thenReturn(
                         administrador
                 );
-
 
         when(
                 accesoProyectoService
@@ -530,7 +429,6 @@ class TicketControllerTest {
                 .thenReturn(
                         "ADMIN"
                 );
-
 
         when(
                 accesoProyectoService
@@ -543,7 +441,6 @@ class TicketControllerTest {
                         false
                 );
 
-
         RuntimeException excepcion =
                 assertThrows(
                         RuntimeException.class,
@@ -555,12 +452,10 @@ class TicketControllerTest {
                                         )
                 );
 
-
         assertEquals(
                 "El usuario seleccionado no tiene rol AGENTE.",
                 excepcion.getMessage()
         );
-
 
         verify(
                 ticketRepository,
@@ -569,7 +464,6 @@ class TicketControllerTest {
                 .save(
                         any(Ticket.class)
                 );
-
 
         verify(
                 notificacionService,
@@ -598,14 +492,12 @@ class TicketControllerTest {
                 agente.getId()
         );
 
-
         when(
                 ticketRepository.findById(1)
         )
                 .thenReturn(
                         Optional.of(ticket)
                 );
-
 
         when(
                 usuarioRepository.findById(
@@ -616,7 +508,6 @@ class TicketControllerTest {
                         Optional.of(agente)
                 );
 
-
         when(
                 accesoProyectoService
                         .obtenerUsuarioAutenticado()
@@ -624,7 +515,6 @@ class TicketControllerTest {
                 .thenReturn(
                         administrador
                 );
-
 
         when(
                 accesoProyectoService
@@ -635,7 +525,6 @@ class TicketControllerTest {
                 .thenReturn(
                         "ADMIN"
                 );
-
 
         when(
                 accesoProyectoService
@@ -648,7 +537,6 @@ class TicketControllerTest {
                         true
                 );
 
-
         when(
                 accesoProyectoService
                         .usuarioTieneAccesoProyecto(
@@ -659,7 +547,6 @@ class TicketControllerTest {
                 .thenReturn(
                         false
                 );
-
 
         RuntimeException excepcion =
                 assertThrows(
@@ -672,12 +559,10 @@ class TicketControllerTest {
                                         )
                 );
 
-
         assertEquals(
                 "El agente no tiene acceso al proyecto del ticket.",
                 excepcion.getMessage()
         );
-
 
         verify(
                 ticketRepository,
@@ -686,7 +571,6 @@ class TicketControllerTest {
                 .save(
                         any(Ticket.class)
                 );
-
 
         verify(
                 notificacionService,

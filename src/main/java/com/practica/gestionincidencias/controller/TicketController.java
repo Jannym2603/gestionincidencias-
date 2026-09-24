@@ -53,13 +53,19 @@ public class TicketController {
             "P3_MEDIA",
             "P4_BAJA"
     );
-
+    
     private static final Map<String, Set<String>> TRANSICIONES_VALIDAS =
             Map.of(
-                    "NUEVO", Set.of("ASIGNADO"),
+                    "NUEVO", Set.of("EN_PROGRESO"),
+
+                    // Compatibilidad con tickets antiguos
                     "ASIGNADO", Set.of("EN_PROGRESO"),
-                    "EN_PROGRESO", Set.of("RESUELTO"),
+
+                    "EN_PROGRESO", Set.of("CERRADO"),
+
+                    // Compatibilidad con tickets antiguos
                     "RESUELTO", Set.of("CERRADO"),
+
                     "CERRADO", Set.of()
             );
 
@@ -490,23 +496,27 @@ public class TicketController {
                 ticket.getEstado();
 
         /*
-         * La asignación de agente se mantiene disponible también para
-         * RECURSO_EXTERNO. Es una asignación administrativa de
-         * responsabilidad y no sustituye ni modifica el estado del recurso.
+         * Al asignar por primera vez un agente a un ticket NUEVO,
+         * el ticket pasa automáticamente a EN_PROGRESO.
          *
-         * Conservamos el comportamiento existente de marcar el ticket como
-         * ASIGNADO cuando recibe su primer agente. A partir de ahí, el flujo
-         * operativo manual queda bloqueado para RECURSO_EXTERNO y el avance
-         * real continúa en SolicitudRecurso.estadoRecurso.
+         * En RECURSO_EXTERNO, el estado del recurso continúa
+         * administrándose mediante SolicitudRecurso.estadoRecurso.
          */
         if (ticket.getAgenteAsignado() == null) {
 
+            if (!"NUEVO".equals(estadoAnterior)) {
+                throw new RuntimeException(
+                        "Solo se puede realizar la primera asignación "
+                                + "cuando el ticket está en estado NUEVO."
+                );
+            }
+
             validarTransicion(
                     estadoAnterior,
-                    "ASIGNADO"
+                    "EN_PROGRESO"
             );
 
-            ticket.setEstado("ASIGNADO");
+            ticket.setEstado("EN_PROGRESO");
         }
 
         ticket.setAgenteAsignado(agente);
@@ -577,16 +587,12 @@ public class TicketController {
         );
 
         /*
-         * Los tickets de RECURSO_EXTERNO no utilizan el flujo
-         * operativo NUEVO -> ASIGNADO -> EN_PROGRESO -> RESUELTO
-         * -> CERRADO.
+         * Los tickets de RECURSO_EXTERNO tienen su propio seguimiento
+         * mediante SolicitudRecurso.estadoRecurso.
          *
-         * Su avance se administra exclusivamente mediante
-         * SolicitudRecurso.estadoRecurso.
-         *
-         * Esta validación es de backend, por lo que también bloquea
-         * llamadas directas al endpoint aunque se intente omitir
-         * la restricción del frontend.
+         * El cambio manual del estado operativo se bloquea desde este
+         * endpoint. La validación también aplica a llamadas directas al
+         * backend aunque se intente omitir la restricción del frontend.
          */
         if (esRecursoExterno(ticket)) {
 
@@ -608,6 +614,16 @@ public class TicketController {
 
         validarEstado(nuevoEstado);
 
+        if (
+                "EN_PROGRESO".equals(nuevoEstado)
+                        && ticket.getAgenteAsignado() == null
+        ) {
+
+            throw new RuntimeException(
+                    "Debes asignar un agente antes de iniciar el ticket."
+            );
+        }
+
         validarTransicion(
                 estadoAnterior,
                 nuevoEstado
@@ -619,10 +635,7 @@ public class TicketController {
                 );
 
         if (
-                (
-                        nuevoEstado.equals("RESUELTO")
-                                || nuevoEstado.equals("CERRADO")
-                )
+                "CERRADO".equals(nuevoEstado)
                         && (
                         notaResolucion == null
                                 || notaResolucion.isBlank()
@@ -630,8 +643,7 @@ public class TicketController {
         ) {
 
             throw new RuntimeException(
-                    "Debes agregar una nota de resolución "
-                            + "para resolver o cerrar el ticket."
+                    "Debes agregar una nota de cierre."
             );
         }
 
@@ -688,7 +700,7 @@ public class TicketController {
         ) {
 
             descripcion +=
-                    ". Nota: " + notaResolucion;
+                    ". Nota de cierre: " + notaResolucion;
         }
 
         registrarHistorial(
