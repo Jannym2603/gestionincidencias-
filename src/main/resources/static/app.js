@@ -1208,7 +1208,7 @@ function configurarSidebarColapsable() {
 
     const estadoGuardado = localStorage.getItem("sidebarColapsada") === "true";
 
-    if (estadoGuardado && window.innerWidth > 760) {
+    if (estadoGuardado && window.innerWidth > 520) {
         appContainer.classList.add("sidebar-colapsada");
         boton.innerHTML = `<span class="sidebar-toggle-arrow" aria-hidden="true">›</span>`;
         boton.setAttribute("aria-label", "Expandir barra lateral");
@@ -1233,7 +1233,7 @@ function configurarSidebarColapsable() {
     });
 
     window.addEventListener("resize", () => {
-        if (window.innerWidth <= 760) {
+        if (window.innerWidth <= 520) {
             appContainer.classList.remove("sidebar-colapsada");
             boton.innerHTML = `<span class="sidebar-toggle-arrow" aria-hidden="true">‹</span>`;
         } else if (localStorage.getItem("sidebarColapsada") === "true") {
