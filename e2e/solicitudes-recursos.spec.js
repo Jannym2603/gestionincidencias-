@@ -11,9 +11,9 @@ test.beforeEach(async ({ page }) => {
         sessionStorage.setItem(
             'usuarioSistema',
             JSON.stringify({
-                id: 1,
-                nombre: 'Janeth Ramos',
-                correo: 'jrmarin2603@gmail.com',
+                id: 12,
+                nombre: 'Admin Prueba',
+                correo: 'admin.prueba@correo.com',
                 rol: 'ADMIN',
                 token: 'token-playwright-prueba'
             })
