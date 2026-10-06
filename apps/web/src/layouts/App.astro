@@ -1,0 +1,7 @@
+---
+import Base from './Base.astro';
+import Sidebar from '../components/Sidebar.astro';
+import Header from '../components/Header.astro';
+const active = Astro.props.active ?? 'dashboard';
+---
+<Base title={active === 'tickets' ? 'Tickets' : 'Dashboard'} bodyClass="dashboard-page"><p id="session-loading" class="feedback" role="status">Verificando sesión…</p><div class="app-container" id="protected-app" hidden><Sidebar active={active} /><main class="main-content"><Header /><slot /></main></div></Base>

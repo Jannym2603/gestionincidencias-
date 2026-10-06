@@ -1,0 +1,5 @@
+---
+interface Props { label: string; id: string; description: string; color?: string }
+const { label, id, description, color = '' } = Astro.props;
+---
+<div class:list={['metric-card', color]}><span>{label}</span><h3 id={id}>—</h3><p>{description}</p></div>

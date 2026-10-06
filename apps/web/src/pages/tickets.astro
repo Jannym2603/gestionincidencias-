@@ -1,0 +1,6 @@
+---
+import App from '../layouts/App.astro';
+import TicketFilters from '../components/TicketFilters.astro';
+---
+<App active="tickets"><section class="action-bar"><div><h2>Listado de tickets</h2><p id="ticket-list-description">Tickets disponibles segun tu rol y los proyectos a los que tienes acceso.</p></div><a class="primary-btn" data-menu="crear-ticket" href="/tickets/nuevo">Crear ticket</a></section><p id="list-status" class="feedback" role="status">Cargando tickets...</p><TicketFilters /><section class="table-section"><div class="table-wrapper"><table><thead><tr><th>Numero</th><th>Titulo</th><th>Compania</th><th>Proyecto</th><th>Atencion</th><th>Cliente</th><th>Agente</th><th>Estado</th><th>Prioridad</th><th>Fecha</th><th>Accion</th></tr></thead><tbody id="tickets-body"><tr><td colspan="11">Cargando tickets...</td></tr></tbody></table></div><p class="table-count" id="ticket-count"></p></section></App>
+<script src="../lib/tickets.ts"></script>

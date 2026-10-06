@@ -44,6 +44,13 @@ uploads/*
 
 ### Node.js ###
 node_modules/
+coverage/
+.nyc_output/
+.astro/
+logs/
+*.tsbuildinfo
+.temp/
+.tmp/
 
 ### Playwright ###
 test-results/

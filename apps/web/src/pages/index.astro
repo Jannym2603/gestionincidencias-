@@ -1,0 +1,5 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="Inicio"><p class="feedback" role="status">Abriendo el sistema…</p></Base>
+<script>import { getSession } from '../lib/session'; location.replace(getSession() ? '/dashboard' : '/login');</script>

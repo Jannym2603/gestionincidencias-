@@ -1,0 +1,15 @@
+---
+import App from '../layouts/App.astro';
+import Metric from '../components/MetricCard.astro';
+---
+<App>
+<section class="action-bar"><div><h2>Panel principal</h2><p>Consulta rápidamente el trabajo operativo y las solicitudes que dependen de terceros.</p></div><button class="secondary-btn" id="refresh">Actualizar</button></section>
+<div class="retry-row"><p id="dashboard-status" class="feedback" role="status">Cargando datos…</p></div>
+<section class="table-section dashboard-block"><div class="section-header"><div><h2>Operaciones</h2><p>Solo incluye tickets de atención operativa. Los tiempos de proveedor no afectan estos indicadores.</p></div></div><div class="metrics-grid">
+<Metric label="Tickets operativos" id="totalOperativos" description="Registrados" /><Metric label="Nuevos" id="ticketsNuevos" description="Pendientes de asignación" color="blue" /><Metric label="En progreso" id="ticketsEnProgreso" description="En atención activa" color="purple" /><Metric label="Cerrados" id="ticketsCerrados" description="Finalizados" color="green" /></div></section>
+<section class="reports-grid">{[['estadoReporte', 'Operativos por estado'], ['prioridadReporte', 'Operativos por prioridad'], ['tipoReporte', 'Operativos por tipo']].map(([id, title]) => <div class="report-card"><h3>{title}</h3><div id={id} class="report-list"><p>Cargando datos…</p></div></div>)}</section>
+<section class="table-section dashboard-block" id="resources"><div class="section-header"><div><h2>Recursos externos</h2><p>Seguimiento de solicitudes cuyo avance depende de proveedores.</p></div></div><p id="resource-status" role="status"></p><div class="metrics-grid"><Metric label="Esperando proveedor" id="esperandoProveedor" description="Dependencia externa" color="orange" /><Metric label="Próximas entregas" id="proximasEntregas" description="En los próximos 7 días" color="blue" /><Metric label="Retrasadas" id="retrasadas" description="Fecha estimada vencida" /><Metric label="Entregadas" id="entregadas" description="Entregadas al cliente" color="green" /></div></section>
+<section class="metrics-grid"><Metric label="Usuarios" id="totalUsuarios" description="Relacionados" /><Metric label="Comentarios" id="totalComentarios" description="Seguimientos" /></section>
+<section class="table-section"><div class="section-header"><div><h2>Tickets recientes</h2><p>Últimas incidencias registradas dentro de tu alcance.</p></div></div><div class="table-wrapper"><table><thead><tr><th>Número</th><th>Título</th><th>Atención</th><th>Tipo</th><th>Cliente</th><th>Estado</th><th>Prioridad</th><th>Fecha creación</th></tr></thead><tbody id="recent-tickets"><tr><td colspan="8">Cargando tickets…</td></tr></tbody></table></div></section>
+</App>
+<script src="../lib/dashboard.ts"></script>

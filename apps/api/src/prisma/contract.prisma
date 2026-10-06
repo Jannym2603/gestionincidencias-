@@ -1,0 +1,284 @@
+// use prisma-8
+// Contract inferred from the live database schema. Edit as needed, then run `prisma contract emit`.
+
+model Companias {
+  id                 Int          @id(map: "companias_pkey") @default(autoincrement())
+  descripcion        String?
+  estado             Boolean
+  fechaActualizacion Timestamp(6) @map("fecha_actualizacion")
+  fechaCreacion      Timestamp(6) @map("fecha_creacion")
+  nombre             VarChar(150) @unique(map: "uk_companias_nombre")
+  proyectos          Proyectos[]
+
+  @@map("companias")
+}
+
+model Proyectos {
+  id                 Int                @id(map: "proyectos_pkey") @default(autoincrement())
+  descripcion        String?
+  estado             Boolean
+  fechaActualizacion Timestamp(6)       @map("fecha_actualizacion")
+  fechaCreacion      Timestamp(6)       @map("fecha_creacion")
+  nombre             VarChar(150)
+  companiaId         Int                @map("compania_id")
+  tickets            Tickets[]
+  usuarioProyectos   UsuarioProyectos[]
+  compania           Companias          @relation(fields: [companiaId], references: [id], map: "fkf3oha5gagddmp7p8ke0fatffy")
+
+  @@unique([companiaId, nombre], map: "uk_proyecto_compania_nombre")
+  @@index([companiaId], map: "idx_proyecto_compania")
+  @@map("proyectos")
+}
+
+model TiposIncidencia {
+  id          Int          @id(map: "tipos_incidencia_pkey") @default(autoincrement())
+  nombre      VarChar(100) @unique(map: "tipos_incidencia_nombre_key")
+  descripcion String?
+  estado      Boolean?     @default(true)
+  tickets     Tickets[]
+
+  @@map("tipos_incidencia")
+}
+
+model Usuarios {
+  id                 Int                  @id(map: "usuarios_pkey") @default(autoincrement())
+  nombre             VarChar(100)
+  apellido           VarChar(100)
+  correo             VarChar(150)         @unique(map: "usuarios_correo_key")
+  password           VarChar(100)
+  telefono           VarChar(20)?
+  estado             Boolean?             @default(true)
+  fechaCreacion      Timestamp?           @default(now()) @map("fecha_creacion")
+  comentarios        Comentarios[]
+  enlacesCompartidos EnlacesCompartidos[]
+  historialTickets   HistorialTickets[]
+  usuarioProyectos   UsuarioProyectos[]
+  usuarioRoles       UsuarioRoles[]
+  tickets            Tickets[]            @relation(name: "fk_ticket_agente")
+  ticketsTickets     Tickets[]            @relation(name: "fk_ticket_cliente")
+
+  @@map("usuarios")
+}
+
+model Tickets {
+  id                    Int                  @id(map: "tickets_pkey") @default(autoincrement())
+  numeroTicket          VarChar(30)          @unique(map: "tickets_numero_ticket_key") @map("numero_ticket")
+  titulo                VarChar(150)
+  descripcion           String
+  tipoIncidenciaId      Int                  @map("tipo_incidencia_id")
+  clienteId             Int                  @map("cliente_id")
+  agenteAsignadoId      Int?                 @map("agente_asignado_id")
+  estado                VarChar(30)          @default("NUEVO")
+  prioridad             VarChar(30)          @default("P4_BAJA")
+  severidad             VarChar(30)?
+  criticidad            VarChar(30)?
+  impacto               VarChar(30)?
+  urgencia              VarChar(30)?
+  fechaCreacion         Timestamp?           @default(now()) @map("fecha_creacion")
+  fechaActualizacion    Timestamp?           @default(now()) @map("fecha_actualizacion")
+  fechaResolucion       Timestamp?           @map("fecha_resolucion")
+  fechaLimiteResolucion Timestamp(6)?        @map("fecha_limite_resolucion")
+  fechaLimiteRespuesta  Timestamp(6)?        @map("fecha_limite_respuesta")
+  fechaPrimeraRespuesta Timestamp(6)?        @map("fecha_primera_respuesta")
+  slaResolucionCumplido Boolean?             @map("sla_resolucion_cumplido")
+  slaRespuestaCumplido  Boolean?             @map("sla_respuesta_cumplido")
+  proyectoId            Int                  @map("proyecto_id")
+  tipoAtencion          VarChar(30)          @default("OPERATIVO") @map("tipo_atencion")
+  fechaCierre           Timestamp(6)?        @map("fecha_cierre")
+  adjuntos              Adjuntos[]
+  comentarios           Comentarios[]
+  enlacesCompartidos    EnlacesCompartidos[]
+  historialTickets      HistorialTickets[]
+  solicitudesRecurso    SolicitudesRecurso?
+  proyecto              Proyectos            @relation(fields: [proyectoId], references: [id], map: "fk3k7gntl8exxbqrf4qbqkq9tx6", index: false)
+  agenteAsignado        Usuarios?            @relation(name: "fk_ticket_agente", fields: [agenteAsignadoId], references: [id], map: "fk_ticket_agente", index: false)
+  cliente               Usuarios             @relation(name: "fk_ticket_cliente", fields: [clienteId], references: [id], map: "fk_ticket_cliente", index: false)
+  tipoIncidencia        TiposIncidencia      @relation(fields: [tipoIncidenciaId], references: [id], map: "fk_ticket_tipo", index: false)
+
+  @@check(expression: "((tipo_atencion)::text = ANY (ARRAY[('OPERATIVO'::character varying)::text, ('RECURSO_EXTERNO'::character varying)::text]))", map: "chk_ticket_tipo_atencion")
+  @@map("tickets")
+}
+
+model Adjuntos {
+  id            Int           @id(map: "adjuntos_pkey") @default(autoincrement())
+  ticketId      Int           @map("ticket_id")
+  nombreArchivo VarChar(255)  @map("nombre_archivo")
+  rutaArchivo   VarChar(500)  @map("ruta_archivo")
+  tipoArchivo   VarChar(100)? @map("tipo_archivo")
+  tamanio       BigInt?
+  fechaSubida   Timestamp     @default(now()) @map("fecha_subida")
+  ticket        Tickets       @relation(fields: [ticketId], references: [id], onDelete: Cascade, map: "fk_adjuntos_ticket", index: false)
+
+  @@map("adjuntos")
+}
+
+model AuditoriaConfiguracion {
+  id                  Int           @id(map: "auditoria_configuracion_pkey") @default(autoincrement())
+  crearTicketAnterior Boolean       @map("crear_ticket_anterior")
+  crearTicketNuevo    Boolean       @map("crear_ticket_nuevo")
+  fechaCambio         Timestamp(6)  @map("fecha_cambio")
+  historialAnterior   Boolean       @map("historial_anterior")
+  historialNuevo      Boolean       @map("historial_nuevo")
+  reportesAnterior    Boolean       @map("reportes_anterior")
+  reportesNuevo       Boolean       @map("reportes_nuevo")
+  usuarioCorreo       VarChar(150)  @map("usuario_correo")
+  usuarioId           Int?          @map("usuario_id")
+  usuarioNombre       VarChar(200)  @map("usuario_nombre")
+  varianteAnterior    VarChar(1)    @map("variante_anterior")
+  varianteNueva       VarChar(1)    @map("variante_nueva")
+  modulo              VarChar(100)?
+  rol                 VarChar(50)?
+  valorAnterior       VarChar(100)? @map("valor_anterior")
+  valorNuevo          VarChar(100)? @map("valor_nuevo")
+
+  @@map("auditoria_configuracion")
+}
+
+model CodigosRecuperacionPassword {
+  id               Int          @id(map: "codigos_recuperacion_password_pkey") @default(autoincrement())
+  codigo           VarChar(100)
+  correo           VarChar(150)
+  fechaCreacion    Timestamp(6) @map("fecha_creacion")
+  fechaExpiracion  Timestamp(6) @map("fecha_expiracion")
+  usado            Boolean
+  intentosFallidos Int          @default(0) @map("intentos_fallidos")
+
+  @@map("codigos_recuperacion_password")
+}
+
+model Comentarios {
+  id             Int         @id(map: "comentarios_pkey") @default(autoincrement())
+  ticketId       Int         @map("ticket_id")
+  usuarioId      Int         @map("usuario_id")
+  contenido      String
+  tipoComentario VarChar(20) @map("tipo_comentario")
+  fechaCreacion  Timestamp?  @default(now()) @map("fecha_creacion")
+  ticket         Tickets     @relation(fields: [ticketId], references: [id], map: "fk_comentario_ticket", index: false)
+  usuario        Usuarios    @relation(fields: [usuarioId], references: [id], map: "fk_comentario_usuario", index: false)
+
+  @@map("comentarios")
+}
+
+model ConfiguracionSistema {
+  id                            Int        @id(map: "configuracion_sistema_pkey") @default(autoincrement())
+  crearTicketActivo             Boolean    @map("crear_ticket_activo")
+  historialActivo               Boolean    @map("historial_activo")
+  reportesActivos               Boolean    @map("reportes_activos")
+  varianteVisual                VarChar(1) @map("variante_visual")
+  crearTicketCliente            Boolean    @default(true) @map("crear_ticket_cliente")
+  crearTicketAgente             Boolean    @default(true) @map("crear_ticket_agente")
+  crearTicketSupervisor         Boolean    @default(true) @map("crear_ticket_supervisor")
+  crearTicketAdmin              Boolean    @default(true) @map("crear_ticket_admin")
+  reportesCliente               Boolean    @default(true) @map("reportes_cliente")
+  reportesAgente                Boolean    @default(true) @map("reportes_agente")
+  reportesSupervisor            Boolean    @default(true) @map("reportes_supervisor")
+  reportesAdmin                 Boolean    @default(true) @map("reportes_admin")
+  historialCliente              Boolean    @default(true) @map("historial_cliente")
+  historialAgente               Boolean    @default(true) @map("historial_agente")
+  historialSupervisor           Boolean    @default(true) @map("historial_supervisor")
+  historialAdmin                Boolean    @default(true) @map("historial_admin")
+  solicitudesRecursosActivo     Boolean    @default(true) @map("solicitudes_recursos_activo")
+  solicitudesRecursosCliente    Boolean    @default(true) @map("solicitudes_recursos_cliente")
+  solicitudesRecursosAgente     Boolean    @default(true) @map("solicitudes_recursos_agente")
+  solicitudesRecursosSupervisor Boolean    @default(true) @map("solicitudes_recursos_supervisor")
+  solicitudesRecursosAdmin      Boolean    @default(true) @map("solicitudes_recursos_admin")
+
+  @@map("configuracion_sistema")
+}
+
+model EnlacesCompartidos {
+  id                 BigInt       @id(map: "enlaces_compartidos_pkey") @default(autoincrement())
+  ticketId           Int          @map("ticket_id")
+  creadoPor          Int          @map("creado_por")
+  correoDestinatario VarChar(150) @map("correo_destinatario")
+  token              VarChar(150) @unique(map: "enlaces_compartidos_token_key")
+  puedeVer           Boolean      @default(true) @map("puede_ver")
+  puedeComentar      Boolean      @default(false) @map("puede_comentar")
+  puedeVerAdjuntos   Boolean      @default(false) @map("puede_ver_adjuntos")
+  puedeSubirAdjuntos Boolean      @default(false) @map("puede_subir_adjuntos")
+  puedeCambiarEstado Boolean      @default(false) @map("puede_cambiar_estado")
+  fechaCreacion      Timestamp    @default(now()) @map("fecha_creacion")
+  fechaExpiracion    Timestamp?   @map("fecha_expiracion")
+  activo             Boolean      @default(true)
+  usuarios           Usuarios     @relation(fields: [creadoPor], references: [id], map: "fk_enlace_creado_por", index: false)
+  ticket             Tickets      @relation(fields: [ticketId], references: [id], onDelete: Cascade, map: "fk_enlace_ticket", index: false)
+
+  @@map("enlaces_compartidos")
+}
+
+model HistorialTickets {
+  id            Int         @id(map: "historial_tickets_pkey") @default(autoincrement())
+  ticketId      Int         @map("ticket_id")
+  usuarioId     Int?        @map("usuario_id")
+  accion        VarChar(50)
+  valorAnterior String?     @map("valor_anterior")
+  valorNuevo    String?     @map("valor_nuevo")
+  descripcion   String?
+  fechaCreacion Timestamp?  @map("fecha_creacion")
+  ticket        Tickets     @relation(fields: [ticketId], references: [id], map: "fk_historial_ticket", index: false)
+  usuario       Usuarios?   @relation(fields: [usuarioId], references: [id], map: "fk_historial_usuario", index: false)
+
+  @@map("historial_tickets")
+}
+
+model Roles {
+  id           Int            @id(map: "roles_pkey") @default(autoincrement())
+  nombre       VarChar(50)    @unique(map: "roles_nombre_key")
+  descripcion  String?
+  usuarioRoles UsuarioRoles[]
+
+  @@map("roles")
+}
+
+model SolicitudesRecurso {
+  id                           Int           @id(map: "solicitudes_recurso_pkey") @default(autoincrement())
+  ticketId                     Int           @unique(map: "solicitudes_recurso_ticket_id_key") @map("ticket_id")
+  categoria                    VarChar(80)
+  recurso                      VarChar(150)
+  cantidad                     Int           @default(1)
+  proveedor                    VarChar(150)?
+  estadoRecurso                VarChar(40)   @default("NUEVO") @map("estado_recurso")
+  fechaSolicitudProveedor      Timestamp?    @map("fecha_solicitud_proveedor")
+  fechaEstimadaEntrega         Timestamp?    @map("fecha_estimada_entrega")
+  fechaRecepcion               Timestamp?    @map("fecha_recepcion")
+  fechaEntregaCliente          Timestamp?    @map("fecha_entrega_cliente")
+  observaciones                String?
+  fechaCreacion                Timestamp     @default(now()) @map("fecha_creacion")
+  fechaActualizacion           Timestamp?    @map("fecha_actualizacion")
+  fechaNotificacionRetraso     Timestamp(6)? @map("fecha_notificacion_retraso")
+  detalleRetraso               String?       @map("detalle_retraso")
+  fechaEstimadaEntregaOriginal Timestamp(6)? @map("fecha_estimada_entrega_original")
+  motivoRetraso                VarChar(100)? @map("motivo_retraso")
+  ticket                       Tickets       @relation(fields: [ticketId], references: [id], onDelete: Cascade, map: "fk_solicitud_recurso_ticket")
+
+  @@index([estadoRecurso], map: "idx_solicitudes_recurso_estado")
+  @@check(expression: "(cantidad > 0)", map: "chk_solicitud_recurso_cantidad")
+  @@check(expression: "((estado_recurso)::text = ANY (ARRAY[('NUEVO'::character varying)::text, ('EN_VALIDACION'::character varying)::text, ('SOLICITADO_PROVEEDOR'::character varying)::text, ('ESPERANDO_PROVEEDOR'::character varying)::text, ('RECIBIDO'::character varying)::text, ('ENTREGADO'::character varying)::text, ('CERRADO'::character varying)::text, ('CANCELADO'::character varying)::text]))", map: "chk_solicitud_recurso_estado")
+  @@map("solicitudes_recurso")
+}
+
+model UsuarioProyectos {
+  id              Int          @id(map: "usuario_proyectos_pkey") @default(autoincrement())
+  estado          Boolean
+  fechaAsignacion Timestamp(6) @map("fecha_asignacion")
+  proyectoId      Int          @map("proyecto_id")
+  usuarioId       Int          @map("usuario_id")
+  usuario         Usuarios     @relation(fields: [usuarioId], references: [id], map: "fk9eeykog2xs15f8rbb6bo311so")
+  proyecto        Proyectos    @relation(fields: [proyectoId], references: [id], map: "fkklkudv208vsvl500h2cxu5wq7")
+
+  @@unique([usuarioId, proyectoId], map: "uk_usuario_proyecto")
+  @@index([proyectoId], map: "idx_usuario_proyecto_proyecto")
+  @@index([usuarioId], map: "idx_usuario_proyecto_usuario")
+  @@map("usuario_proyectos")
+}
+
+model UsuarioRoles {
+  id        Int      @id(map: "usuario_roles_pkey") @default(autoincrement())
+  usuarioId Int      @map("usuario_id")
+  rolId     Int      @map("rol_id")
+  rol       Roles    @relation(fields: [rolId], references: [id], map: "fk_rol", index: false)
+  usuario   Usuarios @relation(fields: [usuarioId], references: [id], map: "fk_usuario", index: false)
+
+  @@unique([usuarioId, rolId], map: "uq_usuario_rol")
+  @@map("usuario_roles")
+}
