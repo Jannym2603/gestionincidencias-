@@ -1,0 +1,24 @@
+---
+import App from '../layouts/App.astro';
+import '../styles/admin.css';
+---
+<App active="solicitudes-recursos" title="Solicitudes de Recursos" description="Consulta y administra los recursos requeridos para atender incidencias.">
+    <p id="resource-requests-denied" class="admin-access-denied" role="alert" hidden></p>
+    <section id="resource-requests-content" hidden>
+        <section class="action-bar"><div><h2>Listado de solicitudes</h2><p id="resource-requests-description">Las solicitudes disponibles se limitan a tus proyectos y permisos.</p></div><button class="secondary-btn" id="resource-requests-reload" type="button">Actualizar</button></section>
+        <p id="resource-requests-status" class="feedback" role="status">Cargando solicitudes…</p>
+        <section class="form-card">
+            <div class="section-header"><div><h2>Filtrar solicitudes</h2><p>Busca por ticket, cliente, recurso o proveedor y combina los filtros.</p></div><button class="secondary-btn" id="resource-requests-clear" type="button">Limpiar filtros</button></div>
+            <div class="form-grid">
+                <div class="form-group"><label for="resource-search">Buscar</label><input id="resource-search" type="search" placeholder="Ticket, cliente, recurso, proveedor…" /></div>
+                <div class="form-group"><label for="resource-state-filter">Estado</label><select id="resource-state-filter"><option value="">Todos</option><option>NUEVO</option><option>EN_VALIDACION</option><option>SOLICITADO_PROVEEDOR</option><option>ESPERANDO_PROVEEDOR</option><option>RECIBIDO</option><option>ENTREGADO</option><option>CERRADO</option><option>CANCELADO</option></select></div>
+                <div class="form-group"><label for="resource-delay-filter">Seguimiento</label><select id="resource-delay-filter"><option value="">Todos</option><option value="RETRASADO">Solo retrasadas</option><option value="EN_TIEMPO">No retrasadas</option></select></div>
+                <div class="form-group"><label for="resource-category-filter">Categoría</label><select id="resource-category-filter"><option value="">Todas</option></select></div>
+                <div class="form-group"><label for="resource-company-filter">Compañía</label><select id="resource-company-filter"><option value="">Todas</option></select></div>
+                <div class="form-group"><label for="resource-project-filter">Proyecto</label><select id="resource-project-filter"><option value="">Todos</option></select></div>
+            </div>
+        </section>
+        <section class="table-section"><div class="section-header"><div><h2>Solicitudes registradas</h2><p id="resource-requests-count">Cargando solicitudes…</p></div></div><div class="table-wrapper"><table><thead><tr><th>Ticket</th><th>Cliente</th><th>Compañía</th><th>Proyecto</th><th>Categoría</th><th>Recurso</th><th>Cantidad</th><th>Proveedor</th><th>Estado</th><th>Fecha estimada</th><th>Seguimiento</th><th>Acción</th></tr></thead><tbody id="resource-requests-body"><tr><td colspan="12">Cargando solicitudes…</td></tr></tbody></table></div></section>
+    </section>
+</App>
+<script src="../lib/resource-requests.ts"></script>

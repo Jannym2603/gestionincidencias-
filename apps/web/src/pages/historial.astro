@@ -1,0 +1,29 @@
+---
+import App from '../layouts/App.astro';
+import '../styles/admin.css';
+---
+<App active="historial" title="Historial del sistema" description="Auditoría de cambios y acciones realizadas sobre tickets.">
+    <p id="history-access-denied" class="admin-access-denied" role="alert" hidden></p>
+    <section id="global-history-content" hidden>
+        <section class="action-bar">
+            <div><h2>Auditoría general</h2><p id="global-history-description">Consulta eventos de tickets disponibles según tu rol.</p></div>
+            <div class="admin-toolbar-actions"><a class="secondary-btn" href="/tickets">Ver tickets</a><button class="secondary-btn" id="global-history-reload" type="button">Actualizar</button></div>
+        </section>
+        <section class="form-card">
+            <div class="section-header"><div><h2>Filtrar historial</h2><p>Filtra los eventos por compañía, proyecto, ticket o acción.</p></div><button class="secondary-btn" id="global-history-clear" type="button">Limpiar filtros</button></div>
+            <div class="form-grid">
+                <div class="form-group"><label for="history-company">Compañía</label><select id="history-company"><option value="">Todas las compañías</option></select></div>
+                <div class="form-group"><label for="history-project">Proyecto</label><select id="history-project"><option value="">Todos los proyectos</option></select></div>
+                <div class="form-group"><label for="history-ticket">Ticket</label><select id="history-ticket"><option value="">Todos los tickets</option></select></div>
+                <div class="form-group"><label for="history-action">Acción</label><select id="history-action"><option value="">Todas las acciones</option></select></div>
+            </div>
+            <p class="feedback" id="global-history-scope">Todos los eventos disponibles</p>
+        </section>
+        <p id="global-history-status" class="feedback" role="status">Cargando historial…</p>
+        <section class="table-section">
+            <div class="section-header"><div><h2>Eventos registrados</h2><p id="global-history-count">Listado de acciones guardadas en el historial de tickets.</p></div></div>
+            <div class="table-wrapper"><table><thead><tr><th>Ticket</th><th>Compañía</th><th>Proyecto</th><th>Usuario</th><th>Acción</th><th>Valor anterior</th><th>Valor nuevo</th><th>Descripción</th><th>Fecha</th></tr></thead><tbody id="global-history-body"><tr><td colspan="9">Cargando historial…</td></tr></tbody></table></div>
+        </section>
+    </section>
+</App>
+<script src="../lib/global-history.ts"></script>

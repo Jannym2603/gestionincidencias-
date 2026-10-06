@@ -78,3 +78,11 @@ test('enlace público válido expone solo el DTO de lectura del backend', async 
     await expect(page.locator('#public-ticket')).toBeVisible(); await expect(page.locator('#public-title')).toHaveText('Revisar red'); await expect(page.locator('#public-agent')).toContainText('Usuario AGENTE');
     const content = await page.locator('body').innerText(); expect(content).not.toContain('publico@fixture.invalid'); expect(content).not.toContain(token); expect(content).not.toContain('passwordHash'); expect(content).not.toContain('evidencia.txt'); expect(content).not.toContain('Comentario público');
 });
+
+test('solicitudes de recursos carga vacío/error y conserva la respuesta 403 del backend', async ({ page }) => {
+    await login(page); await page.route('**/api/solicitudes-recursos', async (route) => { await new Promise((resolve) => setTimeout(resolve, 250)); await route.fulfill({ json: [] }); });
+    await page.goto('/solicitudes-recursos'); await expect(page.locator('#resource-requests-status')).toContainText('No hay solicitudes disponibles'); await expect(page.locator('#resource-requests-body')).toContainText('No hay solicitudes de recursos');
+    await page.unroute('**/api/solicitudes-recursos'); await page.route('**/api/solicitudes-recursos', (route) => route.fulfill({ status: 500, json: { message: 'Error API de recursos.' } })); await page.reload(); await expect(page.locator('#resource-requests-status')).toContainText('Error API de recursos.');
+    await page.unroute('**/api/solicitudes-recursos'); await login(page, 'CLIENTE'); await page.route('**/api/solicitudes-recursos', (route) => route.fulfill({ status: 403, json: { message: 'Solicitudes de recursos no habilitadas.' } }));
+    await page.goto('/solicitudes-recursos'); await expect(page.locator('#resource-requests-status')).toContainText('no habilitadas');
+});
