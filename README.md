@@ -1,616 +1,138 @@
 # Sistema de Gestión de Incidencias
 
-Sistema web desarrollado para la gestión, seguimiento y control de incidencias dentro de múltiples compañías y proyectos.
+Monorepo para registrar y gestionar incidencias de varias compañías y proyectos. La aplicación activa está formada por una API NestJS, una interfaz Astro y PostgreSQL. El frontend legacy y el backend Spring Boot se conservan como referencia de la migración.
 
-El sistema permite registrar tickets, asignarlos a responsables, controlar su estado y prioridad, administrar solicitudes de recursos externos, aplicar reglas de acceso por rol y proyecto, consultar reportes, mantener trazabilidad mediante historial y auditoría, y enviar notificaciones por correo electrónico.
+## Arquitectura y tecnologías
 
----
-
-## 1. Objetivo del proyecto
-
-El objetivo del sistema es centralizar la gestión de incidencias y solicitudes de soporte en una sola plataforma, facilitando el seguimiento de los tickets desde su creación hasta su cierre.
-
-La solución busca mejorar:
-
-- La organización de incidencias.
-- La trazabilidad de los cambios realizados.
-- La asignación de responsabilidades.
-- El control de acceso por usuario, rol, compañía y proyecto.
-- El seguimiento de solicitudes que dependen de proveedores externos.
-- La supervisión mediante reportes y métricas.
-- La comunicación con los usuarios mediante notificaciones.
-
----
-
-## 2. Tecnologías utilizadas
-
-### Backend
-
-- Java 17
-- Spring Boot 3.5.15
-- Spring Web
-- Spring Security
-- Spring Data JPA
-- Maven
-- JWT
-- BCrypt
-- Jakarta Validation
-- Java Mail Sender
-- Lombok
-
-### Base de datos
-
-- PostgreSQL
-- Hibernate / JPA
-
-### Frontend
-
-- HTML5
-- CSS3
-- JavaScript
-
-### Pruebas
-
-- JUnit 5
-- Mockito
-- Spring Boot Test
-- Spring Security Test
-- Playwright
-
----
-
-## 3. Arquitectura general
-
-El proyecto utiliza una arquitectura por capas.
+- **API:** NestJS, TypeScript, Prisma ORM PostgreSQL y Node.js.
+- **Web:** Astro con SSR y adaptador Node, TypeScript, HTML y CSS.
+- **Persistencia:** PostgreSQL. La API usa el contrato Prisma derivado del esquema existente.
+- **Seguridad:** JWT (vigencia de 8 horas), roles y alcance por proyecto; contraseñas verificadas con BCrypt.
+- **Correo:** SMTP Gmail opcional; sin credenciales SMTP, la aplicación continúa sin enviar correo.
+- **Legacy:** Spring Boot/Java y sus páginas estáticas permanecen en `src/` y `src/main/resources/static/`; no son necesarios para ejecutar NestJS + Astro.
 
 ```text
-Frontend HTML / CSS / JavaScript
-            ↓
-       API REST
-            ↓
-       Controllers
-            ↓
-        Services
-            ↓
-      Repositories
-            ↓
-       PostgreSQL
+Navegador → Astro :4321 → API NestJS :3000 → PostgreSQL :5432
+                                  └→ SMTP (opcional)
 ```
 
-El backend se encuentra desarrollado con Spring Boot y expone servicios REST consumidos por el frontend mediante JavaScript.
-
----
-
-## 4. Funcionalidades principales
-
-El sistema incluye:
-
-- Inicio de sesión.
-- Autenticación mediante JWT.
-- Recuperación de contraseña mediante correo.
-- Cambio de contraseña desde configuración.
-- Dashboard.
-- Creación y seguimiento de tickets.
-- Asignación de tickets.
-- Cambio de estado y prioridad.
-- Gestión de compañías.
-- Gestión de proyectos.
-- Gestión de usuarios.
-- Asociación de usuarios con proyectos.
-- Gestión de solicitudes de recursos externos.
-- Comentarios en tickets.
-- Adjuntos.
-- Historial de tickets.
-- Reportes.
-- Configuración dinámica de módulos.
-- Configuración de acceso por rol.
-- Auditoría de cambios de configuración.
-- Notificaciones por correo electrónico.
-- Alertas automáticas para recursos retrasados.
-- Enlaces compartidos para consulta de tickets.
-
----
-
-## 5. Roles del sistema
-
-El sistema trabaja con cuatro roles principales.
-
-### ADMIN
-
-Posee acceso administrativo y puede gestionar:
-
-- Usuarios.
-- Compañías.
-- Proyectos.
-- Tickets.
-- Solicitudes de recursos.
-- Reportes.
-- Historial.
-- Configuración del sistema.
-- Auditoría de configuración.
-
-### SUPERVISOR
-
-Puede supervisar los proyectos a los que posee acceso, consultar y gestionar tickets relacionados y administrar solicitudes de recursos dentro de su ámbito autorizado.
-
-### AGENTE
-
-Puede trabajar con los tickets que tiene asignados y consultar la información permitida según sus proyectos y módulos habilitados.
-
-### CLIENTE
-
-Puede crear y consultar tickets relacionados con los proyectos a los que se encuentra vinculado, según los permisos configurados por el administrador.
-
----
-
-## 6. Compañías, proyectos y usuarios
-
-El sistema permite trabajar con múltiples compañías.
-
-Cada compañía puede contener uno o varios proyectos y los usuarios pueden recibir acceso únicamente a determinados proyectos.
+## Estructura del monorepo
 
 ```text
-Compañía
-   ↓
-Proyecto
-   ↓
-Usuarios con acceso
-   ↓
-Tickets
+apps/api/       API NestJS, pruebas y contrato de datos
+apps/web/       Aplicación Astro y pruebas de navegador
+database/       SQL de referencia/demostración y actualizaciones existentes
+e2e/            Pruebas Playwright del frontend legacy Spring
+src/            Aplicación Spring Boot y frontend legacy conservados
+scripts/        Orquestación local del monorepo
 ```
 
-Este modelo permite separar la información y evitar que un usuario consulte incidencias pertenecientes a proyectos para los cuales no posee autorización.
+## Requisitos
 
----
+- Node.js 22.12 o posterior y npm 9.6.5 o posterior (Astro 7 fija estos mínimos).
+- PostgreSQL 15 o posterior, con una base y usuario preparados.
+- Navegador Microsoft Edge para las pruebas Playwright actuales de `apps/web`; los tests usan `channel: msedge`.
 
-## 7. Gestión de tickets
+No es necesario instalar Java/Maven para ejecutar la aplicación NestJS + Astro. Java 17 sigue siendo necesario solo para el backend legacy.
 
-Los tickets constituyen el módulo principal del sistema.
+## Instalación
 
-Un ticket puede contener, entre otros datos:
-
-- Proyecto.
-- Cliente.
-- Tipo de incidencia.
-- Descripción.
-- Prioridad.
-- Estado.
-- Responsable asignado.
-- Tipo de atención.
-- Comentarios.
-- Adjuntos.
-- Historial.
-
-### Estados operativos
-
-El flujo de un ticket operativo utiliza estados como:
-
-```text
-NUEVO
-  ↓
-ASIGNADO
-  ↓
-EN PROGRESO
-  ↓
-RESUELTO
-  ↓
-CERRADO
-```
-
-Los cambios realizados sobre los tickets se registran para mantener trazabilidad.
-
----
-
-## 8. Tipos de atención
-
-El sistema distingue dos tipos principales de atención.
-
-### OPERATIVO
-
-Corresponde a incidencias que pueden ser atendidas directamente mediante el flujo normal de soporte.
-
-### RECURSO_EXTERNO
-
-Se utiliza cuando la solución depende de un recurso, producto, equipo o proveedor externo.
-
-La solicitud de recurso posee su propio ciclo de vida independiente del estado operativo del ticket.
-
----
-
-## 9. Solicitudes de recursos externos
-
-Una solicitud de recurso puede pasar por los siguientes estados:
-
-```text
-NUEVO
-  ↓
-EN_VALIDACION
-  ↓
-SOLICITADO_PROVEEDOR
-  ↓
-ESPERANDO_PROVEEDOR
-  ↓
-RECIBIDO
-  ↓
-ENTREGADO
-  ↓
-CERRADO
-```
-
-También puede utilizarse el estado:
-
-```text
-CANCELADO
-```
-
-El sistema puede almacenar información como:
-
-- Proveedor.
-- Descripción del recurso.
-- Número de orden o referencia.
-- Fecha estimada de entrega.
-- Estado del recurso.
-- Observaciones.
-
----
-
-## 10. Detección de recursos retrasados
-
-El sistema determina automáticamente cuándo una solicitud de recurso se encuentra retrasada.
-
-Una solicitud se considera retrasada cuando:
-
-- Posee una fecha estimada de entrega.
-- La fecha estimada ya venció.
-- La solicitud aún no se encuentra en un estado final.
-
-Los estados finales considerados son:
-
-- RECIBIDO.
-- ENTREGADO.
-- CERRADO.
-- CANCELADO.
-
-También existe un servicio programado que puede enviar alertas por correo evitando notificaciones duplicadas.
-
----
-
-## 11. Tiempo abierto y seguimiento
-
-El tiempo principal visible del ticket se calcula desde `fechaCreacion` hasta `fechaCierre`. El ticket no vence ni se cierra automáticamente por haber superado una cantidad fija de horas.
-
-Cuando un ticket pasa a `RESUELTO`, el contador continúa. Solamente se detiene al llegar a `CERRADO`.
-
-Las fechas de SLA pueden conservarse internamente como métricas de servicio, pero no representan la fecha de vencimiento del ticket.
-
-En solicitudes de recursos externos, el seguimiento se realiza mediante el ciclo de vida del recurso, la fecha estimada original, la fecha estimada actual y los días de retraso.
-
----
-
-## 12. Historial de tickets
-
-El historial registra eventos relevantes realizados sobre un ticket, por ejemplo:
-
-- Creación.
-- Asignación.
-- Cambio de estado.
-- Cambio de prioridad.
-- Cambios relacionados con solicitudes de recursos.
-- Otras actualizaciones importantes.
-
-La información visible depende del rol y del acceso que posee el usuario sobre el proyecto o ticket correspondiente.
-
----
-
-## 13. Configuración dinámica del sistema
-
-El administrador puede habilitar o deshabilitar módulos desde la interfaz de configuración.
-
-Los módulos configurables incluyen:
-
-- Crear Ticket.
-- Solicitudes de Recursos.
-- Reportes.
-- Historial.
-
-Cada módulo dispone de:
-
-1. Un estado global.
-2. Permisos por rol.
-
-Los roles configurables son:
-
-- CLIENTE.
-- AGENTE.
-- SUPERVISOR.
-- ADMIN.
-
-Si un módulo se encuentra desactivado globalmente, queda bloqueado para todos los roles.
-
----
-
-## 14. Auditoría de configuración
-
-Los cambios realizados sobre la configuración son registrados en una auditoría.
-
-Cada registro nuevo puede almacenar:
-
-- Usuario que realizó el cambio.
-- Correo del usuario.
-- Módulo modificado.
-- Rol afectado.
-- Valor anterior.
-- Valor nuevo.
-- Fecha y hora del cambio.
-
-Esto permite conocer quién cambió una configuración y qué valor fue modificado.
-
----
-
-## 15. Reportes y dashboard
-
-El sistema incluye un dashboard y reportes para consultar información general de las incidencias.
-
-Las métricas permiten separar el comportamiento de:
-
-- Tickets operativos.
-- Solicitudes relacionadas con recursos externos.
-
-Esto facilita la supervisión de la carga de trabajo y el estado de las incidencias.
-
----
-
-## 16. Seguridad
-
-La aplicación utiliza Spring Security y JWT.
-
-Entre los controles implementados se encuentran:
-
-- Autenticación.
-- Contraseñas protegidas con BCrypt.
-- Tokens JWT.
-- Restricciones de endpoints por rol.
-- Validación de acceso a proyectos.
-- Control dinámico de módulos.
-- Manejo centralizado de errores.
-- Variables de entorno para información sensible.
-
----
-
-## 17. Variables de entorno
-
-El proyecto incluye un archivo:
-
-```text
-.env.example
-```
-
-que documenta las variables necesarias.
-
-Ejemplo:
-
-```env
-DB_PASSWORD=colocar_contraseña_postgres
-MAIL_USERNAME=colocar_correo_gmail
-MAIL_PASSWORD=colocar_contraseña_de_aplicacion
-SUPPORT_EMAIL=colocar_correo_soporte
-JWT_SECRET=colocar_clave_jwt_segura
-```
-
-No deben almacenarse contraseñas reales dentro del repositorio.
-
----
-
-## 18. Configuración de PostgreSQL
-
-Por defecto, la aplicación utiliza:
-
-```text
-Base de datos: gestionincidencias
-Servidor: localhost
-Puerto PostgreSQL: 5432
-Usuario: postgres
-```
-
-La contraseña se obtiene mediante la variable de entorno:
-
-```text
-DB_PASSWORD
-```
-
----
-
-## 19. Ejecución del proyecto
-
-### Requisitos
-
-- Java 17.
-- PostgreSQL.
-- Maven Wrapper incluido en el proyecto.
-- Node.js, únicamente si se desean ejecutar las pruebas Playwright.
-
-### 1. Crear la base de datos
-
-En PostgreSQL:
-
-```sql
-CREATE DATABASE gestionincidencias;
-```
-
-### 2. Configurar variables de entorno
-
-Configurar las variables requeridas antes de iniciar Spring Boot.
-
-### 3. Ejecutar el backend
-
-En Windows:
+Desde PowerShell en la raíz:
 
 ```powershell
-.\mvnw.cmd spring-boot:run
-```
-
-En Linux o macOS:
-
-```bash
-./mvnw spring-boot:run
-```
-
-### 4. Abrir la aplicación
-
-La aplicación utiliza por defecto:
-
-```text
-http://localhost:8081
-```
-
----
-
-## 20. Pruebas automatizadas
-
-### Pruebas Java
-
-El proyecto contiene pruebas para componentes importantes como:
-
-- Arranque del contexto de Spring Boot.
-- Controlador de tickets.
-- Lógica de solicitudes de recursos.
-- Alertas de recursos retrasados.
-
-Para ejecutarlas:
-
-```powershell
-.\mvnw.cmd test
-```
-
-### Pruebas End-to-End
-
-El proyecto utiliza Playwright para probar flujos del frontend.
-
-Instalar dependencias:
-
-```bash
 npm install
+npm install --prefix apps/api
+npm install --prefix apps/web
+Copy-Item apps/api/.env.example apps/api/.env
+Copy-Item apps/web/.env.example apps/web/.env
 ```
 
-Ejecutar:
+Completa `apps/api/.env` con la URL de la base existente y genera un `JWT_SECRET` privado de al menos 32 bytes. En PowerShell se puede generar con:
 
-```bash
-npm run test:e2e
+```powershell
+node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 ```
 
-Para visualizar el navegador:
+Guarda el resultado solo en el `.env` local. No compartas ni versionees ese archivo. La API no ejecuta migraciones al iniciar; su contrato espera el esquema existente. Para una base vacía, revisa `database/` y coordina la preparación del esquema antes de usarla; no ejecutes scripts SQL sin verificar primero su propósito y destino.
 
-```bash
-npm run test:e2e:headed
+## Variables de entorno
+
+Los ejemplos están en [`apps/api/.env.example`](apps/api/.env.example) y [`apps/web/.env.example`](apps/web/.env.example). Variables principales:
+
+| Variable | Aplicación | Uso |
+|---|---|---|
+| `DATABASE_URL` | API | Conexión PostgreSQL; obligatoria. |
+| `JWT_SECRET` | API | Firma de JWT; obligatorio, al menos 32 bytes aleatorios. |
+| `PORT` | API | Puerto HTTP, predeterminado `3000`. |
+| `FRONTEND_URL` | API | Base para construir enlaces compartidos; predeterminado `http://localhost:8081`. Para la demo local, usar `http://localhost:4321`. |
+| `MAIL_USERNAME`, `MAIL_PASSWORD` | API | Usuario y contraseña SMTP Gmail opcionales. Dejar vacíos desactiva el transporte. |
+| `SUPPORT_EMAIL` | API | Dirección de soporte opcional. |
+| `MAIL_COPY_SUPPORT` | API | `true` para copiar notificaciones a soporte; predeterminado `false`. |
+| `APP_RECURSOS_RETRASOS_DELAY_INICIAL_MS` | API | Espera inicial del job de alertas; predeterminado `60000`. |
+| `APP_RECURSOS_RETRASOS_INTERVALO_MS` | API | Intervalo posterior del job; predeterminado `3600000`. |
+| `PUBLIC_API_URL` | Web | URL de API para compilación/preview; predeterminado `http://localhost:3000`. En desarrollo Astro proxifica `/api` a esta URL. |
+
+No pongas contraseñas o secretos en variables con prefijo `PUBLIC_`: Astro puede incorporarlas al bundle del navegador.
+
+## Ejecución local
+
+Terminales separadas:
+
+```powershell
+npm run api
+npm run web
 ```
 
----
+O inicia ambos procesos desde la raíz:
 
-## 21. Estructura principal del proyecto
-
-```text
-gestionincidencias/
-├── src/
-│   ├── main/
-│   │   ├── java/com/practica/gestionincidencias/
-│   │   │   ├── config/
-│   │   │   ├── controller/
-│   │   │   ├── dto/
-│   │   │   ├── entity/
-│   │   │   ├── repository/
-│   │   │   ├── security/
-│   │   │   └── service/
-│   │   └── resources/
-│   │       ├── static/
-│   │       └── application.properties
-│   └── test/
-├── e2e/
-├── .env.example
-├── .gitignore
-├── package.json
-├── pom.xml
-└── README.md
+```powershell
+npm run dev
 ```
 
----
+URLs locales: Astro `http://localhost:4321`; API `http://localhost:3000` (endpoint raíz `GET /`, respuesta básica). PostgreSQL suele escuchar en `5432`. El puerto `8081` corresponde al frontend legacy Spring y no forma parte del arranque Astro.
 
-## 22. Principales endpoints
+La web usa proxy de desarrollo para `/api`. El proceso de producción de Astro sirve desde `apps/web/dist/server/entry.mjs`; configura `PUBLIC_API_URL` al compilar y un reverse proxy `/api` hacia NestJS, o configura CORS restringido al origen web si se despliegan separados.
 
-La API se encuentra organizada en módulos como:
+## Compilación y pruebas
 
-```text
-/api/auth
-/api/usuarios
-/api/companias
-/api/proyectos
-/api/tickets
-/api/solicitudes-recursos
-/api/reportes
-/api/configuracion-sistema
+```powershell
+npm run build          # builds API y Web
+npm run check          # Astro check
+npm run test:api       # unitarias API (Vitest; mocks y fixtures)
+npm run test:api:e2e   # HTTP API con fixtures
+npm run test:web:e2e   # navegador, API de prueba en memoria y Astro
+npm test               # ejecuta las suites anteriores en secuencia
 ```
 
-Algunos endpoints requieren autenticación y permisos específicos según el rol.
+También existen `npm run typecheck:api`, `npm run test:legacy:e2e` (requiere Spring arriba) y `npm run test:web:e2e`. Las pruebas Nest tienen mocks que bloquean el acceso a PostgreSQL y SMTP; las E2E Astro levantan una API de fixture. Revisa las salidas de cada comando. No se ejecutan migraciones como parte de estos scripts.
 
----
+## Funcionalidades
 
-## 23. Manejo de archivos adjuntos
+- Login, dashboard y control de sesión JWT.
+- Tickets, comentarios, historial, adjuntos, asignación, estado, prioridad y solicitudes de recursos externos.
+- Usuarios, roles, compañías, proyectos y asignaciones entre usuarios/proyectos.
+- Reportes, configuración y auditoría de cambios.
+- Enlaces compartidos de solo lectura y vista pública de tickets.
+- Permisos en API y navegación/acciones web según rol y proyecto.
 
-El sistema permite asociar archivos a los tickets.
+## Roles
 
-Los archivos generados durante el uso de la aplicación no deben almacenarse como parte del código fuente ni versionarse dentro del repositorio.
+`ADMIN` administra usuarios, compañías, proyectos, configuración, auditoría y reportes globales. `SUPERVISOR` gestiona los tickets y recursos dentro de sus proyectos autorizados. `AGENTE` trabaja sobre incidencias asignadas y operaciones permitidas. `CLIENTE` crea y consulta sus tickets autorizados. La API es la autoridad final y responde `401` para sesión ausente/inválida y `403` para falta de permisos.
 
----
+## Endpoints
 
-## 24. Notificaciones por correo
+La API expone rutas bajo `/api`, entre ellas `/api/auth`, `/api/usuarios`, `/api/companias`, `/api/proyectos`, `/api/tickets`, `/api/tickets/:id/comentarios`, `/api/tickets/:id/historial`, `/api/tickets/:id/adjuntos`, `/api/solicitudes-recursos`, `/api/reportes`, `/api/configuracion-sistema`, `/api/tickets/:id/enlaces-compartidos` y `/api/public/compartidos/:token`. La ruta pública no requiere JWT y entrega campos limitados por el backend. Los detalles de acceso se validan en controladores y servicios; no se debe inferir autorización solo por ocultar un botón.
 
-La aplicación utiliza Spring Mail para enviar comunicaciones relacionadas con funcionalidades como:
+## Datos de demo y límites conocidos
 
-- Recuperación de contraseña.
-- Cambios relevantes en solicitudes de recursos.
-- Alertas de recursos retrasados.
+No se publican usuarios ni contraseñas demo en el repositorio. Usa cuentas creadas por el proceso autorizado del proyecto y datos ficticios en una base de demostración. SMTP es opcional; sin él, los mensajes no se envían, así que simula o explica esa parte durante la demo. La API usa el esquema PostgreSQL existente y no inicializa una base vacía automáticamente. Los uploads son datos locales y deben respaldarse por separado.
 
-Para Gmail se recomienda utilizar una contraseña de aplicación.
+## Seguridad
 
----
+No versionar `.env`, contraseñas, hashes, JWT, claves privadas, dumps de producción ni adjuntos reales. BCrypt protege las contraseñas almacenadas. JWT requiere una clave local aleatoria y larga. Mantén PostgreSQL y SMTP configurados con credenciales de mínimo privilegio. No expongas el servicio Astro/Node directamente a internet sin HTTPS y proxy/configuración de producción apropiados.
 
-## 25. Estado actual del proyecto
+## Estado de migración
 
-El sistema dispone actualmente de una base funcional que integra:
+La migración funcional a NestJS + Astro está completa según las auditorías del proyecto. El backend Spring Boot y el frontend legacy se conservan como referencia y como fuente para la comparación visual/funcional; no se han eliminado ni forman parte del arranque principal documentado aquí. Persisten posibles diferencias menores de presentación descritas en los informes de auditoría.
 
-- Gestión multiempresa.
-- Gestión de proyectos.
-- Control de usuarios y roles.
-- Gestión completa de tickets.
-- Flujo de solicitudes de recursos externos.
-- Seguimiento de recursos retrasados.
-- Seguridad con JWT.
-- Configuración dinámica de módulos.
-- Auditoría.
-- Reportes.
-- Historial.
-- Notificaciones.
-- Pruebas automatizadas.
-
-Antes de una entrega o despliegue se recomienda ejecutar nuevamente todas las pruebas y generar una copia limpia del proyecto sin dependencias, resultados temporales, archivos cargados por usuarios ni credenciales.
-
----
-
-## 26. Autora
-
-**Janeth Ramos**
-
-Proyecto desarrollado como parte de la práctica profesional de Ingeniería de Sistemas Informáticos.
-
-
----
-
-## 27. Cambios consolidados de septiembre 2026
-
-- El tiempo visible del ticket corre desde la creación hasta `fechaCierre`; no expira automáticamente por SLA.
-- `RESUELTO` no detiene el contador; `CERRADO` sí.
-- Los tickets `RECURSO_EXTERNO` muestran y administran su recurso asociado desde el mismo detalle del ticket.
-- Las solicitudes externas conservan fecha estimada original y fecha actual, además de motivo y detalle de retraso.
-- Al cerrar una solicitud externa, el ticket asociado se cierra automáticamente y registra su fecha de cierre.
-- Los códigos de recuperación nuevos se guardan con BCrypt y se bloquean después de cinco intentos fallidos.
-- Las pruebas de contexto utilizan H2 mediante el perfil `test`.
-- Se incluyen scripts para configurar el entorno, verificar el proyecto e iniciar localmente.
+Consulta [`GUIA_INSTALACION.md`](GUIA_INSTALACION.md), [`ARCHITECTURE.md`](ARCHITECTURE.md), [`DEMO_CHECKLIST.md`](DEMO_CHECKLIST.md) y [`BENCHMARK.md`](BENCHMARK.md) para pasos ampliados.

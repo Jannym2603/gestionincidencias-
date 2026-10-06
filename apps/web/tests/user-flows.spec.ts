@@ -38,6 +38,8 @@ test('flujo CLIENTE: login, dashboard, ticket, comentario, adjunto, historial y 
 });
 
 test('flujo SUPERVISOR: tickets, asignación, prioridad, recurso, reportes, enlace y logout', async ({ page }) => {
+    const reset = await page.request.post('http://127.0.0.1:4310/__test/reset-ticket-priority');
+    expect(reset.status()).toBe(204);
     await login(page, 'SUPERVISOR');
     await page.goto('/tickets');
     await expect(page.locator('#tickets-body')).toContainText('INC-2026-0100');
@@ -46,9 +48,15 @@ test('flujo SUPERVISOR: tickets, asignación, prioridad, recurso, reportes, enla
     await page.getByRole('button', { name: 'Asignar agente' }).click();
     await expect(page.locator('#ticket-agent')).toContainText('Usuario AGENTE');
     await page.locator('#priority-select').selectOption('P1_CRITICA');
+    let priorityBody: Record<string, unknown> | undefined;
+    page.on('request', (request) => {
+        if (request.url().includes('/api/tickets/100/prioridad') && request.method() === 'PUT') priorityBody = request.postDataJSON();
+    });
     const priorityResponse = page.waitForResponse((response) => response.url().includes('/api/tickets/100/prioridad'));
     await Promise.all([page.waitForEvent('load'), page.getByRole('button', { name: 'Guardar prioridad' }).click()]);
-    expect((await priorityResponse).status()).toBe(200);
+    const priorityResult = await priorityResponse;
+    expect(priorityResult.status()).toBe(200);
+    expect(priorityBody).toMatchObject({ prioridad: 'P1_CRITICA' });
     await expect(page.locator('#ticket-priority')).toContainText('P1_CRITICA');
 
     await page.goto('/tickets/101');

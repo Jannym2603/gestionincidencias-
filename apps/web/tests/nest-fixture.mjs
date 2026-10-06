@@ -41,6 +41,11 @@ const app = module.createNestApplication({ logger: false, bodyParser: false });
 const express = app.getHttpAdapter().getInstance();
 express.use(requireApi('express').json({ strict: false }));
 express.get('/health', (_req, res) => res.json({ ok: true }));
+express.post('/__test/reset-ticket-priority', (_req, res) => {
+    const ticket = tickets.find((item) => item.id === 100);
+    if (ticket) ticket.prioridad = 'P2_ALTA';
+    res.sendStatus(204);
+});
 express.use('/api', (req, res, next) => {
     if (req.path === '/auth/login') return next();
     if (req.path.startsWith('/public/compartidos/')) return next();
