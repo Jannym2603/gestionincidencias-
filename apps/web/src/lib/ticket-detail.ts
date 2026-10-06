@@ -9,6 +9,7 @@ interface Attachment { id: number; nombreArchivo: string; tipoArchivo?: string |
 interface Resource { id: number; recurso?: string | null; proveedor?: string | null; estadoRecurso?: string | null; fechaSolicitudProveedor?: string | null; fechaEstimadaEntrega?: string | null; fechaRecepcion?: string | null; fechaEntregaCliente?: string | null; situacionEntrega?: string | null; diasRetraso?: number | null; motivoRetraso?: string | null; detalleRetraso?: string | null; observaciones?: string | null }
 interface User { id: number; nombre: string; apellido: string; rol: string; estado: boolean }
 interface ProjectAssignment { usuarioId: number; estado: boolean; usuarioNombre?: string }
+interface SharedLink { id: number | string; correoDestinatario: string; token: string; enlace: string; puedeVer: boolean; puedeComentar: boolean; puedeVerAdjuntos: boolean; puedeSubirAdjuntos: boolean; puedeCambiarEstado: boolean; fechaCreacion?: string | null; fechaExpiracion?: string | null; activo: boolean }
 const $ = (id: string) => document.getElementById(id)!;
 const ticketId = location.pathname.split('/').filter(Boolean).at(-1) ?? '';
 const message = $('detail-status');
@@ -32,6 +33,43 @@ async function loadHistory() { const root = $('history-list'); try { const rows 
 async function loadAttachments() { const root = $('attachments-list') as HTMLTableSectionElement; try { const rows = await api<Attachment[]>(`adjuntos/ticket/${ticketId}`); root.replaceChildren(); if (!rows.length) { const tr = root.insertRow(), td = tr.insertCell(); td.colSpan = 5; td.textContent = 'Este ticket no tiene archivos adjuntos.'; return; } for (const file of rows) { const tr = root.insertRow(); for (const value of [file.nombreArchivo, file.tipoArchivo || 'Archivo', size(file.tamanio), date(file.fechaSubida)]) tr.insertCell().textContent = value; const cell = tr.insertCell(), button = document.createElement('button'); button.className = 'action-link'; button.textContent = 'Descargar'; button.addEventListener('click', () => void download(file)); cell.append(button); } } catch (error) { const tr = root.insertRow(), td = tr.insertCell(); td.colSpan = 5; td.textContent = error instanceof Error ? error.message : 'No se pudieron cargar los adjuntos.'; td.className = 'error'; } }
 function size(value?: number | null) { if (!value) return '0 KB'; return value < 1048576 ? `${(value / 1024).toFixed(1)} KB` : `${(value / 1048576).toFixed(2)} MB`; }
 async function loadResource() { if ((ticket?.tipoAtencion || '').toUpperCase() !== 'RECURSO_EXTERNO') return; const section = $('resource-section'); section.hidden = false; try { const row = await api<Resource>(`solicitudes-recursos/ticket/${ticketId}`); resource = Array.isArray(row) ? row[0] : row; if (!resource) { feedback('resource-status', 'Sin solicitud de recurso asociada.', true); return; } put('resource-name', resource.recurso); put('resource-provider', resource.proveedor); put('resource-state', resource.estadoRecurso); put('resource-delivery', date(resource.fechaEstimadaEntrega)); put('resource-delay', resource.situacionEntrega); put('resource-delay-days', resource.diasRetraso ?? 0); setupResourceActions(); } catch (error) { feedback('resource-status', error instanceof Error ? error.message : 'No se pudo consultar el recurso.', true); } }
+function linkDate(value?: string | null) { if (!value) return 'Sin vencimiento'; const parsed = new Date(value); return Number.isNaN(parsed.getTime()) ? 'Fecha inválida' : parsed.toLocaleString('es-PA'); }
+function linkExpired(link: SharedLink) { return !!link.fechaExpiracion && new Date(link.fechaExpiracion).getTime() <= Date.now(); }
+function copyText(value: string) { if (!navigator.clipboard?.writeText) return Promise.reject(new Error('El portapapeles no está disponible en este contexto.')); return navigator.clipboard.writeText(value); }
+async function loadSharedLinks() {
+    const root = $('shared-links-body') as HTMLTableSectionElement; feedback('shared-links-status', 'Cargando enlaces…');
+    try {
+        const links = await api<SharedLink[]>(`tickets/${ticketId}/enlaces-compartidos`); root.replaceChildren();
+        if (!links.length) { const tr = root.insertRow(), td = tr.insertCell(); td.colSpan = 6; td.textContent = 'No se han generado enlaces para este ticket.'; }
+        for (const link of links) {
+            const tr = root.insertRow();
+            for (const value of [link.correoDestinatario || '—', 'Ver ticket · solo lectura', linkDate(link.fechaCreacion), linkDate(link.fechaExpiracion)]) tr.insertCell().textContent = value;
+            const expired = linkExpired(link); const active = link.activo && !expired; const stateCell = tr.insertCell(); const badge = document.createElement('span'); badge.className = `badge ${active ? 'badge-resuelto' : 'badge-cerrado'}`; badge.textContent = !link.activo ? 'DESACTIVADO' : expired ? 'EXPIRADO' : 'ACTIVO'; stateCell.append(badge);
+            const actions = tr.insertCell(); actions.className = 'shared-links-actions';
+            const copy = document.createElement('button'); copy.type = 'button'; copy.className = 'action-link'; copy.textContent = 'Copiar'; copy.addEventListener('click', async () => { try { await copyText(link.enlace); feedback('shared-links-status', 'Enlace copiado.'); } catch { feedback('shared-links-status', 'No se pudo copiar. Copia el enlace desde la notificación de correo.', true); } }); actions.append(copy);
+            if (active) { const revoke = document.createElement('button'); revoke.type = 'button'; revoke.className = 'action-link shared-link-danger'; revoke.textContent = 'Revocar'; revoke.addEventListener('click', async () => { if (!confirm('¿Deseas revocar este enlace compartido?')) return; revoke.disabled = true; try { await api(`tickets/enlaces-compartidos/${link.id}`, { method: 'DELETE' }); feedback('shared-links-status', 'El enlace fue revocado.'); await loadSharedLinks(); } catch (error) { feedback('shared-links-status', error instanceof Error ? error.message : 'No se pudo revocar el enlace.', true); revoke.disabled = false; } }); actions.append(revoke); }
+        }
+        feedback('shared-links-status', links.length ? '' : '');
+    } catch (error) { if (error instanceof ApiError && error.status === 403) { $('shared-links-section').hidden = true; return; } feedback('shared-links-status', error instanceof Error ? error.message : 'No se pudieron cargar los enlaces.', true); }
+}
+function setupSharedLinks() {
+    if (!session || !['ADMIN', 'SUPERVISOR'].includes(session.rol)) return;
+    const section = $('shared-links-section'); section.hidden = false;
+    const form = $('shared-link-form') as HTMLFormElement; const expiry = $('shared-link-expiry') as HTMLInputElement;
+    const now = new Date(); const localIso = (value: Date) => new Date(value.getTime() - value.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+    expiry.min = localIso(now); expiry.max = localIso(new Date(now.getTime() + 30 * 24 * 60 * 60_000));
+    $('shared-links-reload').addEventListener('click', () => void loadSharedLinks());
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault(); const email = ($('shared-link-email') as HTMLInputElement).value.trim(); const dateValue = expiry.value || null; const button = $('shared-link-create') as HTMLButtonElement;
+        if (!email) { feedback('shared-links-status', 'Escribe el correo del destinatario.', true); return; }
+        if (dateValue && new Date(dateValue) <= new Date()) { feedback('shared-links-status', 'La expiración debe ser posterior a la fecha actual.', true); return; }
+        button.disabled = true; feedback('shared-links-status', 'Generando enlace…');
+        try { const link = await api<SharedLink>(`tickets/${ticketId}/compartir`, { method: 'POST', body: { correoDestinatario: email, fechaExpiracion: dateValue } }); ($('shared-link-email') as HTMLInputElement).value = ''; expiry.value = ''; const result = $('shared-link-created-status'); result.hidden = false; result.textContent = 'Enlace generado. El sistema intentó enviarlo al correo indicado.'; try { await copyText(link.enlace); result.textContent += ' También quedó copiado.'; } catch { /* El correo mantiene el acceso aunque el portapapeles esté bloqueado. */ } await loadSharedLinks(); }
+        catch (error) { feedback('shared-links-status', error instanceof Error ? error.message : 'No se pudo generar el enlace.', true); }
+        finally { button.disabled = false; }
+    });
+    void loadSharedLinks();
+}
 async function download(file: Attachment) { try { const blob = await apiBlob(`adjuntos/${file.id}/descargar`); const url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = file.nombreArchivo; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); feedback('attachment-status', `Descargando ${file.nombreArchivo}.`); } catch (error) { feedback('attachment-status', error instanceof Error ? error.message : 'No se pudo descargar el archivo.', true); } }
 
 const resourceTransitions: Record<string, string[]> = { NUEVO: ['EN_VALIDACION', 'CANCELADO'], EN_VALIDACION: ['SOLICITADO_PROVEEDOR', 'CANCELADO'], SOLICITADO_PROVEEDOR: ['ESPERANDO_PROVEEDOR', 'RECIBIDO', 'CANCELADO'], ESPERANDO_PROVEEDOR: ['RECIBIDO', 'CANCELADO'], RECIBIDO: ['ENTREGADO'], ENTREGADO: ['CERRADO'], CERRADO: [], CANCELADO: [] };
@@ -111,7 +149,7 @@ function setupUpload() { const form = $('upload-form') as HTMLFormElement, input
 async function initialize() {
     if (!/^\d+$/.test(ticketId) || Number(ticketId) < 1) { feedback('detail-status', 'El ID de ticket no es válido.', true); return; }
     const initialized = await initializePage(); if (!initialized) return; session = initialized.session; setupComment(); setupUpload();
-    try { const t = await api<Ticket>(`tickets/${encodeURIComponent(ticketId)}`); renderTicket(t); $('ticket-content').hidden = false; message.textContent = ''; setupActions(); await Promise.all([loadComments(), loadHistory(), loadAttachments(), loadResource()]); if (new URLSearchParams(location.search).get('adjunto') === 'error') feedback('attachment-status', 'Ticket creado, pero el archivo no se pudo subir. Puedes intentarlo de nuevo aqui.', true); }
+    try { const t = await api<Ticket>(`tickets/${encodeURIComponent(ticketId)}`); renderTicket(t); $('ticket-content').hidden = false; message.textContent = ''; setupActions(); setupSharedLinks(); await Promise.all([loadComments(), loadHistory(), loadAttachments(), loadResource()]); if (new URLSearchParams(location.search).get('adjunto') === 'error') feedback('attachment-status', 'Ticket creado, pero el archivo no se pudo subir. Puedes intentarlo de nuevo aqui.', true); }
     catch (error) { if (error instanceof ApiError && error.status === 401) return; feedback('detail-status', error instanceof ApiError && error.status === 403 ? 'No tienes acceso a este ticket.' : error instanceof Error ? error.message : 'No se pudo cargar el ticket.', true); }
 }
 void initialize();

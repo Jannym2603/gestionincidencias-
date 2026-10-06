@@ -1,0 +1,14 @@
+---
+import App from '../layouts/App.astro';
+import '../styles/admin.css';
+---
+<App active="configuracion" title="Configuración" description="Administra tu perfil y la disponibilidad de los módulos.">
+    <p id="settings-status" class="feedback" role="status">Cargando configuración…</p>
+    <section id="settings-content" hidden>
+        <section class="action-bar"><div><h2>Opciones de configuración</h2><p>Consulta tu perfil, cambia tu contraseña o administra módulos del sistema.</p></div></section>
+        <section class="table-section"><div class="section-header"><div><h2>Mi perfil</h2><p>Información de la sesión actual.</p></div></div><dl id="profile-fields" class="admin-detail-grid"></dl></section>
+        <section class="table-section"><div class="section-header"><div><h2>Cambiar contraseña</h2><p>Se solicitará tu contraseña actual. Al guardar, la sesión se cerrará.</p></div></div><form id="password-form" class="admin-form"><div class="admin-form-grid"><div class="form-group"><label for="password-current">Contraseña actual</label><input id="password-current" type="password" autocomplete="current-password" required /></div><div class="form-group"><label for="password-new">Nueva contraseña</label><input id="password-new" type="password" autocomplete="new-password" minlength="6" required /></div><div class="form-group"><label for="password-confirm">Confirmar nueva contraseña</label><input id="password-confirm" type="password" autocomplete="new-password" minlength="6" required /></div></div><p id="password-status" class="feedback" role="status"></p><button id="password-submit" class="primary-btn" type="submit">Guardar nueva contraseña</button></form></section>
+        <section id="system-settings" class="table-section" hidden><div class="section-header"><div><h2>Administración del sistema</h2><p>Controla la disponibilidad global de los módulos y los roles que pueden utilizarlos. ADMIN conserva acceso mientras estén activos globalmente.</p></div><span class="badge badge-progreso">SOLO ADMIN</span></div><form id="settings-form"><div id="settings-modules" class="modulos-acordeon"><p>Cargando módulos…</p></div><div class="form-actions"><button id="settings-save" class="primary-btn" type="submit" disabled>Guardar cambios</button><button id="settings-reset" class="secondary-btn" type="button" disabled>Restablecer módulos</button><a class="secondary-btn" href="/auditoria">Ver historial de cambios</a></div><p id="settings-form-status" class="feedback" role="status"></p></form></section>
+    </section>
+</App>
+<script src="../lib/settings.ts"></script>

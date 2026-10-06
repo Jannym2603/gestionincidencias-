@@ -1,0 +1,9 @@
+---
+import App from '../layouts/App.astro';
+import '../styles/admin.css';
+---
+<App active="configuracion" title="Auditoría de configuración" description="Historial de cambios en la disponibilidad de módulos.">
+    <p id="audit-access-denied" class="admin-access-denied" role="alert" hidden></p>
+    <section id="audit-content" hidden><section class="action-bar"><div><h2>Historial de cambios</h2><p>Registro de cambios en la disponibilidad de módulos y permisos por rol.</p></div><div class="admin-toolbar-actions"><a class="secondary-btn" href="/configuracion">Volver a configuración</a><button class="secondary-btn" id="audit-reload" type="button">Actualizar</button></div></section><p id="audit-status" class="feedback" role="status">Cargando historial…</p><p id="audit-total" class="table-count"></p><div id="audit-list" class="audit-list"></div></section>
+</App>
+<script src="../lib/audit.ts"></script>

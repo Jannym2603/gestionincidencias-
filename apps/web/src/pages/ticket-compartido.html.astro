@@ -1,0 +1,11 @@
+---
+import Base from '../layouts/Base.astro';
+import '../styles/ticket-actions.css';
+---
+<Base title="Ticket compartido" bodyClass="shared-ticket-page">
+    <main class="shared-ticket-shell"><header class="shared-ticket-header"><div class="logo-icon">GI</div><div><strong>Gestión de Incidencias</strong><p>Vista compartida de solo lectura</p></div></header>
+        <p id="public-loading" class="feedback" role="status">Validando enlace…</p><section id="public-error" class="shared-ticket-error" role="alert" hidden><h1>No se pudo abrir el ticket</h1><p id="public-error-message"></p></section>
+        <article id="public-ticket" class="table-section shared-ticket-card" hidden><header class="shared-ticket-title"><span id="public-number" class="ticket-number"></span><span id="public-state" class="badge"></span><h1 id="public-title"></h1><p id="public-description"></p></header><dl class="ticket-facts"><div><dt>Prioridad</dt><dd id="public-priority"></dd></div><div><dt>Categoría</dt><dd id="public-category"></dd></div><div><dt>Cliente</dt><dd id="public-client"></dd></div><div><dt>Agente</dt><dd id="public-agent"></dd></div><div><dt>Creado</dt><dd id="public-created"></dd></div><div><dt>Expiración</dt><dd id="public-expiry"></dd></div></dl><p class="shared-readonly-note">Este enlace solo permite ver los datos mostrados. No admite comentarios ni acceso a archivos.</p></article>
+    </main>
+</Base>
+<script src="../lib/public-shared-ticket.ts"></script>

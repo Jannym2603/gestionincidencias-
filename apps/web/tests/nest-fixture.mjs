@@ -21,6 +21,10 @@ const adminCompanies = [{ id: 1, nombre: 'Acme', descripcion: 'Compañía princi
 const adminProjects = [{ id: 1, nombre: 'Portal', companiaId: 1, companiaNombre: 'Acme', descripcion: 'Portal de clientes', estado: true, fechaCreacion: '2026-02-01' }, { id: 2, nombre: 'Privado', companiaId: 2, companiaNombre: 'Otra', descripcion: null, estado: true, fechaCreacion: '2026-02-02' }];
 const userProjects = [{ id: 1, usuarioId: 2, proyectoId: 1, estado: true, fechaAsignacion: '2026-02-01' }, { id: 2, usuarioId: 3, proyectoId: 1, estado: true, fechaAsignacion: '2026-02-01' }, { id: 3, usuarioId: 4, proyectoId: 1, estado: true, fechaAsignacion: '2026-02-01' }];
 let nextUserId = 5; let nextCompanyId = 3; let nextProjectId = 3; let nextAssignmentId = 4;
+let nextShareId = 1;
+const sharedLinks = [];
+const featureFlags = Object.fromEntries(['crearTicketActivo', 'solicitudesRecursosActivo', 'reportesActivos', 'historialActivo', 'crearTicketCliente', 'crearTicketAgente', 'crearTicketSupervisor', 'crearTicketAdmin', 'solicitudesRecursosCliente', 'solicitudesRecursosAgente', 'solicitudesRecursosSupervisor', 'solicitudesRecursosAdmin', 'reportesCliente', 'reportesAgente', 'reportesSupervisor', 'reportesAdmin', 'historialCliente', 'historialAgente', 'historialSupervisor', 'historialAdmin'].map((field) => [field, true]));
+const auditEntries = [];
 const adminRole = (req) => ['ADMIN', 'SUPERVISOR'].includes(req.user.rol);
 const safeUser = (u) => ({ id: u.id, nombre: u.nombre, apellido: u.apellido, correo: u.correo, telefono: u.telefono ?? null, estado: u.estado, rol: u.rol, fechaCreacion: u.fechaCreacion ?? '2026-10-06' });
 const projectFor = (id) => adminProjects.find((p) => p.id === Number(id));
@@ -39,11 +43,26 @@ express.use(requireApi('express').json({ strict: false }));
 express.get('/health', (_req, res) => res.json({ ok: true }));
 express.use('/api', (req, res, next) => {
     if (req.path === '/auth/login') return next();
+    if (req.path.startsWith('/public/compartidos/')) return next();
     try { req.user = jwt.verify(String(req.headers.authorization ?? '').replace(/^Bearer /, '')); next(); }
     catch { res.status(401).json({ message: 'Token inválido o expirado.' }); }
 });
-express.get('/api/usuarios/me', (req, res) => { const user = accounts.find((u) => u.id === req.user.usuarioId); res.json({ id: user.id, nombre: user.nombre, apellido: user.apellido, rol: user.rol }); });
-express.get('/api/configuracion-sistema', (_req, res) => res.json({ reportesActivos: true, solicitudesRecursosActivo: true }));
+express.get('/api/usuarios/me', (req, res) => { const user = accounts.find((u) => u.id === req.user.usuarioId); res.json({ id: user.id, nombre: user.nombre, apellido: user.apellido, correo: user.correo, telefono: user.telefono ?? null, rol: user.rol }); });
+express.get('/api/configuracion-sistema', (_req, res) => res.json(featureFlags));
+express.put('/api/configuracion-sistema', requireApi('express').json(), (req, res) => {
+    if (req.user.rol !== 'ADMIN') return res.status(403).json({ message: 'Solo ADMIN puede cambiar la configuración.' });
+    const body = req.body ?? {}; const required = ['crearTicketActivo', 'solicitudesRecursosActivo', 'reportesActivos', 'historialActivo'];
+    if (required.some((field) => typeof body[field] !== 'boolean') || Object.entries(body).some(([field, value]) => Object.hasOwn(featureFlags, field) && typeof value !== 'boolean')) return res.status(400).json({ message: 'Las banderas deben ser booleanas e incluir los estados globales.' });
+    for (const [field, value] of Object.entries(body)) {
+        if (!Object.hasOwn(featureFlags, field) || featureFlags[field] === value) continue;
+        const module = field.replace(/(Activo|Cliente|Agente|Supervisor|Admin)$/, '').toUpperCase();
+        const role = field.endsWith('Activo') ? 'GLOBAL' : field.slice(module.length).toUpperCase();
+        auditEntries.unshift({ id: auditEntries.length + 1, usuarioId: req.user.usuarioId, usuarioNombre: `Usuario ${req.user.rol}`, usuarioCorreo: req.user.sub, modulo: module, rol: role, valorAnterior: String(featureFlags[field]), valorNuevo: String(value), fechaCambio: new Date().toISOString() });
+        featureFlags[field] = value;
+    }
+    res.json(featureFlags);
+});
+express.get('/api/configuracion-sistema/auditoria', (req, res) => req.user.rol === 'ADMIN' ? res.json(auditEntries) : res.status(403).json({ message: 'Solo ADMIN puede consultar la auditoría.' }));
 express.get('/api/roles', (req, res) => adminRole(req) ? res.json(roleRows) : res.status(403).json({ message: 'No tienes permiso.' }));
 express.get('/api/usuarios', (req, res) => adminRole(req) ? res.json(accounts.map(safeUser)) : res.status(403).json({ message: 'No tienes permiso.' }));
 express.post('/api/usuarios', requireApi('express').json(), async (req, res) => {
@@ -113,14 +132,28 @@ express.put('/api/usuario-proyectos/:id/:action', (req, res) => {
 });
 express.get('/api/tipos-incidencia', (_req, res) => res.json([{ id: 8, nombre: 'Red', estado: true }, { id: 9, nombre: 'Acceso', estado: true }]));
 express.get('/api/usuario-proyectos/usuario/:id', (req, res) => { if (!['ADMIN', 'SUPERVISOR'].includes(req.user.rol)) return res.status(403).json({ message: 'No tienes permiso.' }); if (req.user.rol === 'SUPERVISOR' && Number(req.params.id) !== 4) return res.status(403).json({ message: 'No tienes acceso.' }); res.json(Number(req.params.id) === 4 ? [{ usuarioId: 4, proyectoId: 1, estado: true, companiaId: 1 }] : []); });
+express.get('/api/usuario-proyectos/mis-proyectos', (req, res) => res.json(userProjects.filter((a) => a.usuarioId === req.user.usuarioId && a.estado).map((a) => ({ ...a, proyectoNombre: projectFor(a.proyectoId)?.nombre, companiaId: projectFor(a.proyectoId)?.companiaId, companiaNombre: companyFor(projectFor(a.proyectoId)?.companiaId)?.nombre }))));
 express.get('/api/usuario-proyectos/proyecto/:id', (req, res) => {
     if (!['ADMIN', 'SUPERVISOR'].includes(req.user.rol)) return res.status(403).json({ message: 'No tienes permiso.' });
     if (req.user.rol === 'SUPERVISOR' && Number(req.params.id) !== 1) return res.status(403).json({ message: 'No tienes acceso al proyecto.' });
     res.json(Number(req.params.id) === 1 ? [{ id: 1, usuarioId: 3, usuarioNombre: 'Usuario AGENTE', estado: true, proyectoId: 1 }] : []);
 });
-express.get('/api/reportes/operacion-resumen', (_req, res) => res.json({ totalOperativos: 1, ticketsNuevos: 1, ticketsAsignados: 0, ticketsEnProgreso: 0, ticketsResueltos: 0, ticketsCerrados: 0 }));
-express.get('/api/reportes/dashboard-resumen', (_req, res) => res.json({ totalUsuarios: 4, totalComentarios: 2 }));
-express.get('/api/reportes/recursos-resumen', (_req, res) => res.json({ totalSolicitudes: 0, esperandoProveedor: 0, proximasEntregas: 0, retrasadas: 0, entregadas: 0 }));
+const reportTickets = (req) => tickets.filter((t) => allowed(t, req.user) && (!req.query.proyectoId || t.proyectoId === Number(req.query.proyectoId)) && (!req.query.companiaId || t.companiaId === Number(req.query.companiaId)));
+const reportAllowed = (req) => req.user.rol === 'ADMIN' ? featureFlags.reportesActivos : featureFlags.reportesActivos && featureFlags[`reportes${req.user.rol[0]}${req.user.rol.slice(1).toLowerCase()}`];
+const reportGuard = (req, res) => { if (!reportAllowed(req)) { res.status(403).json({ message: 'No tienes acceso a los reportes.' }); return false; } return true; };
+const countValues = (rows, values, field) => values.map((nombre) => ({ nombre, total: rows.filter((t) => String(t[field] ?? '').toUpperCase() === nombre).length }));
+const operation = (rows) => { const op = rows.filter((t) => t.tipoAtencion !== 'RECURSO_EXTERNO'); const count = (state) => op.filter((t) => t.estado === state).length; return { totalOperativos: op.length, ticketsNuevos: count('NUEVO'), ticketsAsignados: count('ASIGNADO'), ticketsEnProgreso: count('EN_PROGRESO'), ticketsResueltos: count('RESUELTO'), ticketsCerrados: count('CERRADO') }; };
+express.get('/api/reportes/resumen', (req, res) => { if (!reportGuard(req, res)) return; const rows = reportTickets(req); return res.json({ totalTickets: rows.length, ticketsNuevos: rows.filter((t) => t.estado === 'NUEVO').length, ticketsAsignados: rows.filter((t) => t.estado === 'ASIGNADO').length, ticketsEnProgreso: rows.filter((t) => t.estado === 'EN_PROGRESO').length, ticketsResueltos: rows.filter((t) => t.estado === 'RESUELTO').length, ticketsCerrados: rows.filter((t) => t.estado === 'CERRADO').length, totalUsuarios: new Set(rows.flatMap((t) => [t.clienteId, t.agenteId].filter(Boolean))).size, totalComentarios: comments.filter((c) => rows.some((t) => t.id === c.ticketId) && (req.user.rol !== 'CLIENTE' || c.tipoComentario !== 'INTERNO')).length }); });
+express.get('/api/reportes/operacion-resumen', (req, res) => {
+    if (!reportGuard(req, res)) return;
+    if (Object.hasOwn(req.query, 'companiaId') || Object.hasOwn(req.query, 'proyectoId')) return res.json(operation(reportTickets(req)));
+    return res.json({ totalOperativos: 1, ticketsNuevos: 1, ticketsAsignados: 0, ticketsEnProgreso: 0, ticketsResueltos: 0, ticketsCerrados: 0 });
+});
+express.get('/api/reportes/tickets-por-estado', (req, res) => reportGuard(req, res) ? res.json(countValues(reportTickets(req).filter((t) => t.tipoAtencion !== 'RECURSO_EXTERNO'), ['NUEVO', 'ASIGNADO', 'EN_PROGRESO', 'RESUELTO', 'CERRADO'], 'estado')) : null);
+express.get('/api/reportes/tickets-por-prioridad', (req, res) => reportGuard(req, res) ? res.json(countValues(reportTickets(req).filter((t) => t.tipoAtencion !== 'RECURSO_EXTERNO'), ['P1_CRITICA', 'P2_ALTA', 'P3_MEDIA', 'P4_BAJA'], 'prioridad')) : null);
+express.get('/api/reportes/tickets-por-tipo', (req, res) => { if (!reportGuard(req, res)) return; const counts = new Map(); for (const t of reportTickets(req).filter((row) => row.tipoAtencion !== 'RECURSO_EXTERNO')) counts.set(t.tipoIncidenciaNombre, (counts.get(t.tipoIncidenciaNombre) ?? 0) + 1); res.json([...counts].map(([nombre, total]) => ({ nombre, total }))); });
+express.get('/api/reportes/dashboard-resumen', (req, res) => { if (!reportGuard(req, res)) return; res.json({ totalUsuarios: 4, totalComentarios: 2 }); });
+express.get('/api/reportes/recursos-resumen', (req, res) => reportGuard(req, res) ? res.json({ totalSolicitudes: 1, nuevas: 0, enValidacion: 0, solicitadasProveedor: 0, esperandoProveedor: 1, recibidas: 0, entregadas: 0, cerradas: 0, canceladas: 0, proximasEntregas: 1, retrasadas: 0, promedioDiasProveedor: 0 }) : null);
 express.get('/api/solicitudes-recursos/ticket/:id', (req, res) => {
     if (Number(req.params.id) === 101 && tickets[1] && allowed(tickets[1], req.user)) return res.json([{ id: 1, ticketId: 101, recurso: 'Llave de acceso', proveedor: 'Proveedor de prueba', estadoRecurso: 'ESPERANDO_PROVEEDOR', fechaEstimadaEntrega: '2026-10-12T10:00:00', situacionEntrega: 'EN_TIEMPO' }]);
     res.json([]);
@@ -134,9 +167,27 @@ const allowed = (ticket, user) => user.rol === 'ADMIN' || (user.rol === 'SUPERVI
 const comments = [{ id: 1, ticketId: 100, nombreUsuario: 'Usuario AGENTE', contenido: 'Comentario público', tipoComentario: 'PUBLICO', fechaCreacion: '2026-10-05T11:00:00' }, { id: 2, ticketId: 100, nombreUsuario: 'Usuario ADMIN', contenido: 'Nota interna', tipoComentario: 'INTERNO', fechaCreacion: '2026-10-05T12:00:00' }];
 const history = [{ id: 1, ticketId: 100, usuarioId: 4, nombreUsuario: 'Usuario CLIENTE', accion: 'CREADO', descripcion: 'Ticket creado', fechaCreacion: '2026-10-05T10:00:00' }, { id: 2, ticketId: 100, usuarioId: 1, nombreUsuario: 'Usuario ADMIN', accion: 'CAMBIO_PRIORIDAD', descripcion: 'Prioridad actualizada', fechaCreacion: '2026-10-06T09:00:00' }];
 const attachments = [{ id: 5, ticketId: 100, nombreArchivo: 'evidencia.txt', tipoArchivo: 'text/plain', tamanio: 2048, fechaSubida: '2026-10-05T11:00:00' }];
+sharedLinks.push({ id: nextShareId++, ticketId: 100, numeroTicket: tickets[0].numeroTicket, correoDestinatario: 'expired@fixture.invalid', token: 'fixture-expired-token', enlace: 'http://localhost:8081/ticket-compartido.html?token=fixture-expired-token', fechaCreacion: '2026-10-01T10:00:00Z', fechaExpiracion: '2026-10-02T10:00:00Z', activo: true, ticket: tickets[0] }, { id: nextShareId++, ticketId: 100, numeroTicket: tickets[0].numeroTicket, correoDestinatario: 'revoked@fixture.invalid', token: 'fixture-revoked-token', enlace: 'http://localhost:8081/ticket-compartido.html?token=fixture-revoked-token', fechaCreacion: '2026-10-01T10:00:00Z', fechaExpiracion: '2026-10-30T10:00:00Z', activo: false, ticket: tickets[0] });
 function ticketFor(req, res, id) { const ticket = tickets.find((t) => t.id === Number(id)); if (!ticket) { res.status(400).json({ status: 400, message: 'Ticket no encontrado.' }); return null; } if (!allowed(ticket, req.user)) { res.status(403).json({ status: 403, message: 'No tienes acceso a este ticket.' }); return null; } return ticket; }
 express.get('/api/tickets', (req, res) => res.json(tickets.filter((t) => allowed(t, req.user))));
 express.get('/api/tickets/:id', (req, res) => { const t = ticketFor(req, res, req.params.id); if (t) res.json(t); });
+const shareDTO = (link) => ({ ...link, puedeVer: true, puedeComentar: false, puedeVerAdjuntos: false, puedeSubirAdjuntos: false, puedeCambiarEstado: false });
+express.get('/api/tickets/:id/enlaces-compartidos', (req, res) => { if (!['ADMIN', 'SUPERVISOR'].includes(req.user.rol)) return res.status(403).json({ message: 'Tu rol no puede compartir tickets.' }); if (!ticketFor(req, res, req.params.id)) return; res.json(sharedLinks.filter((link) => link.ticketId === Number(req.params.id)).map(shareDTO)); });
+express.post('/api/tickets/:id/compartir', requireApi('express').json(), (req, res) => {
+    if (!['ADMIN', 'SUPERVISOR'].includes(req.user.rol)) return res.status(403).json({ message: 'Tu rol no puede compartir tickets.' });
+    const ticket = ticketFor(req, res, req.params.id); if (!ticket) return;
+    const email = String(req.body?.correoDestinatario ?? '').trim(); if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ message: 'El correo del destinatario no es válido.' });
+    const expiration = req.body?.fechaExpiracion ? new Date(req.body.fechaExpiracion) : new Date(Date.now() + 7 * 86400000);
+    if (!Number.isFinite(expiration.getTime()) || expiration <= new Date() || expiration > new Date(Date.now() + 30 * 86400000)) return res.status(400).json({ message: 'La expiración debe ser posterior y no superar 30 días.' });
+    const token = `fixture-share-${randomBytes(16).toString('hex')}`; const link = { id: nextShareId++, ticketId: ticket.id, numeroTicket: ticket.numeroTicket, correoDestinatario: email, token, enlace: `http://localhost:8081/ticket-compartido.html?token=${encodeURIComponent(token)}`, fechaCreacion: new Date().toISOString(), fechaExpiracion: expiration.toISOString(), activo: true, ticket };
+    sharedLinks.push(link); res.status(201).json(shareDTO(link));
+});
+express.delete('/api/tickets/enlaces-compartidos/:id', (req, res) => { if (!['ADMIN', 'SUPERVISOR'].includes(req.user.rol)) return res.status(403).json({ message: 'Tu rol no puede compartir tickets.' }); const link = sharedLinks.find((entry) => entry.id === Number(req.params.id)); if (!link) return res.status(404).json({ message: 'No se encontró el enlace compartido.' }); if (!ticketFor(req, res, link.ticketId)) return; link.activo = false; res.json(shareDTO(link)); });
+express.get('/api/public/compartidos/:token', (req, res) => {
+    const link = sharedLinks.find((entry) => entry.token === req.params.token); if (!link) return res.status(404).json({ message: 'El enlace no existe.' });
+    if (!link.activo) return res.status(403).json({ message: 'El enlace fue desactivado.' }); if (new Date(link.fechaExpiracion) <= new Date()) return res.status(403).json({ message: 'El enlace ha expirado.' });
+    const { ticket } = link; return res.json({ ticketId: ticket.id, numeroTicket: ticket.numeroTicket, titulo: ticket.titulo, descripcion: ticket.descripcion, estado: ticket.estado, prioridad: ticket.prioridad, categoria: ticket.tipoIncidenciaNombre, nombreCliente: ticket.clienteNombre, nombreAgente: ticket.agenteNombre || 'Sin asignar', fechaCreacion: ticket.fechaCreacion, fechaExpiracion: link.fechaExpiracion, puedeVer: true, puedeComentar: false, puedeVerAdjuntos: false, puedeSubirAdjuntos: false, puedeCambiarEstado: false, correoInterno: 'private@fixture.invalid', token: link.token, passwordHash: 'never-return-this' });
+});
 express.post('/api/tickets', requireApi('express').json(), (req, res) => {
     const b = req.body;
     if (!b.titulo || !b.descripcion || !b.tipoIncidenciaId || !b.clienteId || !b.proyectoId || !b.impacto || !b.urgencia) return res.status(400).json({ message: 'Faltan campos obligatorios.' });
