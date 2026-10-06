@@ -1,0 +1,9 @@
+<form id="company-form" class="admin-form-card">
+    <div class="form-grid">
+        <div class="form-group full"><label for="company-name">Nombre *</label><input id="company-name" maxlength="150" required /></div>
+        <div class="form-group full"><label for="company-description">Descripción</label><textarea id="company-description" maxlength="1000" rows="3"></textarea></div>
+        <div class="form-group full"><label for="company-state">Estado</label><select id="company-state"><option value="true">Activa</option><option value="false">Inactiva</option></select></div>
+    </div>
+    <p id="company-form-status" class="feedback admin-feedback" role="status"></p>
+    <div class="form-actions"><a class="secondary-btn" href="/companias">Cancelar</a><button id="company-save" type="submit" class="primary-btn" disabled>Guardar compañía</button></div>
+</form>

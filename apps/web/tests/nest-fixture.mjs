@@ -16,14 +16,26 @@ const { IdentidadService } = await import('../../api/dist/security/identidad.ser
 const jwt = new JwtService({ secret: process.env.JWT_SECRET, signOptions: { expiresIn: '1h' } });
 const password = await bcrypt.hash('fixture-password', 10);
 const accounts = ['ADMIN', 'SUPERVISOR', 'AGENTE', 'CLIENTE'].map((rol, i) => ({ id: i + 1, nombre: 'Usuario', apellido: rol, correo: `${rol.toLowerCase()}@fixture.invalid`, password, estado: true, rol }));
+const roleRows = ['ADMIN', 'SUPERVISOR', 'AGENTE', 'CLIENTE'].map((nombre, id) => ({ id: id + 1, nombre }));
+const adminCompanies = [{ id: 1, nombre: 'Acme', descripcion: 'Compañía principal', estado: true, fechaCreacion: '2026-01-01' }, { id: 2, nombre: 'Otra', descripcion: null, estado: true, fechaCreacion: '2026-01-02' }];
+const adminProjects = [{ id: 1, nombre: 'Portal', companiaId: 1, companiaNombre: 'Acme', descripcion: 'Portal de clientes', estado: true, fechaCreacion: '2026-02-01' }, { id: 2, nombre: 'Privado', companiaId: 2, companiaNombre: 'Otra', descripcion: null, estado: true, fechaCreacion: '2026-02-02' }];
+const userProjects = [{ id: 1, usuarioId: 2, proyectoId: 1, estado: true, fechaAsignacion: '2026-02-01' }, { id: 2, usuarioId: 3, proyectoId: 1, estado: true, fechaAsignacion: '2026-02-01' }, { id: 3, usuarioId: 4, proyectoId: 1, estado: true, fechaAsignacion: '2026-02-01' }];
+let nextUserId = 5; let nextCompanyId = 3; let nextProjectId = 3; let nextAssignmentId = 4;
+const adminRole = (req) => ['ADMIN', 'SUPERVISOR'].includes(req.user.rol);
+const safeUser = (u) => ({ id: u.id, nombre: u.nombre, apellido: u.apellido, correo: u.correo, telefono: u.telefono ?? null, estado: u.estado, rol: u.rol, fechaCreacion: u.fechaCreacion ?? '2026-10-06' });
+const projectFor = (id) => adminProjects.find((p) => p.id === Number(id));
+const companyFor = (id) => adminCompanies.find((c) => c.id === Number(id));
+const canManageRole = (actor, target) => actor === 'ADMIN' || (actor === 'SUPERVISOR' && ['CLIENTE', 'AGENTE'].includes(target));
+const canSeeProject = (req, id) => req.user.rol === 'ADMIN' || (req.user.rol === 'SUPERVISOR' && Number(id) === 1) || ['AGENTE', 'CLIENTE'].includes(req.user.rol) && userProjects.some((a) => a.usuarioId === req.user.usuarioId && a.proyectoId === Number(id) && a.estado);
 const repo = { findUsuario: async (correo) => accounts.find((u) => u.correo === correo), findRol: async (id) => ({ rol: { nombre: accounts.find((u) => u.id === id)?.rol } }) };
 const auth = new AuthService(jwt, repo, { enviar: async () => true });
 const module = await Test.createTestingModule({ controllers: [AuthController], providers: [
     { provide: AuthService, useValue: auth }, { provide: JwtService, useValue: jwt }, JwtAuthGuard,
     { provide: IdentidadService, useValue: { resolver: async (claims) => claims } },
 ] }).compile();
-const app = module.createNestApplication({ logger: false });
+const app = module.createNestApplication({ logger: false, bodyParser: false });
 const express = app.getHttpAdapter().getInstance();
+express.use(requireApi('express').json({ strict: false }));
 express.get('/health', (_req, res) => res.json({ ok: true }));
 express.use('/api', (req, res, next) => {
     if (req.path === '/auth/login') return next();
@@ -32,9 +44,74 @@ express.use('/api', (req, res, next) => {
 });
 express.get('/api/usuarios/me', (req, res) => { const user = accounts.find((u) => u.id === req.user.usuarioId); res.json({ id: user.id, nombre: user.nombre, apellido: user.apellido, rol: user.rol }); });
 express.get('/api/configuracion-sistema', (_req, res) => res.json({ reportesActivos: true, solicitudesRecursosActivo: true }));
-express.get('/api/proyectos', (req, res) => res.json(req.user.rol === 'ADMIN' ? [{ id: 1, nombre: 'Portal', companiaId: 1, companiaNombre: 'Acme', estado: true }, { id: 2, nombre: 'Privado', companiaId: 2, companiaNombre: 'Otra', estado: true }] : ['SUPERVISOR', 'AGENTE', 'CLIENTE'].includes(req.user.rol) ? [{ id: 1, nombre: 'Portal', companiaId: 1, companiaNombre: 'Acme', estado: true }] : []));
+express.get('/api/roles', (req, res) => adminRole(req) ? res.json(roleRows) : res.status(403).json({ message: 'No tienes permiso.' }));
+express.get('/api/usuarios', (req, res) => adminRole(req) ? res.json(accounts.map(safeUser)) : res.status(403).json({ message: 'No tienes permiso.' }));
+express.post('/api/usuarios', requireApi('express').json(), async (req, res) => {
+    if (!adminRole(req)) return res.status(403).json({ message: 'No tienes permiso.' });
+    const b = req.body ?? {}; const rol = String(b.rol ?? '').toUpperCase();
+    if (!b.nombre?.trim() || !b.apellido?.trim() || !b.correo?.trim() || !['ADMIN', 'SUPERVISOR', 'AGENTE', 'CLIENTE'].includes(rol)) return res.status(400).json({ message: 'Completa nombre, apellido, correo y rol.' });
+    if (!canManageRole(req.user.rol, rol)) return res.status(400).json({ message: 'El SUPERVISOR solo puede administrar usuarios CLIENTE y AGENTE.' });
+    if (typeof b.password !== 'string' || b.password.length < 6) return res.status(400).json({ message: 'La contraseña debe tener al menos 6 caracteres.' });
+    if (accounts.some((u) => u.correo.toLowerCase() === b.correo.toLowerCase())) return res.status(400).json({ message: 'Ya existe un usuario con ese correo.' });
+    const user = { id: nextUserId++, nombre: b.nombre.trim(), apellido: b.apellido.trim(), correo: b.correo.trim().toLowerCase(), telefono: b.telefono || null, password: await bcrypt.hash(b.password, 10), estado: true, rol, fechaCreacion: '2026-10-06' };
+    accounts.push(user); res.status(201).json(safeUser(user));
+});
+express.put('/api/usuarios/:id', requireApi('express').json(), (req, res) => {
+    if (!adminRole(req)) return res.status(403).json({ message: 'No tienes permiso.' });
+    const user = accounts.find((u) => u.id === Number(req.params.id)); if (!user) return res.status(400).json({ message: 'Usuario no encontrado.' });
+    if (!canManageRole(req.user.rol, user.rol) || !canManageRole(req.user.rol, req.body?.rol)) return res.status(400).json({ message: 'El SUPERVISOR solo puede administrar usuarios CLIENTE y AGENTE.' });
+    Object.assign(user, { nombre: req.body.nombre, apellido: req.body.apellido, correo: req.body.correo.toLowerCase(), telefono: req.body.telefono || null, rol: req.body.rol });
+    if (req.body.password) user.password = req.body.password;
+    res.json(safeUser(user));
+});
+express.put('/api/usuarios/:id/estado', requireApi('express').json(), (req, res) => {
+    if (!adminRole(req)) return res.status(403).json({ message: 'No tienes permiso.' });
+    const user = accounts.find((u) => u.id === Number(req.params.id)); if (!user) return res.status(400).json({ message: 'Usuario no encontrado.' });
+    if (!canManageRole(req.user.rol, user.rol) || typeof req.body?.estado !== 'boolean' || (!req.body.estado && user.id === req.user.usuarioId)) return res.status(400).json({ message: 'No se puede cambiar el estado de este usuario.' });
+    user.estado = req.body.estado; res.json(safeUser(user));
+});
+express.get('/api/companias/activas', (req, res) => adminRole(req) ? res.json(adminCompanies.filter((c) => c.estado)) : res.status(403).json({ message: 'No tienes permiso.' }));
+express.get('/api/companias', (req, res) => adminRole(req) ? res.json(adminCompanies) : res.status(403).json({ message: 'No tienes permiso.' }));
+express.get('/api/companias/:id', (req, res) => { if (!adminRole(req)) return res.status(403).json({ message: 'No tienes permiso.' }); const company = companyFor(req.params.id); return company ? res.json(company) : res.status(400).json({ message: 'Compañía no encontrada.' }); });
+express.post('/api/companias', requireApi('express').json(), (req, res) => { if (req.user.rol !== 'ADMIN') return res.status(403).json({ message: 'No tienes permiso.' }); const b = req.body ?? {}; if (!b.nombre?.trim()) return res.status(400).json({ message: 'El nombre es obligatorio.' }); if (adminCompanies.some((c) => c.nombre.toLowerCase() === b.nombre.trim().toLowerCase())) return res.status(400).json({ message: 'Ya existe una compañía con ese nombre.' }); const company = { id: nextCompanyId++, nombre: b.nombre.trim(), descripcion: b.descripcion || null, estado: b.estado ?? true, fechaCreacion: '2026-10-06' }; adminCompanies.push(company); res.status(201).json(company); });
+express.put('/api/companias/:id', requireApi('express').json(), (req, res) => { if (req.user.rol !== 'ADMIN') return res.status(403).json({ message: 'No tienes permiso.' }); const company = companyFor(req.params.id); if (!company) return res.status(400).json({ message: 'Compañía no encontrada.' }); Object.assign(company, req.body); res.json(company); });
+express.put('/api/companias/:id/estado', requireApi('express').json(), (req, res) => { if (req.user.rol !== 'ADMIN') return res.status(403).json({ message: 'No tienes permiso.' }); const company = companyFor(req.params.id); if (!company) return res.status(400).json({ message: 'Compañía no encontrada.' }); if (typeof req.body !== 'boolean') return res.status(400).json({ message: 'El estado debe ser booleano.' }); company.estado = req.body; res.json(company); });
+express.get('/api/proyectos/activos', (req, res) => adminRole(req) ? res.json(adminProjects.filter((p) => p.estado)) : res.status(403).json({ message: 'No tienes permiso.' }));
+express.get('/api/proyectos/compania/:id/activos', (req, res) => adminRole(req) ? res.json(adminProjects.filter((p) => p.companiaId === Number(req.params.id) && p.estado)) : res.status(403).json({ message: 'No tienes permiso.' }));
+express.get('/api/proyectos/compania/:id', (req, res) => adminRole(req) ? res.json(adminProjects.filter((p) => p.companiaId === Number(req.params.id))) : res.status(403).json({ message: 'No tienes permiso.' }));
+express.get('/api/proyectos', (req, res) => res.json(adminProjects.filter((p) => canSeeProject(req, p.id))));
+express.get('/api/proyectos/:id', (req, res) => { const project = projectFor(req.params.id); if (!project) return res.status(400).json({ message: 'Proyecto no encontrado.' }); if (!canSeeProject(req, project.id)) return res.status(403).json({ message: 'No tienes acceso al proyecto.' }); res.json(project); });
+express.post('/api/proyectos', requireApi('express').json(), (req, res) => { if (req.user.rol !== 'ADMIN') return res.status(403).json({ message: 'No tienes permiso.' }); const b = req.body ?? {}; const company = companyFor(b.companiaId); if (!company?.estado) return res.status(400).json({ message: 'La compañía debe estar activa.' }); if (!b.nombre?.trim()) return res.status(400).json({ message: 'El nombre es obligatorio.' }); const project = { id: nextProjectId++, nombre: b.nombre.trim(), descripcion: b.descripcion || null, companiaId: company.id, companiaNombre: company.nombre, estado: b.estado ?? true, fechaCreacion: '2026-10-06' }; adminProjects.push(project); res.status(201).json(project); });
+express.put('/api/proyectos/:id', requireApi('express').json(), (req, res) => { if (req.user.rol !== 'ADMIN') return res.status(403).json({ message: 'No tienes permiso.' }); const project = projectFor(req.params.id); if (!project) return res.status(400).json({ message: 'Proyecto no encontrado.' }); const company = companyFor(req.body.companiaId); if (!company?.estado) return res.status(400).json({ message: 'La compañía debe estar activa.' }); Object.assign(project, req.body, { companiaNombre: company.nombre }); res.json(project); });
+express.put('/api/proyectos/:id/estado', requireApi('express').json(), (req, res) => { if (req.user.rol !== 'ADMIN') return res.status(403).json({ message: 'No tienes permiso.' }); const project = projectFor(req.params.id); if (!project) return res.status(400).json({ message: 'Proyecto no encontrado.' }); if (typeof req.body !== 'boolean') return res.status(400).json({ message: 'El estado debe ser booleano.' }); if (req.body && !companyFor(project.companiaId)?.estado) return res.status(400).json({ message: 'No se puede activar el proyecto.' }); project.estado = req.body; res.json(project); });
+express.get('/api/usuario-proyectos/usuario/:id/todas', (req, res) => { if (!adminRole(req)) return res.status(403).json({ message: 'No tienes permiso.' }); const user = accounts.find((u) => u.id === Number(req.params.id)); if (!user) return res.status(400).json({ message: 'Usuario no encontrado.' }); const rows = userProjects.filter((a) => a.usuarioId === user.id && (req.user.rol !== 'SUPERVISOR' || a.proyectoId === 1)).map((a) => ({ ...a, usuarioNombre: `${user.nombre} ${user.apellido}`, usuarioCorreo: user.correo, proyectoNombre: projectFor(a.proyectoId)?.nombre, companiaNombre: companyFor(projectFor(a.proyectoId)?.companiaId)?.nombre })); res.json(rows); });
+express.get('/api/usuario-proyectos/proyecto/:id', (req, res) => {
+    if (!adminRole(req)) return res.status(403).json({ message: 'No tienes permiso.' });
+    if (req.user.rol === 'SUPERVISOR' && Number(req.params.id) !== 1) return res.status(403).json({ message: 'No tienes acceso al proyecto.' });
+    if (!projectFor(req.params.id)) return res.status(400).json({ message: 'Proyecto no encontrado.' });
+    res.json(userProjects.filter((a) => a.proyectoId === Number(req.params.id) && a.estado).map((a) => { const user = accounts.find((u) => u.id === a.usuarioId); return { ...a, usuarioNombre: `${user?.nombre} ${user?.apellido}`, usuarioCorreo: user?.correo }; }));
+});
+express.post('/api/usuario-proyectos', requireApi('express').json(), (req, res) => {
+    if (!adminRole(req)) return res.status(403).json({ message: 'No tienes permiso.' });
+    const user = accounts.find((u) => u.id === Number(req.body.usuarioId)); const project = projectFor(req.body.proyectoId);
+    if (!user || !project) return res.status(400).json({ message: 'Usuario o proyecto no encontrado.' });
+    if (req.user.rol === 'SUPERVISOR' && project.id !== 1) return res.status(403).json({ message: 'No tienes acceso al proyecto.' });
+    if (!user.estado || !project.estado || !companyFor(project.companiaId)?.estado) return res.status(400).json({ message: 'El usuario, proyecto y compañía deben estar activos.' });
+    let assignment = userProjects.find((a) => a.usuarioId === user.id && a.proyectoId === project.id);
+    if (assignment?.estado) return res.status(400).json({ message: 'El usuario ya tiene acceso a este proyecto.' });
+    if (assignment) { assignment.estado = true; } else { assignment = { id: nextAssignmentId++, usuarioId: user.id, proyectoId: project.id, estado: true, fechaAsignacion: '2026-10-06' }; userProjects.push(assignment); }
+    res.status(201).json({ ...assignment, usuarioNombre: `${user.nombre} ${user.apellido}`, usuarioCorreo: user.correo });
+});
+express.put('/api/usuario-proyectos/:id/:action', (req, res) => {
+    if (!adminRole(req)) return res.status(403).json({ message: 'No tienes permiso.' });
+    const assignment = userProjects.find((a) => a.id === Number(req.params.id)); if (!assignment) return res.status(400).json({ message: 'Asignación no encontrada.' });
+    if (req.user.rol === 'SUPERVISOR' && assignment.proyectoId !== 1) return res.status(403).json({ message: 'No tienes acceso al proyecto.' });
+    const next = req.params.action === 'activar'; const user = accounts.find((u) => u.id === assignment.usuarioId); const project = projectFor(assignment.proyectoId);
+    if (assignment.estado === next) return res.status(400).json({ message: 'El estado de la asignación ya coincide.' });
+    if (next && (!user?.estado || !project?.estado || !companyFor(project.companiaId)?.estado)) return res.status(400).json({ message: 'El usuario, proyecto y compañía deben estar activos.' });
+    assignment.estado = next; res.json(assignment);
+});
 express.get('/api/tipos-incidencia', (_req, res) => res.json([{ id: 8, nombre: 'Red', estado: true }, { id: 9, nombre: 'Acceso', estado: true }]));
-express.get('/api/usuarios', (_req, res) => res.json(accounts.map((u) => ({ id: u.id, nombre: u.nombre, apellido: u.apellido, rol: u.rol, estado: u.estado }))));
 express.get('/api/usuario-proyectos/usuario/:id', (req, res) => { if (!['ADMIN', 'SUPERVISOR'].includes(req.user.rol)) return res.status(403).json({ message: 'No tienes permiso.' }); if (req.user.rol === 'SUPERVISOR' && Number(req.params.id) !== 4) return res.status(403).json({ message: 'No tienes acceso.' }); res.json(Number(req.params.id) === 4 ? [{ usuarioId: 4, proyectoId: 1, estado: true, companiaId: 1 }] : []); });
 express.get('/api/usuario-proyectos/proyecto/:id', (req, res) => {
     if (!['ADMIN', 'SUPERVISOR'].includes(req.user.rol)) return res.status(403).json({ message: 'No tienes permiso.' });

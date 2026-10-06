@@ -2,6 +2,13 @@
 import Base from './Base.astro';
 import Sidebar from '../components/Sidebar.astro';
 import Header from '../components/Header.astro';
-const active = Astro.props.active ?? 'dashboard';
+interface Props { active?: string; title?: string; description?: string }
+const { active = 'dashboard', title = active === 'tickets' ? 'Tickets' : active === 'usuarios' ? 'Usuarios' : active === 'companias-proyectos' ? 'Gestión organizacional' : active === 'proyectos' ? 'Proyectos' : 'Dashboard', description = '' } = Astro.props;
 ---
-<Base title={active === 'tickets' ? 'Tickets' : 'Dashboard'} bodyClass="dashboard-page"><p id="session-loading" class="feedback" role="status">Verificando sesión…</p><div class="app-container" id="protected-app" hidden><Sidebar active={active} /><main class="main-content"><Header /><slot /></main></div></Base>
+<Base title={title} bodyClass="dashboard-page">
+    <p id="session-loading" class="feedback" role="status">Verificando sesión…</p>
+    <div class="app-container" id="protected-app" data-page-title={title} data-page-description={description} hidden>
+        <Sidebar active={active} />
+        <main class="main-content"><Header /><slot /></main>
+    </div>
+</Base>

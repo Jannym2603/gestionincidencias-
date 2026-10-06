@@ -1,0 +1,29 @@
+---
+import App from '../../layouts/App.astro';
+import ProjectEditor from '../../components/ProjectEditor.astro';
+import '../../styles/admin.css';
+const { id } = Astro.params;
+---
+<App active="proyectos" title="Detalle de proyecto" description="Resumen del proyecto, accesos y tickets.">
+    <p id="admin-access-denied" class="admin-access-denied" role="alert" hidden></p>
+    <section id="admin-content" data-admin-view="detail" data-record-id={id} hidden>
+        <a class="admin-back-link" href="/proyectos">← Proyectos</a>
+        <p id="project-detail-status" class="feedback admin-feedback" role="status">Cargando proyecto…</p>
+        <section class="table-section"><div class="section-header"><div><h2 id="project-detail-title">Proyecto</h2><p id="project-detail-description"></p></div><div class="admin-toolbar-actions"><button id="project-edit-toggle" class="secondary-btn" type="button" hidden>Editar</button><button id="project-state-toggle" class="secondary-btn" type="button" hidden>Desactivar</button></div></div><dl id="project-detail-fields" class="admin-detail-grid"></dl></section>
+        <section id="project-edit-section" class="table-section admin-form-section" hidden><div class="section-header"><div><h2>Editar proyecto</h2></div></div><ProjectEditor /></section>
+        <section class="metrics-grid admin-summary-grid"><div class="metric-card"><span>Tickets totales</span><h3 id="project-ticket-total">—</h3><p>En este proyecto</p></div><div class="metric-card blue"><span>Nuevos</span><h3 id="project-ticket-new">—</h3><p>Pendientes de asignación</p></div><div class="metric-card purple"><span>En progreso</span><h3 id="project-ticket-progress">—</h3><p>Atención activa</p></div><div class="metric-card green"><span>Cerrados</span><h3 id="project-ticket-closed">—</h3><p>Finalizados</p></div></section>
+        <section class="project-health-detail project-health-normal" id="project-health-panel" aria-labelledby="project-health-title">
+            <div class="project-health-detail-header"><div><span class="project-health-eyebrow">Indicador operativo</span><h2 id="project-health-title">Salud del proyecto</h2><p id="project-health-description">Calculando con los tickets visibles para tu sesión.</p></div><span class="project-health-badge health-normal" id="project-health-badge"><span class="project-health-dot"></span>NORMAL</span></div>
+            <div class="project-health-detail-main"><div class="project-health-score"><strong id="project-health-score">100%</strong><span>Índice de salud</span></div><div class="project-health-detail-progress-wrap"><div class="project-health-progress" id="project-health-progress" role="progressbar" aria-label="Salud del proyecto" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span class="health-bar-normal" id="project-health-bar" style="width:100%"></span></div><small>El indicador considera tickets abiertos, SLA en riesgo o vencidos y prioridades críticas. Los estados de SLA proceden del backend.</small></div></div>
+            <div class="project-health-reasons"><article class="project-health-reason"><span>Tickets abiertos</span><strong id="project-health-open">0</strong><small>Nuevo + asignado + en progreso</small></article><article class="project-health-reason"><span>SLA en riesgo</span><strong id="project-health-risk">0</strong><small>Próximos a alcanzar el límite</small></article><article class="project-health-reason"><span>SLA vencidos</span><strong id="project-health-overdue">0</strong><small>Vencidos o incumplidos</small></article><article class="project-health-reason"><span>Críticos abiertos</span><strong id="project-health-critical">0</strong><small>Prioridad P1 todavía abierta</small></article></div>
+            <div class="project-health-explanation" id="project-health-explanation">Cargando tickets visibles…</div>
+        </section>
+        <section class="table-section admin-form-section"><div class="section-header"><div><h2>Usuarios asignados</h2><p>Las asignaciones se desactivan para quitar el acceso y pueden reactivarse.</p></div></div>
+            <form id="project-user-form" class="admin-assignment-tools" hidden><div class="form-group"><label for="project-user-select">Agregar usuario</label><select id="project-user-select"><option value="">Cargando usuarios…</option></select></div><button id="project-user-add" class="primary-btn" type="submit">Asignar usuario</button></form>
+            <p id="project-users-status" class="feedback admin-feedback" role="status">Cargando usuarios asignados…</p>
+            <div class="table-wrapper"><table><thead><tr><th>Usuario</th><th>Correo</th><th>Rol</th><th>Estado de acceso</th><th>Asignado</th><th>Acción</th></tr></thead><tbody id="project-users-body"><tr><td colspan="6">Cargando asignaciones…</td></tr></tbody></table></div>
+        </section>
+        <section class="table-section admin-ticket-list"><div class="section-header"><div><h2>Tickets recientes</h2><p>Tickets que tu sesión puede consultar en este proyecto.</p></div></div><div class="table-wrapper"><table><thead><tr><th>Número</th><th>Título</th><th>Cliente</th><th>Estado</th><th>Prioridad</th><th>Fecha</th><th></th></tr></thead><tbody id="project-tickets-body"><tr><td colspan="7">Cargando tickets…</td></tr></tbody></table></div></section>
+    </section>
+</App>
+<script src="../../lib/projects.ts"></script>

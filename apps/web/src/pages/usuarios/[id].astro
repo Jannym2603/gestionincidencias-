@@ -1,0 +1,21 @@
+---
+import App from '../../layouts/App.astro';
+import UserEditor from '../../components/UserEditor.astro';
+import '../../styles/admin.css';
+const { id } = Astro.params;
+---
+<App active="usuarios" title="Detalle de usuario" description="Datos, rol y proyectos asignados.">
+    <p id="admin-access-denied" class="admin-access-denied" role="alert" hidden></p>
+    <section id="admin-content" data-admin-view="detail" data-record-id={id} hidden>
+        <a class="admin-back-link" href="/usuarios">← Usuarios</a>
+        <p id="user-detail-status" class="feedback admin-feedback" role="status">Cargando usuario…</p>
+        <section class="table-section"><div class="section-header"><div><h2 id="user-detail-title">Usuario</h2><p>Información de la cuenta y acceso organizacional.</p></div><div class="admin-toolbar-actions"><button id="user-edit-toggle" class="secondary-btn" type="button" hidden>Editar</button><button id="user-state-toggle" class="secondary-btn" type="button" hidden>Desactivar</button></div></div><dl id="user-detail-fields" class="admin-detail-grid"></dl></section>
+        <section id="user-edit-section" class="table-section admin-form-section" hidden><div class="section-header"><div><h2>Editar usuario</h2><p>La contraseña actual no se consulta ni se muestra.</p></div></div><UserEditor mode="edit" /></section>
+        <section class="table-section admin-form-section"><div class="section-header"><div><h2>Proyectos asignados</h2><p>El acceso se activa o desactiva sin borrar el historial.</p></div></div>
+            <form id="user-project-form" class="admin-assignment-tools"><div class="form-group"><label for="user-project-select">Agregar proyecto</label><select id="user-project-select"><option value="">Cargando proyectos…</option></select></div><button id="user-project-add" class="primary-btn" type="submit">Asignar proyecto</button></form>
+            <p id="user-assignment-status" class="feedback admin-feedback" role="status"></p>
+            <div class="table-wrapper"><table><thead><tr><th>Proyecto</th><th>Compañía</th><th>Estado</th><th>Fecha asignación</th><th>Acción</th></tr></thead><tbody id="user-projects-body"><tr><td colspan="5">Cargando asignaciones…</td></tr></tbody></table></div>
+        </section>
+    </section>
+</App>
+<script src="../../lib/users.ts"></script>

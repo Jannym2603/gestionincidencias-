@@ -1,0 +1,18 @@
+---
+import App from '../layouts/App.astro';
+import '../styles/admin.css';
+---
+<App active="usuarios" title="Usuarios" description="Consulta y administra los usuarios del sistema.">
+    <p id="admin-access-denied" class="admin-access-denied" role="alert" hidden></p>
+    <section id="admin-content" data-admin-view="list" hidden>
+        <section class="action-bar"><div><h2>Gestión de usuarios</h2><p>Consulta usuarios, roles y accesos asignados.</p></div><a class="primary-btn" href="/usuarios/nuevo">Crear usuario</a></section>
+        <p id="users-status" class="feedback admin-feedback" role="status">Cargando usuarios…</p>
+        <section class="admin-toolbar"><div class="admin-filters">
+            <div class="form-group"><label for="user-search">Buscar</label><input id="user-search" type="search" placeholder="Nombre, correo o teléfono" /></div>
+            <div class="form-group"><label for="user-filter-role">Rol</label><select id="user-filter-role"><option value="">Todos</option></select></div>
+            <div class="form-group"><label for="user-filter-state">Estado</label><select id="user-filter-state"><option value="">Todos</option><option value="true">Activos</option><option value="false">Inactivos</option></select></div>
+        </div></section>
+        <section class="table-section"><div class="table-wrapper"><table><thead><tr><th>Nombre</th><th>Correo</th><th>Teléfono</th><th>Rol</th><th>Estado</th><th>Creado</th><th>Acciones</th></tr></thead><tbody id="users-body"><tr><td colspan="7">Cargando usuarios…</td></tr></tbody></table></div><p id="users-count" class="table-count"></p></section>
+    </section>
+</App>
+<script src="../lib/users.ts"></script>

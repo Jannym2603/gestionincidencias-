@@ -1,0 +1,19 @@
+---
+interface Props { mode: 'create' | 'edit' }
+const { mode } = Astro.props;
+const creating = mode === 'create';
+---
+<form id="user-form" class="admin-form-card" data-mode={mode}>
+    <div class="form-grid">
+        <div class="form-group"><label for="user-name">Nombre *</label><input id="user-name" maxlength="100" autocomplete="given-name" required /></div>
+        <div class="form-group"><label for="user-surname">Apellido *</label><input id="user-surname" maxlength="100" autocomplete="family-name" required /></div>
+        <div class="form-group"><label for="user-email">Correo *</label><input id="user-email" type="email" maxlength="150" autocomplete="email" required /></div>
+        <div class="form-group"><label for="user-phone">Teléfono</label><input id="user-phone" maxlength="20" autocomplete="tel" /></div>
+        <div class="form-group"><label for="user-role">Rol *</label><select id="user-role" required><option value="">Cargando roles…</option></select></div>
+        <div class="form-group"><label for="user-password">{creating ? 'Contraseña inicial *' : 'Nueva contraseña (opcional)'}</label><input id="user-password" type="password" minlength="6" maxlength="72" autocomplete={creating ? 'new-password' : 'new-password'} required={creating} /></div>
+        <div class="form-group"><label for="user-password-confirm">{creating ? 'Confirmar contraseña *' : 'Confirmar nueva contraseña'}</label><input id="user-password-confirm" type="password" minlength="6" maxlength="72" autocomplete="new-password" required={creating} /></div>
+    </div>
+    <p class="admin-note">La contraseña nunca se carga ni se muestra. En edición, déjala vacía para conservar la actual.</p>
+    <p id="user-form-status" class="feedback admin-feedback" role="status"></p>
+    <div class="form-actions"><a class="secondary-btn" href="/usuarios">Cancelar</a><button id="user-save" type="submit" class="primary-btn" disabled>{creating ? 'Crear usuario' : 'Guardar cambios'}</button></div>
+</form>

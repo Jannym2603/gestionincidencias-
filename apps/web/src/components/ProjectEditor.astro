@@ -1,0 +1,10 @@
+<form id="project-form" class="admin-form-card">
+    <div class="form-grid">
+        <div class="form-group full"><label for="project-company">Compañía *</label><select id="project-company" required><option value="">Cargando compañías…</option></select></div>
+        <div class="form-group full"><label for="project-name">Nombre *</label><input id="project-name" maxlength="150" required /></div>
+        <div class="form-group full"><label for="project-description">Descripción</label><textarea id="project-description" maxlength="1000" rows="3"></textarea></div>
+        <div class="form-group full"><label for="project-state">Estado</label><select id="project-state"><option value="true">Activo</option><option value="false">Inactivo</option></select></div>
+    </div>
+    <p id="project-form-status" class="feedback admin-feedback" role="status"></p>
+    <div class="form-actions"><a class="secondary-btn" href="/proyectos">Cancelar</a><button id="project-save" type="submit" class="primary-btn" disabled>Guardar proyecto</button></div>
+</form>

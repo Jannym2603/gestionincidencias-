@@ -1,5 +1,15 @@
 ---
 import { navigation } from '../lib/navigation';
-const active = Astro.props.active ?? 'dashboard';
+interface Props { active?: string }
+const { active = 'dashboard' } = Astro.props;
 ---
-<aside class="sidebar"><div class="sidebar-logo"><div class="logo-icon">GI</div><div><h2>Gestión</h2><span>de Incidencias</span></div></div><nav class="menu" aria-label="Navegación principal">{navigation.map((item) => item.key === 'dashboard' || item.key === 'tickets' || item.key === 'crear-ticket' ? <a href={item.key === 'crear-ticket' ? '/tickets/nuevo' : `/${item.key}`} class:list={['menu-item', active === item.key && 'active']} data-menu={item.key === 'dashboard' ? undefined : item.key} aria-current={active === item.key ? 'page' : undefined}>{item.label}</a> : <span class="menu-item pending-module" data-menu={item.key} aria-disabled="true" title="Disponible en una próxima fase">{item.label}</span>)}</nav><button type="button" class="sidebar-toggle-btn" id="sidebar-toggle" aria-label="Contraer barra lateral" aria-expanded="true">&lsaquo;</button></aside>
+<aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon">GI</div><div><h2>Gestión</h2><span>de Incidencias</span></div></div>
+    <nav class="menu" aria-label="Navegación principal">
+        {navigation.map((item) => {
+            const href = item.key === 'crear-ticket' ? '/tickets/nuevo' : item.key === 'companias-proyectos' ? '/companias' : `/${item.key}`;
+            return <a href={href} class:list={['menu-item', active === item.key && 'active']} data-menu={item.key === 'dashboard' ? undefined : item.key} aria-current={active === item.key ? 'page' : undefined}>{item.label}</a>;
+        })}
+    </nav>
+    <button type="button" class="sidebar-toggle-btn" id="sidebar-toggle" aria-label="Contraer barra lateral" aria-expanded="true">&lsaquo;</button>
+</aside>

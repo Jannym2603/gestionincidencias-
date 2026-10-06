@@ -1,0 +1,10 @@
+---
+import App from '../../layouts/App.astro';
+import CompanyEditor from '../../components/CompanyEditor.astro';
+import '../../styles/admin.css';
+---
+<App active="companias-proyectos" title="Nueva compañía" description="Registra una compañía.">
+    <p id="admin-access-denied" class="admin-access-denied" role="alert" hidden></p>
+    <section id="admin-content" data-admin-view="create" hidden><a class="admin-back-link" href="/companias">← Compañías</a><section class="table-section"><div class="section-header"><div><h2>Nueva compañía</h2><p>Completa los datos de la compañía.</p></div></div><CompanyEditor /></section></section>
+</App>
+<script src="../../lib/companies.ts"></script>
