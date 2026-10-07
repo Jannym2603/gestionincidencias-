@@ -1,82 +1,61 @@
-# Preparación de benchmark: Spring Boot vs NestJS
+# Benchmark: Spring Boot vs NestJS
 
-## Estado
+## Resultado de esta ejecución
 
-No se registran resultados numéricos en este documento. No se ejecutaron mediciones porque una comparación válida requiere tener ambas aplicaciones configuradas simultáneamente, con el mismo hardware, esquema/dataset aislado, versión de runtime y solicitudes equivalentes. Tampoco se debe apuntar una prueba de carga a PostgreSQL de producción. Ejecuta el procedimiento en una máquina y entorno de demo controlados.
+Se verificaron los comandos de build y los artefactos locales. No se pudo completar una comparación de ejecución repetible: la comprobación inicial de Spring contra `/` devuelve 404 (esa ruta no es una ruta de salud) y, al cambiar a la ruta pública de lectura, el segundo intento terminó con `ECONNREFUSED` antes de completar la secuencia de arranques. Por ese motivo no se atribuyen tiempos, memoria, CPU ni latencias a ninguno de los backends.
 
-## Variables que se deben fijar
+No se ejecutaron migraciones ni escrituras explícitas en PostgreSQL, no se enviaron correos y no se modificó lógica funcional. Spring se configuró para estos intentos con `SPRING_JPA_HIBERNATE_DDL_AUTO=none`, `SPRING_SQL_INIT_MODE=never`, credenciales SMTP vacías y retraso del trabajo programado. NestJS también se inició con SMTP vacío y el trabajo programado retrasado. La ruta candidata de lectura es `GET /api/public/compartidos/{token}` con un token aleatorio inválido; debe responder 404 sin mutación.
 
-Registra fecha, sistema operativo, CPU, RAM, versiones de Java/Node/npm, PostgreSQL, commit de cada backend, tamaño del dataset, configuración de JVM/Node, límites de conexiones y puerto. Usa una copia de datos saneada, mismo tamaño y forma, misma instancia local de PostgreSQL y sin SMTP real. Reinicia la BD entre casos si las operaciones cambian datos.
+| Métrica | Spring Boot | NestJS | Diferencia |
+|---|---:|---:|---:|
+| Tiempo de arranque | NO MEDIDO | NO MEDIDO | No comparable: readiness no se completó de forma fiable |
+| RAM en reposo | NO MEDIDO | NO MEDIDO | No comparable |
+| CPU en reposo | NO MEDIDO | NO MEDIDO | No comparable |
+| RAM durante carga | NO MEDIDO | NO MEDIDO | No se completó una carga válida en ambos |
+| Latencia de endpoint (p50/p95/p99) | NO MEDIDO | NO MEDIDO | No se confirmó la misma ruta de lectura en ambos procesos |
+| Throughput / errores | NO MEDIDO | NO MEDIDO | Carga no completada |
+| Artefacto de build | JAR: 59,879,071 bytes (57.1 MiB) | `dist`: 800,906 bytes (0.76 MiB) | Nest `dist` no incluye Node.js ni dependencias; no es comparable al JAR autónomo |
+| Requisitos de runtime | Java 17; PostgreSQL | Node.js; PostgreSQL | Requisitos declarados; mínimos de CPU/RAM no medidos |
 
-Ejecuta una vez de calentamiento y luego cinco ejecuciones medidas por backend, en orden alternado (Spring, Nest, Nest, Spring…). No ejecutes migraciones ni pruebas destructivas durante la medición. Prioriza endpoints GET equivalentes y una carga de lectura reproducible; mide por separado cualquier endpoint de escritura usando datos efímeros y limpieza controlada.
+## Entorno y versiones observadas
 
-## 1. Tiempo de arranque
+- Máquina: Windows 11 Pro, Intel Core i5-1235U (12 procesadores lógicos), 7.7 GiB RAM.
+- Java: OpenJDK 17.0.20.1.
+- Node.js: v24.19.0; npm 11.17.0.
+- PostgreSQL configurado en la URL local de `apps/api/.env`; la configuración se leyó localmente y no se imprimieron credenciales. No se documenta aquí el nombre de la base ni secretos.
+- Spring Boot: 3.5.15, puerto 8081. NestJS: puerto 3000.
 
-Define “listo” como la primera respuesta HTTP correcta al endpoint raíz/salud. Cronometra desde iniciar proceso hasta esa respuesta. Haz cinco repeticiones tras detener el proceso anterior.
+## Comandos usados
 
-NestJS desde la raíz:
-
-```powershell
-$timer = [Diagnostics.Stopwatch]::StartNew()
-$process = Start-Process -FilePath "npm.cmd" -ArgumentList @("run", "api") -PassThru -WindowStyle Hidden
-do { Start-Sleep -Milliseconds 250; try { $response = Invoke-WebRequest http://localhost:3000/ -TimeoutSec 2; $ready = $response.StatusCode -eq 200 } catch { $ready = $false } } until ($ready -or $timer.Elapsed.TotalSeconds -gt 120)
-$timer.Stop(); $timer.ElapsedMilliseconds
-```
-
-Spring Boot en su checkout/configuración legacy: inicia con `.\mvnw.cmd spring-boot:run` y el puerto configurado, y cronometra de la misma manera contra su endpoint raíz. No midas con logs como condición única de disponibilidad.
-
-## 2. Memoria y CPU en reposo
-
-Después de estar listo y permanecer 5 minutos sin tráfico, toma muestras cada segundo durante 60 segundos. En Windows identifica el PID del runtime (Node para Nest, Java para Spring) y registra `WorkingSet64` y `CPU`. Ejemplo PowerShell:
-
-```powershell
-$p = Get-Process -Id <PID>
-1..60 | ForEach-Object { $p.Refresh(); [pscustomobject]@{ Time=(Get-Date).ToString('o'); WorkingSetBytes=$p.WorkingSet64; CpuSeconds=$p.CPU }; Start-Sleep 1 } | Export-Csv .\benchmark-process.csv -NoTypeInformation
-```
-
-Informa mediana y máximo de working set y delta de CPU por minuto. Aísla el proceso hijo real del wrapper npm/Maven. No incluyas PostgreSQL en memoria de backend.
-
-## 3. Consumo bajo llamadas
-
-Usa un perfil reproducible de 1, 5 y 10 usuarios concurrentes por 2 minutos por nivel, con pausas fijas y mismos endpoints/identidades. Informa CPU media/máxima, memoria pico, throughput y porcentaje de errores. Repite cinco veces. Evita adjuntos/correo y operaciones con efectos laterales salvo que se mida específicamente.
-
-## 4. Latencia
-
-Elige endpoints equivalentes (login válido con usuario de prueba y lectura de listado/detalle permitido). Usa misma red local y payload. Registra al menos 1,000 solicitudes por endpoint tras calentamiento y reporta p50, p95, p99 y códigos HTTP. Un ejemplo simple de cronometraje serial en PowerShell:
-
-```powershell
-$samples = 1..1000 | ForEach-Object { $watch=[Diagnostics.Stopwatch]::StartNew(); Invoke-WebRequest -Uri 'http://localhost:3000/' -UseBasicParsing | Out-Null; $watch.Stop(); $watch.Elapsed.TotalMilliseconds }
-$samples | Sort-Object | Select-Object -Index 499,949,989
-```
-
-Para concurrencia usa una herramienta de carga con versión fijada y el mismo archivo de escenarios; guarda su configuración y salida junto al resultado. No compares rutas o respuestas semánticamente diferentes.
-
-## 5. Tamaño de artefacto/deploy
-
-Compila ambos backends con dependencias bloqueadas y mide artefactos desplegables y dependencias de runtime por separado:
+Builds observados:
 
 ```powershell
 npm run build:api
-(Get-ChildItem apps/api/dist -Recurse -File | Measure-Object -Property Length -Sum).Sum
-Get-ChildItem apps/api/package.json,apps/api/package-lock.json | Measure-Object -Property Length -Sum
+.\mvnw.cmd -q '-Dmaven.test.skip=true' package
 ```
 
-Para Spring, registra tamaño del JAR producido en el perfil de entrega. Para Nest incluye `dist`, runtime Node y dependencias de producción necesarias; excluye cachés, tests y `node_modules` de desarrollo. Define claramente si la imagen Docker se mide (mismo sistema base y método para ambos).
+Ejecución de producción considerada para la medición (sin wrapper de desarrollo):
 
-## 6. Requisitos mínimos de servidor
+```powershell
+java -jar target/gestionincidencias-0.0.1-SNAPSHOT.jar
+node apps/api/dist/main.js
+```
 
-No deduzcas un mínimo solo del uso en reposo. Escala CPU/RAM y usuarios concurrentes hasta que se incumpla el SLO acordado (por ejemplo, latencia p95 o porcentaje de errores); repite y registra el último punto que cumple. Incluye PostgreSQL por separado y luego en una medición integral.
+Para Spring, el intento pasó `DB_URL`, `DB_USERNAME` y `DB_PASSWORD` al mismo contexto PostgreSQL derivado de la configuración local de Nest, y anuló `ddl-auto` y la inicialización SQL para impedir cambios de esquema. Para ambos se dejaron los datos de correo vacíos y se retrasó el trabajo programado. No copiar credenciales a una terminal compartida ni a este documento.
 
-## Tabla para completar
+## Por qué se marca NO MEDIDO
 
-| Medida | Spring Boot | NestJS | Método/observaciones |
-|---|---:|---:|---|
-| Arranque mediano (s) | Pendiente | Pendiente | 5 arranques, primer HTTP correcto |
-| RAM reposo mediana/máxima (MiB) | Pendiente | Pendiente | 60 muestras después de 5 min |
-| CPU reposo por minuto | Pendiente | Pendiente | mismo host, sin tráfico |
-| Latencia p50/p95/p99 (ms) | Pendiente | Pendiente | endpoint/payload idéntico |
-| Throughput y error rate | Pendiente | Pendiente | concurrencia fijada |
-| Artefacto desplegable (MiB) | Pendiente | Pendiente | runtime incluido/excluido indicado |
-| Requisitos mínimos validados | Pendiente | Pendiente | sujeto a SLO y dataset |
+La ruta raíz `/` no es una comprobación compatible entre los backends: el primer intento recibió 404 de Spring y se detuvo. Se cambió readiness a la ruta pública de enlaces compartidos con token inválido y se repitió el lanzamiento; ese intento agotó readiness por `ECONNREFUSED`. No se obtuvo una muestra estable de ambas aplicaciones sobre la que medir ni se pudo confirmar una secuencia de requests equivalente. Adivinar una causa o reportar memoria/tiempos puntuales como benchmark sería engañoso.
 
-Conserva scripts, CSV, configuración de carga, commit y versiones junto a la tabla antes de publicar conclusiones.
+El JAR se midió como archivo generado; `dist` es solo la salida compilada de NestJS. Para comparar despliegue real falta incluir, con la misma definición, runtime, dependencias de producción e imagen/base del sistema operativo. No se midieron requisitos mínimos de servidor porque requieren una matriz de carga y un SLO, no una extrapolación desde el tamaño del proceso.
+
+## Metodología para completar la comparación
+
+1. Ejecutar en una máquina dedicada y registrar commit, OS, CPU/RAM, Java, Node, PostgreSQL, tamaño/saneamiento del dataset y límites de JVM/pool.
+2. Usar una copia local saneada de la misma base para los dos backends; configurar `ddl-auto=none`, desactivar SMTP y tareas de escritura, y comprobar que ambos levantan sin migraciones.
+3. Definir readiness mediante una ruta que exista en ambos con la misma semántica y código esperado. Alternar al menos cinco arranques por backend desde procesos detenidos, cronometrando hasta la primera respuesta correcta.
+4. Tras 5 minutos sin tráfico, muestrear working set y CPU cada segundo durante 60 segundos. Informar mediana y máximo de RAM y delta de CPU por minuto.
+5. Ejecutar el mismo GET de solo lectura, con dataset y permisos equivalentes, tras calentamiento. Para carga, fijar concurrencia, duración, pausas y herramienta/versión; repetir cada perfil y guardar CSV. Reportar p50/p95/p99, throughput y errores.
+6. Medir por separado el artefacto, las dependencias productivas y el runtime/imagen desplegable. Determinar requisitos mínimos solo al variar recursos y encontrar el límite del SLO acordado.
+
+Los resultados de una próxima ejecución deben sustituir `NO MEDIDO` solo cuando ambas aplicaciones completen el mismo procedimiento y queden registrados los comandos, muestras y códigos HTTP.
