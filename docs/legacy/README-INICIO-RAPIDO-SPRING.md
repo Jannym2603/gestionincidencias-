@@ -1,4 +1,6 @@
-# Inicio rapido
+# Inicio rápido (legacy Spring Boot)
+
+Documento histórico. La aplicación activa es Astro + NestJS; este procedimiento solo sirve para ejecutar el backend Spring Boot conservado como referencia. Ejecuta los comandos desde la raíz del repositorio.
 
 ## 1. Requisitos
 
@@ -12,7 +14,7 @@
 Abre PowerShell dentro de la carpeta del proyecto y ejecuta:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\configurar-entorno.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\legacy\configurar-entorno.ps1
 ```
 
 El script configura variables de entorno sin escribir contrasenas dentro del repositorio.
@@ -36,7 +38,7 @@ database/actualizacion_2026_09.sql
 ## 4. Verificar el proyecto
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\verificar-proyecto.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\legacy\verificar-proyecto.ps1
 ```
 
 ## 5. Iniciar
@@ -44,13 +46,13 @@ powershell -ExecutionPolicy Bypass -File .\verificar-proyecto.ps1
 Opcion A, desde VS Code:
 
 ```powershell
-.\run-local.ps1
+.\scripts\legacy\run-local.ps1
 ```
 
 Opcion B, doble clic:
 
 ```text
-INICIAR-SISTEMA.bat
+.\scripts\legacy\INICIAR-SISTEMA.bat
 ```
 
 Cuando aparezca `Started GestionincidenciasApplication`, abre:
@@ -59,7 +61,7 @@ Cuando aparezca `Started GestionincidenciasApplication`, abre:
 http://localhost:8081/login.html
 ```
 
-Tambien puedes usar `ABRIR-SISTEMA.bat`.
+Tambien puedes usar `scripts\legacy\ABRIR-SISTEMA.bat`.
 
 ## 6. Comportamiento importante
 

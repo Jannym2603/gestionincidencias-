@@ -124,7 +124,7 @@ export function escribirAuditoria() {
         '- Archivo inexistente 404; path traversal y escapes por enlaces bloqueados. Carpeta principal compartida uploads/adjuntos del proyecto Spring; lectura compatible de apps/api/uploads/adjuntos anterior. Ningún archivo o registro real se mueve.',
         '- Astro debe usar proxy /api o el mismo origen y configurar FRONTEND_URL para la página pública; no se añade un origen CORS permisivo ni se modifica el frontend Spring.', '',
         'No quedan rutas Spring o frontend ausentes. Pruebas con mocks/fixtures y SMTP simulado; no migraciones ni cambios permanentes en PostgreSQL.');
-    writeFileSync(resolve(api, 'AUDITORIA-PARIDAD.md'), lineas.join('\n') + '\n');
+    writeFileSync(resolve(raiz, 'docs', 'migration', 'AUDITORIA-PARIDAD.md'), lineas.join('\n') + '\n');
     return { spring: a.spring.length, nest: a.nest.length, frontend: a.frontend.length, faltantes: a.faltantes.length, legacyFaltantes: a.legacyFaltantes.length, duplicados: a.duplicados.length };
 }
 if (process.argv.includes('--write')) console.log(JSON.stringify(escribirAuditoria()));

@@ -1,6 +1,7 @@
 import { api, ApiError } from './http';
 import { getSession, loginRedirect, expiry } from './session';
 import { visible, type Flags } from './navigation';
+import { initializeSidebarToggle } from './sidebar-toggle';
 
 export async function initializePage() {
     const session = getSession();
@@ -26,11 +27,7 @@ export async function initializePage() {
     app.hidden = false;
     document.getElementById('session-loading')!.hidden = true;
     document.getElementById('logout')!.addEventListener('click', () => loginRedirect());
-    const toggle = document.querySelector<HTMLButtonElement>('#sidebar-toggle')!;
-    if (localStorage.getItem('sidebarColapsada') === 'true' && innerWidth > 520) app.classList.add('sidebar-colapsada');
-    const sync = () => { const collapsed = app.classList.contains('sidebar-colapsada'); toggle.textContent = collapsed ? '›' : '‹'; toggle.setAttribute('aria-expanded', String(!collapsed)); toggle.setAttribute('aria-label', collapsed ? 'Expandir barra lateral' : 'Contraer barra lateral'); };
-    sync();
-    toggle.addEventListener('click', () => { app.classList.toggle('sidebar-colapsada'); localStorage.setItem('sidebarColapsada', String(app.classList.contains('sidebar-colapsada'))); sync(); });
+    initializeSidebarToggle(app);
     const validateExpiry = () => { if (!getSession()) loginRedirect(true); };
     setTimeout(validateExpiry, Math.max(0, Math.min(expiry(session.token) - Date.now(), 2147483647)));
     document.addEventListener('visibilitychange', () => { if (!document.hidden) validateExpiry(); });

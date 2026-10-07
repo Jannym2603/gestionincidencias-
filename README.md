@@ -1,5 +1,7 @@
 # Sistema de Gestión de Incidencias
 
+> **Aplicación actual:** frontend **Astro** (`http://localhost:4321`), backend **NestJS** (`http://localhost:3000`) y base de datos **PostgreSQL**. Spring Boot y las páginas HTML/JavaScript anteriores se conservan únicamente como versión legacy y referencia de migración.
+
 Monorepo para registrar y gestionar incidencias de varias compañías y proyectos. La aplicación activa está formada por una API NestJS, una interfaz Astro y PostgreSQL. El frontend legacy y el backend Spring Boot se conservan como referencia de la migración.
 
 ## Arquitectura y tecnologías
@@ -25,6 +27,7 @@ database/       SQL de referencia/demostración y actualizaciones existentes
 e2e/            Pruebas Playwright del frontend legacy Spring
 src/            Aplicación Spring Boot y frontend legacy conservados
 scripts/        Orquestación local del monorepo
+docs/           Instalación, arquitectura, demo, benchmark y evidencia de migración
 ```
 
 ## Requisitos
@@ -64,7 +67,7 @@ Los ejemplos están en [`apps/api/.env.example`](apps/api/.env.example) y [`apps
 | `DATABASE_URL` | API | Conexión PostgreSQL; obligatoria. |
 | `JWT_SECRET` | API | Firma de JWT; obligatorio, al menos 32 bytes aleatorios. |
 | `PORT` | API | Puerto HTTP, predeterminado `3000`. |
-| `FRONTEND_URL` | API | Base para construir enlaces compartidos; predeterminado `http://localhost:8081`. Para la demo local, usar `http://localhost:4321`. |
+| `FRONTEND_URL` | API | Base para construir enlaces compartidos; el ejemplo usa `http://localhost:4321`. Si se omite, el fallback del backend sigue apuntando al frontend legacy `:8081`. |
 | `MAIL_USERNAME`, `MAIL_PASSWORD` | API | Usuario y contraseña SMTP Gmail opcionales. Dejar vacíos desactiva el transporte. |
 | `SUPPORT_EMAIL` | API | Dirección de soporte opcional. |
 | `MAIL_COPY_SUPPORT` | API | `true` para copiar notificaciones a soporte; predeterminado `false`. |
@@ -133,6 +136,6 @@ No versionar `.env`, contraseñas, hashes, JWT, claves privadas, dumps de produc
 
 ## Estado de migración
 
-La migración funcional a NestJS + Astro está completa según las auditorías del proyecto. El backend Spring Boot y el frontend legacy se conservan como referencia y como fuente para la comparación visual/funcional; no se han eliminado ni forman parte del arranque principal documentado aquí. Persisten posibles diferencias menores de presentación descritas en los informes de auditoría.
+La migración funcional a NestJS + Astro está completa según las auditorías del proyecto. La matriz de rutas y contratos está archivada en [`docs/migration/AUDITORIA-PARIDAD.md`](docs/migration/AUDITORIA-PARIDAD.md). El backend Spring Boot y el frontend legacy se conservan como referencia y como fuente para la comparación visual/funcional; no se han eliminado ni forman parte del arranque principal documentado aquí. Persisten posibles diferencias menores de presentación descritas en los informes de auditoría.
 
 Consulta [`GUIA_INSTALACION.md`](GUIA_INSTALACION.md), [`ARCHITECTURE.md`](ARCHITECTURE.md), [`DEMO_CHECKLIST.md`](DEMO_CHECKLIST.md) y [`BENCHMARK.md`](BENCHMARK.md) para pasos ampliados.

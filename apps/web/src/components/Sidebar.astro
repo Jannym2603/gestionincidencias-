@@ -3,13 +3,19 @@ import { navigation } from '../lib/navigation';
 interface Props { active?: string }
 const { active = 'dashboard' } = Astro.props;
 ---
-<aside class="sidebar">
-    <div class="sidebar-logo"><div class="logo-icon">GI</div><div><h2>Gestión</h2><span>de Incidencias</span></div></div>
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+        <button type="button" class="sidebar-brand-toggle" id="sidebar-toggle" aria-label="Ocultar barra lateral" aria-expanded="true" aria-controls="sidebar">
+            <span class="logo-icon">GI</span>
+            <span class="sidebar-brand-copy"><strong>Gestión de Incidencias</strong><span>DE INCIDENCIAS</span></span>
+            <svg class="sidebar-collapse-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="m16 15-3-3 3-3"/></svg>
+            <svg class="sidebar-collapse-icon sidebar-collapse-icon-open" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="m13 9 3 3-3 3"/></svg>
+        </button>
+    </div>
     <nav class="menu" aria-label="Navegación principal">
         {navigation.map((item) => {
             const href = item.key === 'crear-ticket' ? '/tickets/nuevo' : item.key === 'companias-proyectos' ? '/companias' : `/${item.key}`;
-            return <a href={href} class:list={['menu-item', active === item.key && 'active']} data-menu={item.key === 'dashboard' ? undefined : item.key} aria-current={active === item.key ? 'page' : undefined}>{item.label}</a>;
+            return <a href={href} class:list={['menu-item', active === item.key && 'active']} data-menu={item.key === 'dashboard' ? undefined : item.key} data-tooltip={item.label} aria-current={active === item.key ? 'page' : undefined}><span class="menu-item-label">{item.label}</span></a>;
         })}
     </nav>
-    <button type="button" class="sidebar-toggle-btn" id="sidebar-toggle" aria-label="Contraer barra lateral" aria-expanded="true">&lsaquo;</button>
 </aside>

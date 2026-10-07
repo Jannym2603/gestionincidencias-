@@ -1,11 +1,13 @@
-# Guía rápida para la presentación
+# Guía rápida para la presentación (legacy Spring Boot)
+
+Documento histórico para la interfaz original. La demo actual usa Astro y NestJS; ejecuta estos comandos desde la raíz del repositorio.
 
 ## 1. Iniciar el sistema
 
 Desde la carpeta del proyecto en PowerShell:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\run-local.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\legacy\run-local.ps1
 ```
 
 Espera hasta ver `Tomcat started on port 8081` y abre:

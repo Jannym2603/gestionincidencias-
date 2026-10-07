@@ -1,6 +1,7 @@
 import { api, ApiError } from './http';
 import { getSession, loginRedirect, expiry } from './session';
 import { visible, featureAllowed, type Flags } from './navigation';
+import { initializeSidebarToggle } from './sidebar-toggle';
 interface Ticket { id: number; numeroTicket?: string | null; titulo: string; tipoAtencion?: string | null; tipoIncidenciaNombre?: string | null; clienteNombre?: string | null; clienteId: number; agenteId?: number | null; estado: string; prioridad: string; fechaCreacion?: string | null }
 type Counts = Record<string, number>;
 interface Resource { estadoRecurso: string; retrasada: boolean; fechaEstimadaEntrega?: string | null }
@@ -28,10 +29,7 @@ async function initialize() {
     text('dashboard-title', titles[session.rol][0]!); text('dashboard-description', titles[session.rol][1]!);
     document.getElementById('logout')!.addEventListener('click', () => loginRedirect());
     const container = document.getElementById('protected-app')!;
-    const toggle = document.querySelector<HTMLButtonElement>('#sidebar-toggle')!;
-    const collapsed = () => { const state = container.classList.contains('sidebar-colapsada'); toggle.textContent = state ? '›' : '‹'; toggle.setAttribute('aria-expanded', String(!state)); toggle.setAttribute('aria-label', state ? 'Expandir barra lateral' : 'Contraer barra lateral'); };
-    if (localStorage.getItem('sidebarColapsada') === 'true' && innerWidth > 520) container.classList.add('sidebar-colapsada'); collapsed();
-    toggle.addEventListener('click', () => { container.classList.toggle('sidebar-colapsada'); localStorage.setItem('sidebarColapsada', String(container.classList.contains('sidebar-colapsada'))); collapsed(); });
+    initializeSidebarToggle(container);
     const checkExpiry = () => { if (!getSession()) loginRedirect(true); };
     setTimeout(checkExpiry, Math.min(expiry(session.token) - Date.now(), 2147483647));
     document.addEventListener('visibilitychange', () => { if (!document.hidden) checkExpiry(); });

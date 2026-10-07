@@ -1,4 +1,4 @@
-# Cambios preparados para la presentación
+# Cambios de presentación de la interfaz legacy Spring Boot
 
 ## Navegación lateral
 
@@ -35,7 +35,7 @@
 - Icono contextual en el título de cada pantalla.
 - Mejoras de tarjetas, tablas, encabezados y estados vacíos.
 - Encabezados de tablas más claros y consistentes.
-- Guía rápida de presentación incluida en `GUIA-PRESENTACION.md`.
+- Guía histórica de presentación incluida en `GUIA-PRESENTACION-SPRING.md`.
 
 ## Validaciones realizadas
 

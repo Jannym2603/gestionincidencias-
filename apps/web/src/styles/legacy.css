@@ -362,12 +362,7 @@ table.tickets-agrupados-tabla>tbody>tr:hover>td{background:transparent;}
 @media(max-width:760px){.topbar{top:8px;}
 }
 .sidebar{overflow:visible;transition:width 180ms ease;}
-.sidebar-logo{min-height:46px;padding-right:36px;}
-.sidebar-toggle-btn{position:absolute;top:24px;right:-14px;width:30px;height:30px;display:grid;place-items:center;border:1px solid color-mix(in srgb,var(--blue) 34%,#ffffff 66%);border-radius:50%;background:var(--blue);color:#ffffff;cursor:pointer;z-index:45;box-shadow:0 4px 12px color-mix(in srgb,#0f172a 22%,transparent);transition:background var(--ease),color var(--ease),border-color var(--ease),transform var(--ease),box-shadow var(--ease);}
-.sidebar-toggle-btn:hover{background:color-mix(in srgb,var(--blue) 86%,#ffffff 14%);border-color:#ffffff;color:#ffffff;box-shadow:0 6px 16px color-mix(in srgb,#0f172a 28%,transparent);}
-.sidebar-toggle-btn:active{transform:scale(0.94);}
-.sidebar-toggle-btn:focus-visible{outline:2px solid color-mix(in srgb,var(--blue) 80%,#ffffff 20%);outline-offset:2px;}
-.sidebar-toggle-arrow{display:block;font-size:21px;font-weight:600;line-height:1;transform:translateY(-1px);}
+.sidebar-logo{min-height:46px;}
 .menu-item{position:relative;display:flex;align-items:center;gap:10px;}
 .menu-item::before{width:18px;height:18px;flex:0 0 18px;display:grid;place-items:center;border-radius:5px;color:currentColor;font-size:13px;font-weight:700;line-height:1;}
 .menu-item[href="dashboard.html"]::before{content:"▦";}
@@ -384,14 +379,12 @@ table.tickets-agrupados-tabla>tbody>tr:hover>td{background:transparent;}
 .app-container.sidebar-colapsada .sidebar-logo{justify-content:center;padding:2px 0 20px;}
 .app-container.sidebar-colapsada .sidebar-logo>div:last-child{display:none;}
 .app-container.sidebar-colapsada .logo-icon{width:36px;height:36px;}
-.app-container.sidebar-colapsada .sidebar-toggle-btn{top:70px;left:auto;right:-14px;transform:none;width:30px;height:30px;background:var(--blue);}
-.app-container.sidebar-colapsada .sidebar-toggle-btn:hover{transform:none;}
-.app-container.sidebar-colapsada .menu{margin-top:30px;align-items:center;}
+.app-container.sidebar-colapsada .menu{margin-top:0;align-items:center;}
 .app-container.sidebar-colapsada .menu-item{width:44px;min-height:40px;padding:0;justify-content:center;gap:0;font-size:0;}
 .app-container.sidebar-colapsada .menu-item::before{width:28px;height:28px;flex-basis:28px;font-size:14px;}
 .app-container.sidebar-colapsada .menu-item[href="crear-ticket.html"]::before{font-size:19px;}
 .app-container.sidebar-colapsada .menu-item:hover::after{content:attr(data-tooltip);position:absolute;left:calc(100% + 12px);top:50%;z-index:60;transform:translateY(-50%);padding:7px 10px;border:1px solid color-mix(in srgb,#f8fafc 10%,transparent);border-radius:7px;background:var(--sidebar);color:#ffffff;font-size:11px;font-weight:600;white-space:nowrap;box-shadow:0 8px 20px color-mix(in srgb,#0f172a 24%,transparent);pointer-events:none;}
-@media(max-width:520px){.sidebar-toggle-btn{display:none;}
+@media(max-width:520px){
 .menu-item{display:flex;}
 .app-container.sidebar-colapsada .sidebar{width:100%;padding:18px 12px;}
 .app-container.sidebar-colapsada .main-content{margin-left:0;width:100%;}
@@ -887,13 +880,6 @@ body.dashboard-page{background:linear-gradient(180deg,color-mix(in srgb,var(--bg
     top:-6px;
     height:1px;
     background:rgba(148,163,184,.12);
-}
-.sidebar-toggle-btn{
-    top:24px;
-    right:-14px;
-    border-color:rgba(255,255,255,.72);
-    background:var(--blue);
-    color:#fff;
 }
 .app-container.sidebar-colapsada .menu-item{
     border-radius:10px;
