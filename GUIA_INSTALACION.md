@@ -1,24 +1,27 @@
 # Guía de instalación y ejecución
 
-Instrucciones para instalar el sistema activo NestJS + Astro. Las páginas Spring Boot del árbol `src/` se conservan como legacy y no se inician con estos comandos.
+Esta guía instala la aplicación actual **NestJS + Astro + PostgreSQL**. El backend Spring Boot/Java y el frontend HTML/CSS/JavaScript en `src/` son la versión legacy conservada para referencia de migración; no se requieren para esta instalación.
 
 ## Requisitos
 
-- Node.js 22.12 o posterior y npm 9.6.5 o posterior (requisito fijado por Astro 7).
-- PostgreSQL 15 o posterior con esquema compatible ya preparado.
-- Edge para ejecutar las pruebas E2E de `apps/web`.
+- Node.js 22.12 o posterior y npm 9.6.5 o posterior.
+- PostgreSQL 15 o posterior, con una base y un esquema compatible preparados.
+- Microsoft Edge para ejecutar las pruebas Playwright de `apps/web`.
+- Java 17 únicamente si se va a revisar o iniciar el backend Spring Boot legacy.
 
-## 1. Instalar dependencias
+## 1. Obtener el repositorio e instalar dependencias
 
-Desde la raíz del monorepo:
+Desde PowerShell:
 
 ```powershell
+git clone <URL_DEL_REPOSITORIO>
+cd gestionincidencias-
 npm install
 npm install --prefix apps/api
 npm install --prefix apps/web
 ```
 
-## 2. Configurar entorno
+## 2. Configurar el entorno local
 
 ```powershell
 Copy-Item apps/api/.env.example apps/api/.env
@@ -27,39 +30,52 @@ Copy-Item apps/web/.env.example apps/web/.env
 
 Edita `apps/api/.env` localmente:
 
-- `DATABASE_URL`: conexión a una base PostgreSQL local/de demo cuyo esquema ya exista.
-- `JWT_SECRET`: clave aleatoria privada de al menos 32 bytes. Genera una con `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"`.
+- `DATABASE_URL`: conexión a la base PostgreSQL local/de demo con esquema compatible ya preparado.
+- `JWT_SECRET`: valor privado aleatorio de al menos 32 bytes. Genera uno con:
+  ```powershell
+  node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
+  ```
 - `PORT=3000` y `FRONTEND_URL=http://localhost:4321` para la demo local.
-- `MAIL_USERNAME`, `MAIL_PASSWORD`, `SUPPORT_EMAIL`: opcionales. Déjalas vacías para operar sin SMTP.
-- `MAIL_COPY_SUPPORT=false` y los valores de intervalos de alertas pueden conservarse en sus defaults.
+- `MAIL_USERNAME`, `MAIL_PASSWORD`, `SUPPORT_EMAIL`: opcionales; déjalos vacíos para no enviar correo.
+- `MAIL_COPY_SUPPORT=false`; las dos variables de intervalos de alertas pueden conservar los defaults del ejemplo.
 
-En `apps/web/.env`, `PUBLIC_API_URL=http://localhost:3000`. No pongas secretos en esta variable ni en ninguna `PUBLIC_*`. Los ejemplos contienen placeholders y no son credenciales utilizables.
+En `apps/web/.env`, configura `PUBLIC_API_URL=http://localhost:3000`. Esta variable es pública en el contexto de Astro: no pongas secretos en ella ni en otras variables `PUBLIC_*`.
 
-La API no aplica migraciones automáticamente. No uses scripts de `database/` sobre una base existente sin revisar el SQL, confirmar el destino y respaldar la base. Las pruebas usan fixtures/mocks y no necesitan conexión de base de datos real.
+Los `.env.example` contienen nombres y placeholders, no credenciales válidas. Nunca subas los `.env` locales.
 
-## 3. Levantar la aplicación
+## 3. Verificar PostgreSQL y el esquema
 
-Todo junto, desde la raíz:
+Comprueba que el servicio PostgreSQL esté disponible en el host/puerto indicados en `DATABASE_URL` y que la base contenga el esquema esperado por la API. La API no crea ni migra el esquema automáticamente. No ejecutes archivos SQL de `database/` contra una base existente sin revisar el script y confirmar el destino conforme al procedimiento autorizado.
+
+Las pruebas automatizadas utilizan fixtures y mocks; no requieren conectar la aplicación de pruebas a PostgreSQL real.
+
+## 4. Iniciar el sistema
+
+Desde la raíz, inicia API y web en conjunto:
 
 ```powershell
 npm run dev
 ```
 
-O en dos terminales:
+También se pueden iniciar en terminales separadas:
 
 ```powershell
 npm run api
 npm run web
 ```
 
-- Astro: `http://localhost:4321`
-- NestJS: `http://localhost:3000`; `GET /` devuelve una respuesta básica para comprobar disponibilidad.
-- PostgreSQL: normalmente `localhost:5432`.
-- Spring legacy: puerto configurado por separado, históricamente `8081`; no hace falta para Astro.
+URLs locales:
 
-Para una verificación manual, abre la página de login y solicita `http://localhost:3000/` en el navegador. Una ruta protegida sin token puede responder `401`, que también confirma que la API está procesando peticiones.
+- **Frontend:** <http://localhost:4321>
+- **Login:** <http://localhost:4321/login>
+- **Backend:** <http://localhost:3000>; `GET /` sirve como comprobación básica.
+- **PostgreSQL:** normalmente `localhost:5432`.
 
-## 4. Compilar y validar
+El puerto histórico `8081` corresponde al despliegue legacy Spring. No forma parte del arranque Astro. Configura siempre `FRONTEND_URL`; si se omite, el fallback actual al construir enlaces conserva ese origen legacy.
+
+Para verificar manualmente, abre el login y solicita `http://localhost:3000/`. También puedes visitar una ruta API protegida sin JWT: un `401` indica que la API recibió la petición y aplicó la protección.
+
+## 5. Compilar y ejecutar pruebas
 
 ```powershell
 npm run build
@@ -70,42 +86,51 @@ npm run test:api:e2e
 npm run test:web:e2e
 ```
 
-Las suites de backend usan Vitest, mocks de PostgreSQL y SMTP y fixtures HTTP. Playwright de Astro levanta un backend de autenticación en memoria y la web; requiere build API disponible (el flujo de entrega ejecuta build primero) y Edge. Las pruebas Playwright legacy se ejecutan aparte con `npm run test:legacy:e2e` y requieren el Spring legacy levantado.
+`npm run build` compila API y web; `npm run check` ejecuta Astro check. Las suites backend usan Vitest, mocks y fixtures. Las E2E web usan Playwright y Edge; el script `test:web:e2e` compila primero la API de fixture. `npm test` ejecuta las suites unitarias API, E2E API y E2E web en secuencia. `npm run test:legacy:e2e` corresponde al frontend legacy y requiere su propio entorno Spring.
 
-## 5. Problemas comunes
+## 6. Problemas comunes
 
 ### Puerto ocupado
 
-NestJS usa `PORT` (por defecto `3000`). Cambia ese valor en `apps/api/.env` y actualiza `PUBLIC_API_URL` de Astro para que apunte al nuevo puerto. Astro fija el puerto `4321` en `apps/web/astro.config.mjs`; si está ocupado, detén el proceso que lo usa antes de iniciar la demo. En Windows identifica el PID con `Get-NetTCPConnection -LocalPort 3000` (o `4321`) y consulta el proceso con `Get-Process -Id <PID>`. Detén solo el proceso confirmado como propio.
+NestJS usa `PORT` (predeterminado `3000`). Si se cambia, ajusta `PUBLIC_API_URL` en `apps/web/.env` y reinicia ambos procesos. Astro está configurado para el puerto `4321`; libera ese puerto antes de la demo si ya está ocupado.
+
+En PowerShell puedes consultar conexiones y PID:
+
+```powershell
+Get-NetTCPConnection -LocalPort 3000
+Get-NetTCPConnection -LocalPort 4321
+Get-Process -Id <PID>
+```
+
+Detén únicamente el proceso que identificaste como propio.
 
 ### API no inicia
 
-- Comprueba que existe `apps/api/.env` y que `JWT_SECRET` tiene al menos 32 bytes.
-- Revisa el formato y disponibilidad de `DATABASE_URL`; el proveedor PostgreSQL debe poder conectarse cuando se atienda una consulta.
+- Comprueba que `apps/api/.env` exista y que `JWT_SECRET` tenga al menos 32 bytes.
+- Revisa formato, disponibilidad y permisos de la conexión `DATABASE_URL`.
 - Verifica que `PORT` esté libre.
-- Compila con `npm run build:api` para mostrar errores de TypeScript.
+- Ejecuta `npm run build:api` para detectar errores de compilación.
 
 ### Login o llamadas web fallan
 
 - Confirma que NestJS responde en su puerto y que `PUBLIC_API_URL` coincide.
-- En dev, Astro proxifica `/api`; reinicia Astro después de modificar `.env`.
-- Revisa la consola de red del navegador para distinguir `401` de `403`; estos códigos indican respectivamente sesión inválida y falta de permisos.
+- En desarrollo Astro proxifica `/api`; reinicia Astro tras modificar el `.env`.
+- `401` indica sesión ausente/inválida/expirada; `403` indica que el usuario no tiene permiso para la operación.
 
 ### Correo no disponible
 
-El correo es opcional. Deja las variables SMTP vacías para una demo sin envío real y presenta la notificación como no configurada. No uses credenciales personales compartidas.
+SMTP es opcional. Deja `MAIL_USERNAME` y `MAIL_PASSWORD` vacíos para operar sin correo. Los errores de envío no deberían revertir las operaciones principales soportadas.
 
 ### Pruebas de navegador
 
-Verifica Edge, dependencias instaladas y puertos `4310`/`4321` libres. Las pruebas usan una API fixture; no requieren SMTP ni PostgreSQL. Resultados temporales de Playwright quedan ignorados por Git.
+Instala Edge y dependencias; verifica que los puertos de pruebas y desarrollo estén disponibles. Las pruebas Astro usan una API de fixture y no requieren PostgreSQL ni SMTP. Los reportes temporales de Playwright no deben versionarse.
 
-## 6. Ejecución de la versión compilada
+## 7. Ejecutar la web compilada
 
-Después de `npm run build`, sirve Astro SSR con Node desde `apps/web`:
+Después de `npm run build`, desde `apps/web`:
 
 ```powershell
-cd apps/web
 node dist/server/entry.mjs
 ```
 
-En despliegue configura un proxy inverso con HTTPS que sirva Astro y dirija `/api` al puerto interno de NestJS, o configura CORS con una lista explícita del origen web. Revisa `ARCHITECTURE.md` antes de exponer el sistema.
+Para producción, coloca Astro y NestJS detrás de un proxy inverso con HTTPS que enrute `/api` hacia la API, o configura CORS con una lista explícita de orígenes. Revisa [ARCHITECTURE.md](ARCHITECTURE.md) antes de publicar el servicio.
